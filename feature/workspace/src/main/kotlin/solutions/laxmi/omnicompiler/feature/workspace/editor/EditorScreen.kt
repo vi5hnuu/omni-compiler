@@ -1,5 +1,6 @@
 package solutions.laxmi.omnicompiler.feature.workspace.editor
 
+import solutions.laxmi.omnicompiler.core.navigation.PreviewRoute
 import solutions.laxmi.omnicompiler.core.ui.R as CommonR
 import solutions.laxmi.omnicompiler.core.ui.shareFile
 import androidx.compose.ui.platform.LocalContext
@@ -112,6 +113,9 @@ fun EditorScreen(route: EditorRoute, navigator: Navigator) {
             onShareFile = viewModel::shareFile,
             onShareProject = viewModel::shareProject,
             onSaveToOrigin = viewModel::saveToOrigin,
+            onPreview = { fileId ->
+                state.workspace?.project?.id?.let { navigator.navigate(PreviewRoute(it, fileId)) }
+            },
             onRenameProject = viewModel::renameProject,
             onResetToStarter = viewModel::resetToStarter,
             onNewProject = viewModel::newProject,
@@ -153,6 +157,7 @@ internal class EditorActions(
     val onShareFile: (String) -> Unit,
     val onShareProject: () -> Unit,
     val onSaveToOrigin: () -> Unit,
+    val onPreview: (fileId: String) -> Unit,
     val onRenameProject: (String) -> Unit,
     val onResetToStarter: () -> Unit,
     val onNewProject: () -> Unit,
@@ -171,8 +176,9 @@ private fun EditorContent(state: EditorUiState, drawer: DrawerContent, snackbar:
     val drawerState = drawer.state
     val scope = rememberCoroutineScope()
     val editorState = rememberCodeEditorState()
+    val splitState = rememberCodeEditorState()
     // Typing mode is for code only; a keyboard raised by another field (stdin, test editor) keeps the normal chrome.
-    val typing = WindowInsets.isImeVisible && editorState.hasFocus
+    val typing = WindowInsets.isImeVisible && (editorState.hasFocus || splitState.hasFocus)
     var searching by rememberSaveable { mutableStateOf(false) }
     var showNewFile by rememberSaveable { mutableStateOf(false) }
     var renamingProject by rememberSaveable { mutableStateOf(false) }
@@ -236,6 +242,7 @@ private fun EditorContent(state: EditorUiState, drawer: DrawerContent, snackbar:
                         projectId = workspace.project.id,
                         activeFile = activeFile,
                         editorState = editorState,
+                        splitState = splitState,
                         typing = typing,
                         searching = searching,
                         onSearchChange = { searching = it },

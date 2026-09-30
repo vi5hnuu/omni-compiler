@@ -306,4 +306,15 @@
     <string name="shortcut_move_line">Move line up or down</string>
     <string name="shortcut_undo_redo">Undo / redo</string>
     <string name="shortcut_clipboard">Select all, copy, cut, paste</string>
+    <string name="preview_title">Preview</string>
+    <string name="preview_reload">Reload</string>
+    <string name="preview_console">Browser console</string>
+    <string name="preview_console_hint">Evaluate JavaScript</string>
+    <string name="preview_unsupported_title">Nothing to preview</string>
+    <string name="preview_unsupported_message">Preview works for HTML, Markdown and JavaScript files.</string>
+    <string name="editor_menu_preview">Preview</string>
+    <string name="editor_menu_run_in_browser">Run in browser</string>
+    <string name="editor_split_divider">Resize panes</string>
+    <string name="editor_menu_split">Split view</string>
+    <string name="editor_menu_unsplit">Close split view</string>
 </resources>

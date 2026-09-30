@@ -31,6 +31,8 @@ okhttp = "5.5.0"
 tink = "1.23.0"
 soraEditor = "0.24.6"
 coil = "3.6.3"
+webkit = "1.17.1"
+markdownRenderer = "0.45.0"
 aboutLibraries = "15.2.0"
 
 junit = "4.13.2"
@@ -111,6 +113,8 @@ okhttp-mockwebserver = { group = "com.squareup.okhttp3", name = "mockwebserver3"
 sora-editor = { group = "io.github.rosemoe", name = "editor", version.ref = "soraEditor" }
 sora-language-textmate = { group = "io.github.rosemoe", name = "language-textmate", version.ref = "soraEditor" }
 coil-compose = { group = "io.coil-kt.coil3", name = "coil-compose", version.ref = "coil" }
+androidx-webkit = { group = "androidx.webkit", name = "webkit", version.ref = "webkit" }
+markdown-renderer-m3 = { group = "com.mikepenz", name = "multiplatform-markdown-renderer-m3", version.ref = "markdownRenderer" }
 coil-network-okhttp = { group = "io.coil-kt.coil3", name = "coil-network-okhttp", version.ref = "coil" }
 
 # Open-source notices

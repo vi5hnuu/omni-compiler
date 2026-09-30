@@ -9,4 +9,6 @@ android {
 dependencies {
     implementation(projects.core.editor)
     implementation(libs.androidx.compose.material3)
+    implementation(libs.androidx.webkit)
+    implementation(libs.markdown.renderer.m3)
 }

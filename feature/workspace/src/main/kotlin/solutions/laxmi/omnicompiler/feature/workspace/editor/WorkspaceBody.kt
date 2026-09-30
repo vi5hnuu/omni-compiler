@@ -1,5 +1,6 @@
 package solutions.laxmi.omnicompiler.feature.workspace.editor
 
+import androidx.compose.ui.platform.LocalConfiguration
 import solutions.laxmi.omnicompiler.core.editor.EditorCommand
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.ui.draw.clipToBounds
@@ -88,6 +89,7 @@ internal fun ColumnScope.WorkspaceBody(
     projectId: String,
     activeFile: SourceFile,
     editorState: CodeEditorState,
+    splitState: CodeEditorState,
     typing: Boolean,
     searching: Boolean,
     onSearchChange: (Boolean) -> Unit,
@@ -121,6 +123,22 @@ internal fun ColumnScope.WorkspaceBody(
     var findWithReplace by rememberSaveable { mutableStateOf(false) }
     var goingToLine by rememberSaveable { mutableStateOf(false) }
     var showShortcuts by rememberSaveable { mutableStateOf(false) }
+    // Split view: the second pane's file (never the primary's, so two panes never save over each other).
+    var splitFileId by rememberSaveable { mutableStateOf<String?>(null) }
+    var splitFraction by rememberSaveable { mutableStateOf(0.5f) }
+    val wide = LocalConfiguration.current.screenWidthDp.dp >= SplitMinWidth
+    val projectFiles = state.workspace?.files.orEmpty()
+    val splitFile = splitFileId?.let { id -> projectFiles.firstOrNull { it.id == id && it.id != activeFile.id } }
+        ?.takeIf { wide }
+    fun flushEditors() {
+        flushEditors()
+        splitState.flush()
+    }
+    // Choosing the second pane's file in the first pane swaps the two instead of opening it twice.
+    val selectFile: (String) -> Unit = { id ->
+        if (id == splitFileId) splitFileId = activeFile.id
+        actions.onSelectFile(id)
+    }
 
     // Hardware-keyboard shortcuts raise these from inside the code view.
     LaunchedEffect(editorState) {
@@ -186,7 +204,7 @@ internal fun ColumnScope.WorkspaceBody(
     val running = consoleState.isRunning
     // Edits are debounced; persist them before the judge reads the project.
     val runTests: () -> Unit = {
-        editorState.flush()
+        flushEditors()
         console.runTests()
     }
     val stopOrRun: () -> Unit = if (running) console::stop else runTests
@@ -215,12 +233,18 @@ internal fun ColumnScope.WorkspaceBody(
                 OverflowMenu(
                     listOfNotNull(
                         (stringResource(R.string.editor_menu_save_to_origin) to actions.onSaveToOrigin).takeIf { state.workspace?.project?.hasOrigin == true },
+                        // Web files open in the preview; browser JavaScript runs in a page with a console.
+                        previewLabel(activeFile)?.let { label -> stringResource(label) to { actions.onPreview(activeFile.id) } },
                         stringResource(R.string.editor_menu_run_with_input) to { openConsole(ConsoleTab.Input) },
                         stringResource(R.string.editor_menu_find_replace) to {
                             findWithReplace = true
                             onSearchChange(true)
                         },
                         stringResource(R.string.editor_go_to_line) to { goingToLine = true },
+                        (stringResource(if (splitFile != null) R.string.editor_menu_unsplit else R.string.editor_menu_split) to {
+                            flushEditors()
+                            splitFileId = if (splitFile != null) null else projectFiles.firstOrNull { it.id != activeFile.id }?.id
+                        }).takeIf { wide && projectFiles.size > 1 },
                         stringResource(R.string.editor_menu_benchmark) to { showBenchmark = true },
                         stringResource(R.string.editor_menu_limits) to { showLimits = true },
                         stringResource(R.string.editor_new_file) to onShowNewFile,
@@ -243,7 +267,7 @@ internal fun ColumnScope.WorkspaceBody(
             activeFileId = activeFile.id,
             entryShortCode = state.language?.shortCode,
             dirtyFileId = activeFile.id.takeIf { editorState.isDirty },
-            onSelect = { actions.onSelectFile(it.id) },
+            onSelect = { selectFile(it.id) },
             onFileMenu = { if (!it.isEntry) onFileMenu(it) },
             onAdd = onShowNewFile,
         )
@@ -277,7 +301,7 @@ internal fun ColumnScope.WorkspaceBody(
             containerColor = colors.background,
             sheetContent = {
                 if (symbolStrip) {
-                    SymbolRow(editorState, Modifier.height(ConsolePeekHeight))
+                    SymbolRow(if (splitState.hasFocus) splitState else editorState, Modifier.height(ConsolePeekHeight))
                 } else Column(Modifier.fillMaxWidth().height(expandedHeight - OmniDimens.sheetHandle)) {
                     ConsolePeek(latest, expanded = consoleExpanded, onToggle = { if (consoleExpanded) collapseConsole() else openConsole() })
                     ConsoleSheet(
@@ -291,7 +315,7 @@ internal fun ColumnScope.WorkspaceBody(
                             onClear = console::clearConsole,
                             onStop = console::stop,
                             onRunWithInput = {
-                                editorState.flush()
+                                flushEditors()
                                 console.runWithInput()
                             },
                             onStdinChange = console::setStdin,
@@ -310,7 +334,7 @@ internal fun ColumnScope.WorkspaceBody(
                             tests = TestActions(
                                 onRunAll = runTests,
                                 onRunOne = { test ->
-                                    editorState.flush()
+                                    flushEditors()
                                     console.runTests(setOf(test.id))
                                 },
                                 onAdd = { creatingTest = true },
@@ -327,27 +351,66 @@ internal fun ColumnScope.WorkspaceBody(
         ) {
             // The collapsed sheet overlays the bottom; reserve its height so the status bar stays visible above it.
             Column(Modifier.fillMaxSize().padding(bottom = peekHeight)) {
-                CodeEditor(
-                    state = editorState,
-                    document = EditorDocument(
-                        id = activeFile.id,
-                        revision = activeFile.contentVersion,
-                        text = activeFile.content,
-                        fileName = activeFile.name,
-                        languageBase = state.runtime?.language,
-                        isEntry = activeFile.isEntry,
-                        // Comment syntax is known for the project's language; other file types get none.
-                        lineComment = state.language?.lineComment?.takeIf { sameLanguage },
-                        blockComment = state.language?.blockComment?.takeIf { sameLanguage },
-                    ),
-                    settings = state.settings,
-                    onTextChange = actions.onContentChanged,
-                    diagnostics = remember(problems) { problems.map { EditorDiagnostic(it.line!!, it.column, it.message, it.isError) } },
-                    onRunShortcut = if (consoleState.runSettings.runOnCtrlEnter) runTests else null,
-                    lineHint = runHint(activeFile, state.runtime?.language, consoleState.tests.size, latest, running),
-                    onLineHintClick = runTests,
-                    modifier = Modifier.weight(1f).fillMaxWidth(),
-                )
+                val primaryEditor: @Composable (Modifier) -> Unit = { paneModifier ->
+                    CodeEditor(
+                        state = editorState,
+                        document = EditorDocument(
+                            id = activeFile.id,
+                            revision = activeFile.contentVersion,
+                            text = activeFile.content,
+                            fileName = activeFile.name,
+                            languageBase = state.runtime?.language,
+                            isEntry = activeFile.isEntry,
+                            // Comment syntax is known for the project's language; other file types get none.
+                            lineComment = state.language?.lineComment?.takeIf { sameLanguage },
+                            blockComment = state.language?.blockComment?.takeIf { sameLanguage },
+                        ),
+                        settings = state.settings,
+                        onTextChange = actions.onContentChanged,
+                        diagnostics = remember(problems) { problems.map { EditorDiagnostic(it.line!!, it.column, it.message, it.isError) } },
+                        onRunShortcut = if (consoleState.runSettings.runOnCtrlEnter) runTests else null,
+                        lineHint = runHint(activeFile, state.runtime?.language, consoleState.tests.size, latest, running),
+                        onLineHintClick = runTests,
+                        modifier = paneModifier,
+                    )
+                }
+                if (splitFile == null) {
+                    primaryEditor(Modifier.weight(1f).fillMaxWidth())
+                } else {
+                    SplitPanes(
+                        fraction = splitFraction,
+                        onFractionChange = { splitFraction = it },
+                        first = primaryEditor,
+                        second = { paneModifier ->
+                            Column(paneModifier) {
+                                FileTabs(
+                                    files = projectFiles.filter { it.id != activeFile.id },
+                                    activeFileId = splitFile.id,
+                                    entryShortCode = state.language?.shortCode,
+                                    dirtyFileId = splitFile.id.takeIf { splitState.isDirty },
+                                    onSelect = { splitFileId = it.id },
+                                    onFileMenu = { },
+                                    onAdd = onShowNewFile,
+                                )
+                                CodeEditor(
+                                    state = splitState,
+                                    document = EditorDocument(
+                                        id = splitFile.id,
+                                        revision = splitFile.contentVersion,
+                                        text = splitFile.content,
+                                        fileName = splitFile.name,
+                                        languageBase = state.runtime?.language,
+                                        isEntry = splitFile.isEntry,
+                                    ),
+                                    settings = state.settings,
+                                    onTextChange = actions.onContentChanged,
+                                    modifier = Modifier.weight(1f).fillMaxWidth(),
+                                )
+                            }
+                        },
+                        modifier = Modifier.weight(1f).fillMaxWidth(),
+                    )
+                }
                 EditorStatusBar(editorState, state.settings.tabSize, problems = latest?.problems?.size ?: 0)
             }
         }
@@ -416,7 +479,7 @@ internal fun ColumnScope.WorkspaceBody(
                 console.dismissOverlay()
             },
             onStart = {
-                editorState.flush()
+                flushEditors()
                 console.benchmark(it)
             },
         )
@@ -439,3 +502,10 @@ private fun runHint(file: SourceFile, languageBase: String?, testCount: Int, lat
 }
 
 private const val SHEET_FRACTION = 0.78f
+
+@androidx.annotation.StringRes
+private fun previewLabel(file: SourceFile): Int? = when (file.name.substringAfterLast('.', "").lowercase()) {
+    "html", "htm", "md", "markdown" -> R.string.editor_menu_preview
+    "js", "mjs" -> R.string.editor_menu_run_in_browser
+    else -> null
+}
