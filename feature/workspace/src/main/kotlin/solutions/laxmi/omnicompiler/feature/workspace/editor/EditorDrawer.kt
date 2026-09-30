@@ -152,7 +152,8 @@ private fun AccountHeader(user: User?, onClick: () -> Unit) {
                 overflow = TextOverflow.Ellipsis,
             )
         }
-        OmniBadge(if (user == null || user.isGuest) "GUEST" else "FREE")
+        // The plan lives on Usage & plan; only the guest state is known locally.
+        if (user == null || user.isGuest) OmniBadge("GUEST")
     }
 }
 

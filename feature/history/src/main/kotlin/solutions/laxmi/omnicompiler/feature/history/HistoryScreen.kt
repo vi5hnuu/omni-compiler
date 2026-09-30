@@ -20,6 +20,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
@@ -55,7 +57,6 @@ import solutions.laxmi.omnicompiler.core.ui.VerdictBadge
 import solutions.laxmi.omnicompiler.core.ui.userMessage
 import java.text.SimpleDateFormat
 import java.util.Date
-import java.util.Locale
 import kotlin.math.roundToInt
 
 /** Design W4: runs recorded by the judge for this account. */
@@ -149,7 +150,8 @@ private fun WeekChart(week: List<DayActivity>) {
     if (week.isEmpty()) return
     val colors = OmniTheme.colors
     val max = week.maxOf { it.runs }.coerceAtLeast(1)
-    val dayFormat = SimpleDateFormat("EEEEE", Locale.getDefault())
+    val locale = LocalConfiguration.current.locales[0]
+    val dayFormat = remember(locale) { SimpleDateFormat("EEEEE", locale) }
     Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
         Row(Modifier.fillMaxWidth().height(64.dp), verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             week.forEachIndexed { i, day ->
@@ -182,10 +184,11 @@ private fun VerdictFilters(state: HistoryUiState, onSelect: (Verdict?) -> Unit) 
 
 @Composable
 private fun DayHeader(dayStart: Long) {
+    val locale = LocalConfiguration.current.locales[0]
     val label = when {
         DateUtils.isToday(dayStart) -> "Today"
         DateUtils.isToday(dayStart + DateUtils.DAY_IN_MILLIS) -> "Yesterday"
-        else -> SimpleDateFormat("EEE d MMM", Locale.getDefault()).format(Date(dayStart))
+        else -> SimpleDateFormat("EEE d MMM", locale).format(Date(dayStart))
     }
     Text(
         label.uppercase(),
@@ -198,6 +201,7 @@ private fun DayHeader(dayStart: Long) {
 @Composable
 private fun SubmissionRow(submission: Submission, onClick: () -> Unit) {
     val colors = OmniTheme.colors
+    val locale = LocalConfiguration.current.locales[0]
     Row(
         Modifier
             .fillMaxWidth()
@@ -215,7 +219,7 @@ private fun SubmissionRow(submission: Submission, onClick: () -> Unit) {
         Column(horizontalAlignment = Alignment.End) {
             Text(formatMillis(submission.totalTimeMs), style = OmniTheme.typography.mono, color = colors.textSecondary)
             Text(
-                SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(submission.createdAt.toEpochMilliseconds())),
+                SimpleDateFormat("HH:mm", locale).format(Date(submission.createdAt.toEpochMilliseconds())),
                 style = OmniTheme.typography.monoSmall,
                 color = colors.textTertiary,
             )

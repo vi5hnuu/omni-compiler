@@ -1,7 +1,7 @@
 package solutions.laxmi.omnicompiler.core.data.files
 
 import android.content.Context
-import android.net.Uri
+import androidx.core.net.toUri
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.withContext
@@ -28,7 +28,7 @@ internal class ContentResolverTextReader @Inject constructor(
 ) : TextDocumentReader {
     override suspend fun read(uri: String, maxBytes: Int): Outcome<String> = withContext(io) {
         try {
-            val stream = context.contentResolver.openInputStream(Uri.parse(uri))
+            val stream = context.contentResolver.openInputStream(uri.toUri())
                 ?: return@withContext Outcome.Failure(AppError.NotFound("Couldn't open that file."))
             stream.use { input ->
                 val bytes = input.readBounded(maxBytes + 1)

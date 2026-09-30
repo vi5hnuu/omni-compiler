@@ -11,4 +11,8 @@ android {
 dependencies {
     api(projects.core.model)
     implementation(libs.androidx.room.paging)
+    androidTestImplementation(libs.androidx.room.testing)
+    androidTestImplementation(libs.androidx.junit)
+    androidTestImplementation(libs.androidx.test.runner)
+    androidTestImplementation(libs.truth)
 }

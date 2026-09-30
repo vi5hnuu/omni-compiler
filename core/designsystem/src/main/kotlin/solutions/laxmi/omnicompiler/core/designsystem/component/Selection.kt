@@ -22,6 +22,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import solutions.laxmi.omnicompiler.core.designsystem.icon.OmniIcons
 import solutions.laxmi.omnicompiler.core.designsystem.theme.OmniTheme
@@ -45,7 +46,7 @@ fun OmniToggle(checked: Boolean, onCheckedChange: ((Boolean) -> Unit)?, modifier
     ) {
         Box(
             Modifier
-                .offset(x = knobOffset)
+                .offset { IntOffset(knobOffset.roundToPx(), 0) }
                 .size(16.dp)
                 .background(if (checked) colors.onAccent else colors.textSecondary),
         )
