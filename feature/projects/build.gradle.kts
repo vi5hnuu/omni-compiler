@@ -5,3 +5,7 @@ plugins {
 android {
     namespace = "solutions.laxmi.omnicompiler.feature.projects"
 }
+
+dependencies {
+    implementation(projects.core.ads)
+}

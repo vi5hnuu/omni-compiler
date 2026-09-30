@@ -1,5 +1,7 @@
 package solutions.laxmi.omnicompiler.feature.settings
 
+import androidx.activity.compose.LocalActivity
+import solutions.laxmi.omnicompiler.core.ads.LocalAds
 import solutions.laxmi.omnicompiler.core.navigation.GitAccountsRoute
 import solutions.laxmi.omnicompiler.core.navigation.ProjectFolderRoute
 import solutions.laxmi.omnicompiler.core.ui.labelRes
@@ -61,6 +63,9 @@ fun SettingsScreen(navigator: Navigator, appVersion: String) {
     var editingLimits by rememberSaveable { mutableStateOf(false) }
     val colors = OmniTheme.colors
     val editor = state.editor
+    val ads = LocalAds.current
+    val activity = LocalActivity.current
+    val privacyChoices by ads.privacyOptionsRequired.collectAsStateWithLifecycle()
     val defaultRuntime = state.run.defaultRuntimeId
     Column(Modifier.fillMaxSize().background(colors.background).navigationBarsPadding()) {
         OmniTopBar(stringResource(R.string.settings_title), onBack = navigator::back)
@@ -121,6 +126,9 @@ fun SettingsScreen(navigator: Navigator, appVersion: String) {
             }
 
             SectionLabel(stringResource(R.string.settings_about))
+            if (privacyChoices) {
+                OmniListRow(stringResource(R.string.settings_privacy_choices), trailing = { Chevron() }, onClick = { activity?.let(ads::showPrivacyOptions) })
+            }
             OmniListRow(stringResource(R.string.settings_privacy), trailing = { Icon(OmniIcons.ExternalLink, null, tint = colors.textTertiary) }, onClick = { context.openUrl(viewModel.config.privacyPolicyUrl) })
             OmniListRow(stringResource(R.string.settings_terms), trailing = { Icon(OmniIcons.ExternalLink, null, tint = colors.textTertiary) }, onClick = { context.openUrl(viewModel.config.termsUrl) })
             OmniListRow(stringResource(R.string.settings_open_source), trailing = { Chevron() }, onClick = { navigator.navigate(OpenSourceRoute) })

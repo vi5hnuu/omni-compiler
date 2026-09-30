@@ -1,5 +1,7 @@
 package solutions.laxmi.omnicompiler.feature.workspace.editor
 
+import androidx.activity.compose.LocalActivity
+import solutions.laxmi.omnicompiler.core.ads.LocalAds
 import solutions.laxmi.omnicompiler.core.navigation.SourceControlRoute
 import solutions.laxmi.omnicompiler.core.navigation.PreviewRoute
 import solutions.laxmi.omnicompiler.core.ui.R as CommonR
@@ -80,6 +82,8 @@ fun EditorScreen(route: EditorRoute, navigator: Navigator) {
     val snackbar = remember { SnackbarHostState() }
     val resources = LocalResources.current
     val context = LocalContext.current
+    val ads = LocalAds.current
+    val activity = LocalActivity.current
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     // Opening or open: subscribe to drawer data only then, so editing never pays for it.
     val drawerVisible = drawerState.currentValue == DrawerValue.Open || drawerState.targetValue == DrawerValue.Open
@@ -121,7 +125,11 @@ fun EditorScreen(route: EditorRoute, navigator: Navigator) {
             onRenameProject = viewModel::renameProject,
             onResetToStarter = viewModel::resetToStarter,
             onNewProject = viewModel::newProject,
-            onOpenProject = { id -> navigator.replace(EditorRoute(id)) },
+            onOpenProject = { id ->
+                // Switching projects from the drawer is a natural break (never mid-run: runs belong to the old project).
+                activity?.let { ads.onNaturalBreak(it) }
+                navigator.replace(EditorRoute(id))
+            },
             onPickRuntime = { state.workspace?.project?.id?.let { navigator.navigate(LanguagePickerRoute(it)) } },
             onAccount = { navigator.navigate(ProfileRoute) },
             onConvertGuest = { navigator.navigate(SignUpRoute(convertGuest = true)) },

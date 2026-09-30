@@ -6,6 +6,7 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import kotlinx.coroutines.flow.Flow
@@ -32,6 +33,11 @@ interface PreferencesStore {
     /** The picked projects folder as `treeUri` + folder document id; null until chosen. Device-level, survives sign-out. */
     val projectsRoot: Flow<Pair<String, String>?>
     suspend fun setProjectsRoot(treeUri: String, docId: String)
+
+    /** When the app first ran (recorded on the first call); ads stay quiet for a while after install. */
+    suspend fun firstLaunchAt(now: Long): Long
+    suspend fun lastInterstitialAt(): Long?
+    suspend fun setLastInterstitialAt(at: Long)
 
     suspend fun updateEditor(transform: (EditorSettings) -> EditorSettings)
     suspend fun updateRun(transform: (RunSettings) -> RunSettings)
@@ -61,6 +67,21 @@ internal class DataStorePreferencesStore @Inject constructor(
     override val projectsRoot: Flow<Pair<String, String>?> = dataStore.data
         .map { prefs -> prefs[Keys.ROOT_TREE]?.let { tree -> prefs[Keys.ROOT_DOC]?.let { tree to it } } }
         .distinctUntilChanged()
+
+    override suspend fun firstLaunchAt(now: Long): Long {
+        var first = now
+        dataStore.edit { prefs ->
+            val stored = prefs[Keys.FIRST_LAUNCH]
+            if (stored == null) prefs[Keys.FIRST_LAUNCH] = now else first = stored
+        }
+        return first
+    }
+
+    override suspend fun lastInterstitialAt(): Long? = dataStore.data.first()[Keys.LAST_INTERSTITIAL]
+
+    override suspend fun setLastInterstitialAt(at: Long) {
+        dataStore.edit { it[Keys.LAST_INTERSTITIAL] = at }
+    }
 
     override suspend fun setProjectsRoot(treeUri: String, docId: String) {
         dataStore.edit { prefs ->
@@ -178,6 +199,8 @@ internal class DataStorePreferencesStore @Inject constructor(
         val APP_THEME = stringPreferencesKey("app_theme")
         val ROOT_TREE = stringPreferencesKey("projects_root_tree")
         val ROOT_DOC = stringPreferencesKey("projects_root_doc")
+        val FIRST_LAUNCH = longPreferencesKey("first_launch_at")
+        val LAST_INTERSTITIAL = longPreferencesKey("last_interstitial_at")
         val FONT = stringPreferencesKey("editor_font")
         val FONT_SIZE = intPreferencesKey("editor_font_size")
         val LIGATURES = booleanPreferencesKey("editor_ligatures")

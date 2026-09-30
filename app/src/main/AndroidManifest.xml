@@ -37,6 +37,11 @@
                 android:resource="@xml/file_paths" />
         </provider>
 
+        <!-- AdMob reads this at process start (it must always be present); the value comes from build.gradle. -->
+        <meta-data
+            android:name="com.google.android.gms.ads.APPLICATION_ID"
+            android:value="${admobAppId}" />
+
         <!-- WorkManager is initialised on demand by OmniApplication (Hilt worker factory). -->
         <provider
             android:name="androidx.startup.InitializationProvider"

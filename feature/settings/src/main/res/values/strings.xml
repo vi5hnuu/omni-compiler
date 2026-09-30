@@ -74,4 +74,5 @@
     <string name="settings_hardware_keyboard_note">When a hardware keyboard is connected</string>
     <string name="settings_git_accounts">Git accounts</string>
     <string name="settings_git_accounts_note">GitHub and GitLab</string>
+    <string name="settings_privacy_choices">Privacy choices</string>
 </resources>

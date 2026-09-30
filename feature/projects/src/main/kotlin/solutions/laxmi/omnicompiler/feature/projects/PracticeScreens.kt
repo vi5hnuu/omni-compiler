@@ -1,5 +1,8 @@
 package solutions.laxmi.omnicompiler.feature.projects
 
+import androidx.activity.compose.LocalActivity
+import solutions.laxmi.omnicompiler.core.ads.LocalAds
+import solutions.laxmi.omnicompiler.core.ads.AdBanner
 import solutions.laxmi.omnicompiler.core.ui.testCount
 import solutions.laxmi.omnicompiler.core.ui.labelRes
 import solutions.laxmi.omnicompiler.core.ui.asString
@@ -90,6 +93,7 @@ fun ExamplesScreen(navigator: Navigator) {
                     }
                 }
             }
+            AdBanner()
         }
         SnackbarHost(snackbar, Modifier.align(Alignment.BottomCenter).navigationBarsPadding())
     }
@@ -194,10 +198,16 @@ fun ProblemScreen(route: ProblemRoute, navigator: Navigator) {
 @Composable
 private fun PracticeEvents(events: kotlinx.coroutines.flow.Flow<PracticeEvent>, navigator: Navigator, snackbar: SnackbarHostState) {
     val resources = LocalResources.current
+    val ads = LocalAds.current
+    val activity = LocalActivity.current
     LaunchedEffect(events) {
         events.collect { event ->
             when (event) {
-                is PracticeEvent.Open -> navigator.resetTo(EditorRoute(event.projectId))
+                is PracticeEvent.Open -> {
+                    // Starting a project from an example or problem is a natural break.
+                    activity?.let { ads.onNaturalBreak(it) }
+                    navigator.resetTo(EditorRoute(event.projectId))
+                }
                 is PracticeEvent.Message -> snackbar.showSnackbar(event.text.asString(resources))
             }
         }

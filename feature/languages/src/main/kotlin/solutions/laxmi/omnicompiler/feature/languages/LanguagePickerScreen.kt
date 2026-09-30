@@ -1,5 +1,6 @@
 package solutions.laxmi.omnicompiler.feature.languages
 
+import solutions.laxmi.omnicompiler.core.ads.AdBanner
 import solutions.laxmi.omnicompiler.core.ui.R as CommonR
 import solutions.laxmi.omnicompiler.core.ui.labelRes
 import solutions.laxmi.omnicompiler.core.ui.asString
@@ -122,6 +123,7 @@ fun LanguagePickerScreen(route: LanguagePickerRoute, navigator: Navigator) {
                     items(state.languages, key = { it.base }) { LanguageRow(it, state.currentRuntimeId, viewModel::select) }
                 }
             }
+            AdBanner()
         }
         SnackbarHost(snackbar, Modifier.align(Alignment.BottomCenter).navigationBarsPadding())
     }

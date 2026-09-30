@@ -7,6 +7,7 @@ android {
 }
 
 dependencies {
+    implementation(projects.core.ads)
     implementation(projects.core.editor)
     implementation(libs.androidx.paging.compose)
 }

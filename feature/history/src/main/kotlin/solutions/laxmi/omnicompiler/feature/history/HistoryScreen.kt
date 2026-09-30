@@ -1,5 +1,6 @@
 package solutions.laxmi.omnicompiler.feature.history
 
+import solutions.laxmi.omnicompiler.core.ads.AdBanner
 import solutions.laxmi.omnicompiler.core.ui.formatDuration
 import solutions.laxmi.omnicompiler.core.ui.R as CommonR
 import androidx.compose.ui.res.pluralStringResource
@@ -126,6 +127,7 @@ fun HistoryScreen(navigator: Navigator) {
                 }
             }
         }
+        AdBanner()
     }
 }
 

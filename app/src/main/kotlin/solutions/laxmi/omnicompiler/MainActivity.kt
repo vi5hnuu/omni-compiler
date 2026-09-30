@@ -1,5 +1,9 @@
 package solutions.laxmi.omnicompiler
 
+import javax.inject.Inject
+import solutions.laxmi.omnicompiler.core.ads.LocalAds
+import solutions.laxmi.omnicompiler.core.ads.Ads
+import androidx.compose.runtime.CompositionLocalProvider
 import solutions.laxmi.omnicompiler.core.model.AppTheme
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -22,10 +26,14 @@ class MainActivity : ComponentActivity() {
 
     private val viewModel: MainViewModel by viewModels()
 
+    @Inject lateinit var ads: Ads
+
     override fun onCreate(savedInstanceState: Bundle?) {
         // Keep the splash until the stored session is read, so the first frame is the right root.
         installSplashScreen().setKeepOnScreenCondition { viewModel.gate.value == AppGate.Loading }
         super.onCreate(savedInstanceState)
+        // Once per launch: consent first (the form only shows where the law requires it), then the ads SDK.
+        if (savedInstanceState == null) ads.start(this)
         setContent {
             val appTheme by viewModel.appTheme.collectAsStateWithLifecycle()
             val dark = when (appTheme) {
@@ -39,9 +47,11 @@ class MainActivity : ComponentActivity() {
                 enableEdgeToEdge(statusBarStyle = style, navigationBarStyle = style)
                 onDispose { }
             }
-            OmniTheme(darkTheme = dark) {
-                val gate by viewModel.gate.collectAsStateWithLifecycle()
-                if (gate != AppGate.Loading) OmniNavHost(gate, BuildConfig.VERSION_NAME)
+            CompositionLocalProvider(LocalAds provides ads) {
+                OmniTheme(darkTheme = dark) {
+                    val gate by viewModel.gate.collectAsStateWithLifecycle()
+                    if (gate != AppGate.Loading) OmniNavHost(gate, BuildConfig.VERSION_NAME)
+                }
             }
         }
     }

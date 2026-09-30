@@ -7,5 +7,6 @@ android {
 }
 
 dependencies {
+    implementation(projects.core.ads)
     implementation(libs.androidx.compose.material3)
 }

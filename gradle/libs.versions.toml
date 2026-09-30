@@ -32,6 +32,8 @@ tink = "1.23.0"
 soraEditor = "0.24.6"
 coil = "3.6.3"
 webkit = "1.17.1"
+playServicesAds = "25.5.0"
+ump = "4.0.0"
 markdownRenderer = "0.45.0"
 aboutLibraries = "15.2.0"
 
@@ -113,6 +115,8 @@ okhttp-mockwebserver = { group = "com.squareup.okhttp3", name = "mockwebserver3"
 sora-editor = { group = "io.github.rosemoe", name = "editor", version.ref = "soraEditor" }
 sora-language-textmate = { group = "io.github.rosemoe", name = "language-textmate", version.ref = "soraEditor" }
 coil-compose = { group = "io.coil-kt.coil3", name = "coil-compose", version.ref = "coil" }
+play-services-ads = { group = "com.google.android.gms", name = "play-services-ads", version.ref = "playServicesAds" }
+ump = { group = "com.google.android.ump", name = "user-messaging-platform", version.ref = "ump" }
 androidx-webkit = { group = "androidx.webkit", name = "webkit", version.ref = "webkit" }
 markdown-renderer-m3 = { group = "com.mikepenz", name = "multiplatform-markdown-renderer-m3", version.ref = "markdownRenderer" }
 coil-network-okhttp = { group = "io.coil-kt.coil3", name = "coil-network-okhttp", version.ref = "coil" }

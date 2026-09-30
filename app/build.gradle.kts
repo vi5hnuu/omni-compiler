@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.omni.android.application)
     alias(libs.plugins.omni.android.compose)
@@ -13,6 +15,13 @@ aboutLibraries {
     }
 }
 
+val localProps = Properties().apply {
+    rootProject.file("local.properties").takeIf { it.exists() }?.inputStream()?.use(::load)
+}
+
+/** Google's sample AdMob app id: only ever serves test ads. Release uses `omni.admob.appId` from local.properties. */
+val testAdMobAppId = "ca-app-pub-3940256099942544~3347511713"
+
 android {
     namespace = "solutions.laxmi.omnicompiler"
 
@@ -26,10 +35,13 @@ android {
     buildTypes {
         debug {
             applicationIdSuffix = ".debug"
+            manifestPlaceholders["admobAppId"] = testAdMobAppId
             // en-XA / ar-XB in developer settings reveal untranslated or clipped text.
             isPseudoLocalesEnabled = true
         }
         release {
+            // Until the real id is set, release keeps the test app id; its ad units are empty, so it requests no ads.
+            manifestPlaceholders["admobAppId"] = localProps.getProperty("omni.admob.appId") ?: testAdMobAppId
             optimization {
                 enable = true
             }
@@ -57,6 +69,7 @@ dependencies {
     implementation(projects.feature.developer)
     implementation(projects.feature.settings)
     implementation(projects.feature.vcs)
+    implementation(projects.core.ads)
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.core.splashscreen)
