@@ -1,5 +1,7 @@
 package solutions.laxmi.omnicompiler.feature.workspace.console
 
+import solutions.laxmi.omnicompiler.feature.workspace.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -29,10 +31,10 @@ internal fun StageTracker(run: RunRecord, modifier: Modifier = Modifier) {
         else -> 4
     }
     val stages = listOf(
-        "Submitted" to if (run.phase == RunPhase.QUEUED_OFFLINE) "offline" else "",
-        "Queued" to "",
-        "Running" to "",
-        "Tests" to "${run.results.size} / ${run.testCount}",
+        stringResource(R.string.stage_submitted) to if (run.phase == RunPhase.QUEUED_OFFLINE) stringResource(R.string.stage_offline) else "",
+        stringResource(R.string.stage_queued) to "",
+        stringResource(R.string.stage_running) to "",
+        stringResource(R.string.stage_tests) to stringResource(R.string.stage_tests_progress, run.results.size, run.testCount),
     )
     Row(modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
         stages.forEachIndexed { index, (label, meta) ->

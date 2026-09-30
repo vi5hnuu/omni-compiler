@@ -13,6 +13,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import solutions.laxmi.omnicompiler.core.designsystem.theme.OmniColors
@@ -46,11 +47,13 @@ fun VerdictBadge(state: VerdictState, modifier: Modifier = Modifier) {
         is VerdictState.Done -> state.verdict.code
         VerdictState.Pending, VerdictState.Running -> "…"
     }
-    val description = when (state) {
-        is VerdictState.Done -> state.verdict.label
-        VerdictState.Pending -> "Pending"
-        VerdictState.Running -> "Running"
-    }
+    val description = stringResource(
+        when (state) {
+            is VerdictState.Done -> state.verdict.labelRes
+            VerdictState.Pending -> R.string.verdict_pending
+            VerdictState.Running -> R.string.verdict_running
+        },
+    )
     Box(
         modifier = modifier
             .background(colors.container)

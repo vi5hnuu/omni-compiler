@@ -1,5 +1,7 @@
 package solutions.laxmi.omnicompiler.feature.projects
 
+import solutions.laxmi.omnicompiler.core.ui.R as CommonR
+import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -53,13 +55,13 @@ internal fun NewProjectSheet(languages: List<Language>, onDismiss: () -> Unit, o
         dragHandle = { SheetHandle() },
     ) {
         Column(Modifier.fillMaxWidth().navigationBarsPadding().padding(bottom = 16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Text("New project", style = OmniTheme.typography.title, color = colors.textPrimary, modifier = Modifier.padding(horizontal = 16.dp))
+            Text(stringResource(R.string.projects_new), style = OmniTheme.typography.title, color = colors.textPrimary, modifier = Modifier.padding(horizontal = 16.dp))
             OmniTextField(
-                name, { name = it }, label = "Name", placeholder = chosen?.let { "${it.base}-scratch" } ?: "two-sum",
+                name, { name = it }, label = stringResource(R.string.projects_name), placeholder = chosen?.let { "${it.base}-scratch" } ?: "two-sum",
                 keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.None, autoCorrectEnabled = false),
                 modifier = Modifier.padding(horizontal = 16.dp),
             )
-            OmniTextField(query, { query = it }, placeholder = "Search languages", leadingIcon = OmniIcons.Search, modifier = Modifier.padding(horizontal = 16.dp))
+            OmniTextField(query, { query = it }, placeholder = stringResource(R.string.projects_search_languages), leadingIcon = OmniIcons.Search, modifier = Modifier.padding(horizontal = 16.dp))
             LazyColumn(Modifier.heightIn(max = 320.dp)) {
                 items(runnable.filter { query.isBlank() || it.info.name.contains(query, true) || it.base.contains(query, true) }, key = { it.base }) { language ->
                     OmniListRow(
@@ -72,7 +74,7 @@ internal fun NewProjectSheet(languages: List<Language>, onDismiss: () -> Unit, o
                 }
             }
             OmniButton(
-                "Create project",
+                stringResource(R.string.projects_create),
                 { chosen?.let { onCreate(name.trim(), it) } },
                 Modifier.padding(horizontal = 16.dp),
                 enabled = chosen != null,
@@ -91,8 +93,8 @@ internal fun TextPromptDialog(title: String, initial: String, onDismiss: () -> U
         containerColor = OmniTheme.colors.surfaceRaised,
         title = { Text(title, style = OmniTheme.typography.title, color = OmniTheme.colors.textPrimary) },
         text = { OmniTextField(value, { value = it }, textStyle = OmniTheme.typography.code) },
-        confirmButton = { OmniTextButton("Save", { onConfirm(value) }, enabled = value.isNotBlank()) },
-        dismissButton = { OmniTextButton("Cancel", onDismiss, color = OmniTheme.colors.textSecondary) },
+        confirmButton = { OmniTextButton(stringResource(CommonR.string.common_save), { onConfirm(value) }, enabled = value.isNotBlank()) },
+        dismissButton = { OmniTextButton(stringResource(CommonR.string.common_cancel), onDismiss, color = OmniTheme.colors.textSecondary) },
     )
 }
 
@@ -105,6 +107,6 @@ internal fun ConfirmPrompt(title: String, message: String, confirm: String, onDi
         title = { Text(title, style = OmniTheme.typography.title, color = OmniTheme.colors.textPrimary) },
         text = { Text(message, style = OmniTheme.typography.body, color = OmniTheme.colors.textSecondary) },
         confirmButton = { OmniTextButton(confirm, onConfirm) },
-        dismissButton = { OmniTextButton("Cancel", onDismiss, color = OmniTheme.colors.textSecondary) },
+        dismissButton = { OmniTextButton(stringResource(CommonR.string.common_cancel), onDismiss, color = OmniTheme.colors.textSecondary) },
     )
 }

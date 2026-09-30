@@ -1,5 +1,9 @@
 package solutions.laxmi.omnicompiler.feature.history
 
+import solutions.laxmi.omnicompiler.core.ui.formatDuration
+import solutions.laxmi.omnicompiler.core.ui.R as CommonR
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import android.text.format.DateUtils
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -34,7 +38,6 @@ import androidx.paging.LoadState
 import androidx.paging.compose.collectAsLazyPagingItems
 import androidx.paging.compose.itemContentType
 import androidx.paging.compose.itemKey
-import solutions.laxmi.omnicompiler.core.common.formatMillis
 import solutions.laxmi.omnicompiler.core.common.shortJobId
 import solutions.laxmi.omnicompiler.core.data.AppErrorException
 import solutions.laxmi.omnicompiler.core.data.history.DayActivity
@@ -54,7 +57,8 @@ import solutions.laxmi.omnicompiler.core.navigation.JobDetailRoute
 import solutions.laxmi.omnicompiler.core.navigation.Navigator
 import solutions.laxmi.omnicompiler.core.navigation.WelcomeRoute
 import solutions.laxmi.omnicompiler.core.ui.VerdictBadge
-import solutions.laxmi.omnicompiler.core.ui.userMessage
+import solutions.laxmi.omnicompiler.core.ui.asString
+import solutions.laxmi.omnicompiler.core.ui.toUiText
 import java.text.SimpleDateFormat
 import java.util.Date
 import kotlin.math.roundToInt
@@ -67,13 +71,13 @@ fun HistoryScreen(navigator: Navigator) {
     val items = viewModel.items.collectAsLazyPagingItems()
     val colors = OmniTheme.colors
     Column(Modifier.fillMaxSize().background(colors.background).navigationBarsPadding()) {
-        OmniTopBar("Run history", onBack = navigator::back, subtitle = "Recorded by the judge for this account")
+        OmniTopBar(stringResource(R.string.history_title), onBack = navigator::back, subtitle = stringResource(R.string.history_subtitle))
         if (!state.signedIn) {
             EmptyState(
-                "Sign in to see history",
-                "Runs are tied to your account. Guests and signed-in users keep a history.",
+                stringResource(R.string.history_signed_out_title),
+                stringResource(R.string.history_signed_out_message),
                 icon = OmniIcons.History,
-                action = { OmniButton("Sign in", { navigator.navigate(WelcomeRoute) }) },
+                action = { OmniButton(stringResource(CommonR.string.common_sign_in), { navigator.navigate(WelcomeRoute) }) },
             )
             return@Column
         }
@@ -94,15 +98,19 @@ fun HistoryScreen(navigator: Navigator) {
                     item {
                         val error = (refresh.error as? AppErrorException)?.error
                         InfoBanner(
-                            text = if (error is AppError.Unauthorized) "Your session expired. Sign in again." else error?.userMessage() ?: "Couldn't load history.",
+                            text = when {
+                                error is AppError.Unauthorized -> stringResource(R.string.history_session_expired)
+                                error != null -> error.toUiText().asString()
+                                else -> stringResource(R.string.history_load_failed)
+                            },
                             icon = OmniIcons.WifiOff,
                             modifier = Modifier.padding(16.dp),
-                            action = { OmniTextButton("Retry", items::retry) },
+                            action = { OmniTextButton(stringResource(CommonR.string.common_retry), items::retry) },
                         )
                     }
                 }
                 if (refresh is LoadState.NotLoading && items.itemCount == 0) {
-                    item { EmptyState("No runs yet", "Runs you start from any device with this account appear here.", icon = OmniIcons.History) }
+                    item { EmptyState(stringResource(R.string.history_empty_title), stringResource(R.string.history_empty_message), icon = OmniIcons.History) }
                 }
                 items(items.itemCount, key = items.itemKey { it.key() }, contentType = items.itemContentType { it::class }) { index ->
                     when (val item = items[index]) {
@@ -132,9 +140,9 @@ private fun StatsRow(state: HistoryUiState) {
     val stats = state.stats
     Row(Modifier.fillMaxWidth().padding(16.dp)) {
         listOf(
-            "Runs" to (stats?.totalJobs?.toString() ?: state.summary.total.toString()),
-            "Accepted" to (stats?.let { "${(it.acceptanceRate * 100).roundToInt()}%" } ?: "—"),
-            "Median time" to formatMillis(state.summary.medianTimeMs),
+            stringResource(R.string.history_stat_runs) to (stats?.totalJobs?.toString() ?: state.summary.total.toString()),
+            stringResource(R.string.history_stat_accepted) to (stats?.let { stringResource(R.string.history_percent, (it.acceptanceRate * 100).roundToInt()) } ?: formatDuration(null)),
+            stringResource(R.string.history_stat_median) to formatDuration(state.summary.medianTimeMs),
         ).forEach { (label, value) ->
             Column(Modifier.weight(1f)) {
                 Text(label.uppercase(), style = OmniTheme.typography.overline, color = colors.textTertiary)
@@ -168,14 +176,14 @@ private fun WeekChart(week: List<DayActivity>) {
                 Text(dayFormat.format(Date(day.dayStartEpochMs)), style = OmniTheme.typography.monoSmall, color = colors.textTertiary, modifier = Modifier.weight(1f))
             }
         }
-        Text("${week.sumOf { it.runs }} runs in 7 days · from cached history", style = OmniTheme.typography.bodySmall, color = colors.textTertiary, modifier = Modifier.padding(top = 6.dp))
+        Text(week.sumOf { it.runs }.let { pluralStringResource(R.plurals.history_week_total, it, it) }, style = OmniTheme.typography.bodySmall, color = colors.textTertiary, modifier = Modifier.padding(top = 6.dp))
     }
 }
 
 @Composable
 private fun VerdictFilters(state: HistoryUiState, onSelect: (Verdict?) -> Unit) {
     Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(16.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-        OmniChip("All", state.filter == null, { onSelect(null) }, count = state.summary.total.toString())
+        OmniChip(stringResource(R.string.history_filter_all), state.filter == null, { onSelect(null) }, count = state.summary.total.toString())
         listOf(Verdict.AC, Verdict.WA, Verdict.TLE, Verdict.CE, Verdict.RE, Verdict.MLE, Verdict.IE).forEach { verdict ->
             OmniChip(verdict.code, state.filter == verdict, { onSelect(verdict) }, count = (state.summary.verdictCounts[verdict] ?: 0).toString())
         }
@@ -186,8 +194,8 @@ private fun VerdictFilters(state: HistoryUiState, onSelect: (Verdict?) -> Unit) 
 private fun DayHeader(dayStart: Long) {
     val locale = LocalConfiguration.current.locales[0]
     val label = when {
-        DateUtils.isToday(dayStart) -> "Today"
-        DateUtils.isToday(dayStart + DateUtils.DAY_IN_MILLIS) -> "Yesterday"
+        DateUtils.isToday(dayStart) -> stringResource(R.string.history_today)
+        DateUtils.isToday(dayStart + DateUtils.DAY_IN_MILLIS) -> stringResource(R.string.history_yesterday)
         else -> SimpleDateFormat("EEE d MMM", locale).format(Date(dayStart))
     }
     Text(
@@ -214,10 +222,10 @@ private fun SubmissionRow(submission: Submission, onClick: () -> Unit) {
         submission.verdict?.let { VerdictBadge(it) } ?: Text(submission.status.name.lowercase(), style = OmniTheme.typography.monoSmall, color = colors.textTertiary)
         Column(Modifier.weight(1f)) {
             Text(submission.runtimeId, style = OmniTheme.typography.bodyStrong, color = colors.textPrimary)
-            Text("job ${shortJobId(submission.id)}", style = OmniTheme.typography.monoSmall, color = colors.textTertiary)
+            Text(stringResource(R.string.history_job, shortJobId(submission.id)), style = OmniTheme.typography.monoSmall, color = colors.textTertiary)
         }
         Column(horizontalAlignment = Alignment.End) {
-            Text(formatMillis(submission.totalTimeMs), style = OmniTheme.typography.mono, color = colors.textSecondary)
+            Text(formatDuration(submission.totalTimeMs), style = OmniTheme.typography.mono, color = colors.textSecondary)
             Text(
                 SimpleDateFormat("HH:mm", locale).format(Date(submission.createdAt.toEpochMilliseconds())),
                 style = OmniTheme.typography.monoSmall,

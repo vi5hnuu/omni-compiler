@@ -22,7 +22,8 @@ import solutions.laxmi.omnicompiler.core.model.Language
 import solutions.laxmi.omnicompiler.core.model.Outcome
 import solutions.laxmi.omnicompiler.core.model.ProjectFilter
 import solutions.laxmi.omnicompiler.core.model.ProjectSummary
-import solutions.laxmi.omnicompiler.core.ui.userMessage
+import solutions.laxmi.omnicompiler.core.ui.UiText
+import solutions.laxmi.omnicompiler.core.ui.toUiText
 import javax.inject.Inject
 import kotlin.time.Instant
 
@@ -41,7 +42,7 @@ data class ProjectsUiState(
 sealed interface ProjectsEvent {
     data class Open(val projectId: String) : ProjectsEvent
     data class Share(val file: SharedFile) : ProjectsEvent
-    data class Message(val text: String) : ProjectsEvent
+    data class Message(val text: UiText) : ProjectsEvent
 }
 
 @HiltViewModel
@@ -98,7 +99,7 @@ class ProjectsViewModel @Inject constructor(
         viewModelScope.launch {
             when (val result = projects.create(runtime, ProjectTemplate(name.ifBlank { "${language.base}-scratch" }, code = null, tests = null))) {
                 is Outcome.Success -> events.send(ProjectsEvent.Open(result.value))
-                is Outcome.Failure -> events.send(ProjectsEvent.Message(result.error.userMessage()))
+                is Outcome.Failure -> events.send(ProjectsEvent.Message(result.error.toUiText()))
             }
         }
     }
@@ -108,8 +109,8 @@ class ProjectsViewModel @Inject constructor(
     fun duplicate(projectId: String) {
         viewModelScope.launch {
             when (val result = projects.duplicate(projectId)) {
-                is Outcome.Success -> events.send(ProjectsEvent.Message("Duplicated."))
-                is Outcome.Failure -> events.send(ProjectsEvent.Message(result.error.userMessage()))
+                is Outcome.Success -> events.send(ProjectsEvent.Message(UiText.Res(R.string.projects_duplicated)))
+                is Outcome.Failure -> events.send(ProjectsEvent.Message(result.error.toUiText()))
             }
         }
     }
@@ -122,7 +123,7 @@ class ProjectsViewModel @Inject constructor(
         viewModelScope.launch {
             when (val result = exporter.exportZip(projectId)) {
                 is Outcome.Success -> events.send(ProjectsEvent.Share(result.value))
-                is Outcome.Failure -> events.send(ProjectsEvent.Message(result.error.userMessage()))
+                is Outcome.Failure -> events.send(ProjectsEvent.Message(result.error.toUiText()))
             }
         }
     }
@@ -130,7 +131,7 @@ class ProjectsViewModel @Inject constructor(
     private fun launchReporting(block: suspend () -> Outcome<Unit>) {
         viewModelScope.launch {
             val result = block()
-            if (result is Outcome.Failure) events.send(ProjectsEvent.Message(result.error.userMessage()))
+            if (result is Outcome.Failure) events.send(ProjectsEvent.Message(result.error.toUiText()))
         }
     }
 }

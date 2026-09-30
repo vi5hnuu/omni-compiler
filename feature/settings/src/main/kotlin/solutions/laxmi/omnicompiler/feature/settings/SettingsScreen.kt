@@ -1,5 +1,9 @@
 package solutions.laxmi.omnicompiler.feature.settings
 
+import solutions.laxmi.omnicompiler.core.ui.labelRes
+import solutions.laxmi.omnicompiler.core.ui.displayName
+import solutions.laxmi.omnicompiler.core.ui.R as CommonR
+import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -57,57 +61,57 @@ fun SettingsScreen(navigator: Navigator, appVersion: String) {
     val editor = state.editor
     val defaultRuntime = state.run.defaultRuntimeId
     Column(Modifier.fillMaxSize().background(colors.background).navigationBarsPadding()) {
-        OmniTopBar("Settings", onBack = navigator::back)
+        OmniTopBar(stringResource(R.string.settings_title), onBack = navigator::back)
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
-            SectionLabel("Editor")
+            SectionLabel(stringResource(R.string.settings_editor))
             OmniListRow(
-                "Theme · font",
-                subtitle = "${editor.theme.label} · ${editor.font.label} ${editor.fontSizeSp}px",
+                stringResource(R.string.settings_theme_font),
+                subtitle = stringResource(R.string.settings_theme_font_value, stringResource(editor.theme.labelRes), editor.font.displayName, editor.fontSizeSp),
                 trailing = { Chevron() },
                 onClick = { navigator.navigate(AppearanceRoute) },
             )
-            ToggleRow("Minimap", "Code overview beside the editor", editor.minimap) { v -> viewModel.updateEditor { it.copy(minimap = v) } }
-            ToggleRow("Symbol row above keyboard", "{ } ( ) ; and more, one tap away", editor.symbolRow) { v -> viewModel.updateEditor { it.copy(symbolRow = v) } }
-            ToggleRow("Autocomplete", "Suggest identifiers and keywords while typing", editor.autocomplete) { v -> viewModel.updateEditor { it.copy(autocomplete = v) } }
-            ToggleRow("Word wrap", "Long lines scroll sideways when off", editor.wordWrap) { v -> viewModel.updateEditor { it.copy(wordWrap = v) } }
-            OmniListRow("Tab size", trailing = {
+            ToggleRow(stringResource(R.string.settings_minimap), stringResource(R.string.settings_minimap_note), editor.minimap) { v -> viewModel.updateEditor { it.copy(minimap = v) } }
+            ToggleRow(stringResource(R.string.settings_symbol_row), stringResource(R.string.settings_symbol_row_note), editor.symbolRow) { v -> viewModel.updateEditor { it.copy(symbolRow = v) } }
+            ToggleRow(stringResource(R.string.settings_autocomplete), stringResource(R.string.settings_autocomplete_note), editor.autocomplete) { v -> viewModel.updateEditor { it.copy(autocomplete = v) } }
+            ToggleRow(stringResource(R.string.settings_word_wrap), stringResource(R.string.settings_word_wrap_note), editor.wordWrap) { v -> viewModel.updateEditor { it.copy(wordWrap = v) } }
+            OmniListRow(stringResource(R.string.settings_tab_size), trailing = {
                 OmniSegmented(EditorSettings.TabSizes, editor.tabSize, { "$it" }, { size -> viewModel.updateEditor { it.copy(tabSize = size) } }, Modifier.width(132.dp))
             })
 
-            SectionLabel("Run")
+            SectionLabel(stringResource(R.string.settings_run))
             OmniListRow(
-                "Default language",
-                subtitle = defaultRuntime ?: "Chosen automatically (Python, C++, …)",
+                stringResource(R.string.settings_default_language),
+                subtitle = defaultRuntime ?: stringResource(R.string.settings_default_language_auto),
                 trailing = { Chevron() },
                 onClick = { pickingDefault = true },
             )
             OmniListRow(
-                "Default limits",
-                subtitle = "${state.run.defaultLimits.timeMs} ms · ${state.run.defaultLimits.memMb} MB for new projects",
+                stringResource(R.string.settings_default_limits),
+                subtitle = stringResource(R.string.settings_default_limits_value, state.run.defaultLimits.timeMs, state.run.defaultLimits.memMb),
                 trailing = { Chevron() },
                 onClick = { editingLimits = true },
             )
-            ToggleRow("Run on Ctrl + Enter", "With a hardware keyboard", state.run.runOnCtrlEnter) { v -> viewModel.updateRun { it.copy(runOnCtrlEnter = v) } }
-            ToggleRow("Skip result cache", "Always execute, even for an identical recent submission", state.run.bypassCache) { v -> viewModel.updateRun { it.copy(bypassCache = v) } }
-            ToggleRow("Send queued runs when back online", "Runs started offline go out automatically", state.run.sendQueuedWhenOnline) { v -> viewModel.updateRun { it.copy(sendQueuedWhenOnline = v) } }
+            ToggleRow(stringResource(R.string.settings_ctrl_enter), stringResource(R.string.settings_ctrl_enter_note), state.run.runOnCtrlEnter) { v -> viewModel.updateRun { it.copy(runOnCtrlEnter = v) } }
+            ToggleRow(stringResource(R.string.settings_skip_cache), stringResource(R.string.settings_skip_cache_note), state.run.bypassCache) { v -> viewModel.updateRun { it.copy(bypassCache = v) } }
+            ToggleRow(stringResource(R.string.settings_send_queued), stringResource(R.string.settings_send_queued_note), state.run.sendQueuedWhenOnline) { v -> viewModel.updateRun { it.copy(sendQueuedWhenOnline = v) } }
 
-            SectionLabel("Account")
+            SectionLabel(stringResource(R.string.settings_account))
             val user = state.user
             OmniListRow(
-                title = user?.let { if (it.isGuest) "Guest account" else it.email ?: it.displayName } ?: "Not signed in",
-                subtitle = if (user == null) "Sign in to sync run history" else "Profile, password, delete account",
+                title = user?.let { if (it.isGuest) stringResource(R.string.settings_guest_account) else it.email ?: it.displayName } ?: stringResource(R.string.settings_not_signed_in),
+                subtitle = stringResource(if (user == null) R.string.settings_sign_in_note else R.string.settings_account_note),
                 trailing = { Chevron() },
                 onClick = { navigator.navigate(if (user == null) WelcomeRoute else ProfileRoute) },
             )
             if (user != null) {
-                OmniListRow("Sign out", titleColor = colors.accentText, onClick = viewModel::signOut)
+                OmniListRow(stringResource(R.string.settings_sign_out), titleColor = colors.accentText, onClick = viewModel::signOut)
             }
 
-            SectionLabel("About")
-            OmniListRow("Privacy policy", trailing = { Icon(OmniIcons.ExternalLink, null, tint = colors.textTertiary) }, onClick = { context.openUrl(viewModel.config.privacyPolicyUrl) })
-            OmniListRow("Terms of service", trailing = { Icon(OmniIcons.ExternalLink, null, tint = colors.textTertiary) }, onClick = { context.openUrl(viewModel.config.termsUrl) })
-            OmniListRow("Open-source licenses", trailing = { Chevron() }, onClick = { navigator.navigate(OpenSourceRoute) })
-            OmniListRow("Version", trailing = { Text(appVersion, style = OmniTheme.typography.mono, color = colors.textTertiary) })
+            SectionLabel(stringResource(R.string.settings_about))
+            OmniListRow(stringResource(R.string.settings_privacy), trailing = { Icon(OmniIcons.ExternalLink, null, tint = colors.textTertiary) }, onClick = { context.openUrl(viewModel.config.privacyPolicyUrl) })
+            OmniListRow(stringResource(R.string.settings_terms), trailing = { Icon(OmniIcons.ExternalLink, null, tint = colors.textTertiary) }, onClick = { context.openUrl(viewModel.config.termsUrl) })
+            OmniListRow(stringResource(R.string.settings_open_source), trailing = { Chevron() }, onClick = { navigator.navigate(OpenSourceRoute) })
+            OmniListRow(stringResource(R.string.settings_version), trailing = { Text(appVersion, style = OmniTheme.typography.mono, color = colors.textTertiary) })
         }
     }
     if (pickingDefault) {
@@ -115,11 +119,11 @@ fun SettingsScreen(navigator: Navigator, appVersion: String) {
             onDismissRequest = { pickingDefault = false },
             shape = RectangleShape,
             containerColor = colors.surfaceRaised,
-            title = { Text("Default language", style = OmniTheme.typography.title, color = colors.textPrimary) },
+            title = { Text(stringResource(R.string.settings_default_language), style = OmniTheme.typography.title, color = colors.textPrimary) },
             text = {
                 LazyColumn(Modifier.heightIn(max = 420.dp)) {
                     item {
-                        OmniListRow("Automatic", subtitle = "Python, then C++, JavaScript, Java", selected = defaultRuntime == null, onClick = {
+                        OmniListRow(stringResource(R.string.settings_automatic), subtitle = stringResource(R.string.settings_automatic_note), selected = defaultRuntime == null, onClick = {
                             viewModel.setDefaultRuntime(null)
                             pickingDefault = false
                         })
@@ -139,7 +143,7 @@ fun SettingsScreen(navigator: Navigator, appVersion: String) {
                     }
                 }
             },
-            confirmButton = { OmniTextButton("Close", { pickingDefault = false }, color = colors.textSecondary) },
+            confirmButton = { OmniTextButton(stringResource(CommonR.string.common_close), { pickingDefault = false }, color = colors.textSecondary) },
         )
     }
     if (editingLimits) {
@@ -169,14 +173,14 @@ private fun LimitsDialog(current: Limits, onDismiss: () -> Unit, onSave: (Limits
         onDismissRequest = onDismiss,
         shape = RectangleShape,
         containerColor = OmniTheme.colors.surfaceRaised,
-        title = { Text("Default limits", style = OmniTheme.typography.title, color = OmniTheme.colors.textPrimary) },
+        title = { Text(stringResource(R.string.settings_default_limits), style = OmniTheme.typography.title, color = OmniTheme.colors.textPrimary) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                solutions.laxmi.omnicompiler.core.designsystem.component.OmniTextField(time, { time = it.filter(Char::isDigit) }, label = "Time limit per test (ms, ≤ 30000)")
-                solutions.laxmi.omnicompiler.core.designsystem.component.OmniTextField(memory, { memory = it.filter(Char::isDigit) }, label = "Memory per run (MB, ≤ 1024)")
+                solutions.laxmi.omnicompiler.core.designsystem.component.OmniTextField(time, { time = it.filter(Char::isDigit) }, label = stringResource(R.string.settings_limit_time_field, Limits.MAX_TIME_MS))
+                solutions.laxmi.omnicompiler.core.designsystem.component.OmniTextField(memory, { memory = it.filter(Char::isDigit) }, label = stringResource(R.string.settings_limit_memory_field, Limits.MAX_MEM_MB))
             }
         },
-        confirmButton = { OmniTextButton("Save", { onSave(Limits(timeValue!!, memValue!!)) }, enabled = valid) },
-        dismissButton = { OmniTextButton("Cancel", onDismiss, color = OmniTheme.colors.textSecondary) },
+        confirmButton = { OmniTextButton(stringResource(CommonR.string.common_save), { onSave(Limits(timeValue!!, memValue!!)) }, enabled = valid) },
+        dismissButton = { OmniTextButton(stringResource(CommonR.string.common_cancel), onDismiss, color = OmniTheme.colors.textSecondary) },
     )
 }

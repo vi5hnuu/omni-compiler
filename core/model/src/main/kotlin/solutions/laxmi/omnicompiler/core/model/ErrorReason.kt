@@ -1,0 +1,56 @@
+package solutions.laxmi.omnicompiler.core.model
+
+/**
+ * Why something failed on the device, independent of language. `core/ui` maps every case to a
+ * string resource; add a case there whenever one is added here.
+ */
+sealed interface ErrorReason {
+    // Transport
+    data object Offline : ErrorReason
+    data object Timeout : ErrorReason
+    data object NetworkError : ErrorReason
+    data object BadResponse : ErrorReason
+    data object TooManyRequests : ErrorReason
+    data object ServerTrouble : ErrorReason
+    data class RequestFailed(val status: Int) : ErrorReason
+    data object Unknown : ErrorReason
+
+    // Sign-in
+    data object GoogleNotConfigured : ErrorReason
+    data object GoogleNoAccount : ErrorReason
+    data object GoogleUnsupportedCredential : ErrorReason
+    data object GoogleInvalidToken : ErrorReason
+    data object GoogleFailed : ErrorReason
+    data object SignInIncomplete : ErrorReason
+
+    // Projects and files
+    data object ProjectNotFound : ErrorReason
+    data object FileNotFound : ErrorReason
+    data object EntryFileMissing : ErrorReason
+    data object EntryNamedByRuntime : ErrorReason
+    data class EntryNameTaken(val fileName: String, val runtimeId: String) : ErrorReason
+    data object NameRequired : ErrorReason
+    data object FileNameRequired : ErrorReason
+    data object FlatWorkspace : ErrorReason
+    data class FileNameTooLong(val max: Int) : ErrorReason
+    data class FileExists(val name: String) : ErrorReason
+    data class TooManyFiles(val max: Int) : ErrorReason
+    data object LanguagesUnavailable : ErrorReason
+    data object OpenProjectFirst : ErrorReason
+    data object ExportFailed : ErrorReason
+
+    // Picked documents
+    data object DocumentOpenFailed : ErrorReason
+    data class DocumentTooLarge(val maxKb: Int) : ErrorReason
+    data object DocumentReadFailed : ErrorReason
+    data object DocumentNoPermission : ErrorReason
+
+    // Runs
+    data object RunInProgress : ErrorReason
+    data object RunQueued : ErrorReason
+    data object WriteCodeFirst : ErrorReason
+    data class SourceTooLarge(val fileName: String, val maxKb: Int) : ErrorReason
+    data object NoTests : ErrorReason
+    data class TooManyTests(val max: Int) : ErrorReason
+    data object RuntimeUnavailable : ErrorReason
+}

@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="projects_title">Projects</string>
+    <string name="projects_search">Search projects</string>
+    <string name="projects_filter_all">All</string>
+    <string name="projects_filter_multi_file">Multi-file</string>
+    <string name="projects_filter_scratch">Scratch</string>
+    <string name="projects_empty_title">No projects</string>
+    <string name="projects_no_matches">No matches</string>
+    <string name="projects_empty_message">Projects live on this device. Create one to start coding.</string>
+    <string name="projects_new">New project</string>
+    <string name="projects_rename_title">Rename project</string>
+    <string name="projects_delete_title">Delete %1$s?</string>
+    <string name="projects_delete_message">Its files, tests and console history are removed from this device. Runs already sent stay in your run history.</string>
+    <string name="projects_actions">Project actions</string>
+    <string name="projects_open">Open</string>
+    <string name="projects_rename">Rename</string>
+    <string name="projects_duplicate">Duplicate</string>
+    <string name="projects_share_zip">Share as .zip</string>
+    <string name="projects_share_title">Share %1$s</string>
+    <string name="projects_duplicated">Duplicated.</string>
+    <string name="projects_name">Name</string>
+    <string name="projects_search_languages">Search languages</string>
+    <string name="projects_create">Create project</string>
+
+    <string name="practice_title">Examples &amp; problems</string>
+    <string name="practice_tab_examples">Examples</string>
+    <string name="practice_tab_problems">Problems</string>
+    <string name="practice_problem">Problem</string>
+    <string name="practice_examples">Examples</string>
+    <string name="practice_input">Input</string>
+    <string name="practice_output">Output</string>
+    <string name="practice_constraints">Constraints</string>
+    <string name="practice_starters">Starter solutions: %1$s · %2$s</string>
+    <plurals name="practice_languages">
+        <item quantity="one">%1$d language</item>
+        <item quantity="other">%1$d languages</item>
+    </plurals>
+    <string name="practice_tests_only">Tests only</string>
+    <string name="practice_solve">Solve</string>
+    <string name="practice_solve_in">Solve in %1$s</string>
+    <plurals name="practice_test_cases">
+        <item quantity="one">%1$d test case</item>
+        <item quantity="other">%1$d test cases</item>
+    </plurals>
+    <string name="practice_use_in_current">Use in current</string>
+</resources>

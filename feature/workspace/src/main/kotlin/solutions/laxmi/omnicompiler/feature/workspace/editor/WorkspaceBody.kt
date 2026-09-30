@@ -27,7 +27,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.platform.LocalResources
+import androidx.compose.ui.res.stringResource
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import solutions.laxmi.omnicompiler.core.ui.asString
+import solutions.laxmi.omnicompiler.feature.workspace.R
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import solutions.laxmi.omnicompiler.core.designsystem.component.InfoBanner
 import solutions.laxmi.omnicompiler.core.designsystem.component.OmniCompactButton
@@ -84,6 +88,7 @@ internal fun ColumnScope.WorkspaceBody(
     val overlay by console.overlay.collectAsStateWithLifecycle()
     val loadedTestStdin by console.loadedTestStdin.collectAsStateWithLifecycle()
 
+    val resources = LocalResources.current
     var consoleOpen by rememberSaveable { mutableStateOf(false) }
     var tab by rememberSaveable { mutableStateOf(ConsoleTab.Console) }
     var editingTest by remember { mutableStateOf<TestCase?>(null) }
@@ -103,7 +108,7 @@ internal fun ColumnScope.WorkspaceBody(
     LaunchedEffect(console) {
         console.eventFlow.collect { event ->
             when (event) {
-                is ConsoleEvent.Message -> snackbar.showSnackbar(event.text)
+                is ConsoleEvent.Message -> snackbar.showSnackbar(event.text.asString(resources))
                 is ConsoleEvent.RunStarted -> {
                     consoleOpen = true
                     tab = if (event.mode == RunMode.TESTS) ConsoleTab.Tests else ConsoleTab.Console
@@ -120,18 +125,19 @@ internal fun ColumnScope.WorkspaceBody(
         console.runTests()
     }
     val stopOrRun: () -> Unit = if (running) console::stop else runTests
-    val runLabel = when {
-        !running -> "Run"
-        latest?.phase == RunPhase.PENDING || latest?.phase == RunPhase.SUBMITTING -> "Stop"
-        else -> "Detach"
+    val runButton = when {
+        !running -> RunButtonState.Run
+        latest?.phase == RunPhase.PENDING || latest?.phase == RunPhase.SUBMITTING -> RunButtonState.Stop
+        else -> RunButtonState.Detach
     }
 
     if (typing) {
-        TypingTopBar(activeFile.name, editorState.isDirty, editorState, runEnabled = true, onMenu = onOpenDrawer, onRun = stopOrRun)
+        TypingTopBar(activeFile.name, editorState.isDirty, editorState, runEnabled = true, onMenu = onOpenDrawer, onRun = stopOrRun, runButton = runButton)
     } else {
         ReadingTopBar(
             projectName = state.workspace?.project?.name.orEmpty(),
-            runtimeLabel = state.runtimeLabel,
+            runtimeLabel = state.runtime?.let { stringResource(R.string.editor_runtime_label, state.language?.name ?: it.language, it.version) }
+                ?: state.workspace?.project?.runtimeId.orEmpty(),
             minimapOn = state.settings.minimap,
             runEnabled = true,
             onMenu = onOpenDrawer,
@@ -139,28 +145,28 @@ internal fun ColumnScope.WorkspaceBody(
             onSearch = { onSearchChange(true) },
             onToggleMinimap = actions.onToggleMinimap,
             onRun = stopOrRun,
-            runLabel = runLabel,
+            runButton = runButton,
             overflow = {
                 OverflowMenu(
                     listOf(
-                        "Run with custom input" to {
+                        stringResource(R.string.editor_menu_run_with_input) to {
                             consoleOpen = true
                             tab = ConsoleTab.Input
                         },
-                        "Benchmark…" to { showBenchmark = true },
-                        "Run limits…" to { showLimits = true },
-                        "New file" to onShowNewFile,
-                        "Rename project" to onRenameProject,
-                        "Change language" to actions.onPickRuntime,
-                        (if (state.settings.wordWrap) "Turn off word wrap" else "Turn on word wrap") to actions.onToggleWordWrap,
-                        "Reset to starter code" to onConfirmReset,
-                        "Editor appearance" to actions.onAppearance,
+                        stringResource(R.string.editor_menu_benchmark) to { showBenchmark = true },
+                        stringResource(R.string.editor_menu_limits) to { showLimits = true },
+                        stringResource(R.string.editor_new_file) to onShowNewFile,
+                        stringResource(R.string.editor_menu_rename_project) to onRenameProject,
+                        stringResource(R.string.editor_menu_change_language) to actions.onPickRuntime,
+                        stringResource(if (state.settings.wordWrap) R.string.editor_menu_wrap_off else R.string.editor_menu_wrap_on) to actions.onToggleWordWrap,
+                        stringResource(R.string.editor_menu_reset) to onConfirmReset,
+                        stringResource(R.string.editor_menu_appearance) to actions.onAppearance,
                     ),
                 )
             },
         )
         if (!consoleState.online) {
-            InfoBanner(icon = OmniIcons.WifiOff, text = "You're offline. Edits save on this device. Runs will be sent when you're back.")
+            InfoBanner(icon = OmniIcons.WifiOff, text = stringResource(R.string.editor_offline_banner))
         }
         FileTabs(
             files = state.workspace?.files.orEmpty(),

@@ -1,15 +1,18 @@
 package solutions.laxmi.omnicompiler.core.model
 
-/** Judge verdicts as returned by ls-judge. [SK] marks tests skipped after an earlier failure. */
-enum class Verdict(val code: String, val label: String) {
-    AC("AC", "Accepted"),
-    WA("WA", "Wrong Answer"),
-    TLE("TLE", "Time Limit Exceeded"),
-    MLE("MLE", "Memory Limit Exceeded"),
-    RE("RE", "Runtime Error"),
-    CE("CE", "Compile Error"),
-    IE("IE", "Internal Error"),
-    SK("SK", "Skipped");
+/**
+ * Judge verdicts as returned by ls-judge. [SK] marks tests skipped after an earlier failure.
+ * [code] is the judge's own short code (shown as-is); display names live in `core/ui`.
+ */
+enum class Verdict(val code: String) {
+    AC("AC"),
+    WA("WA"),
+    TLE("TLE"),
+    MLE("MLE"),
+    RE("RE"),
+    CE("CE"),
+    IE("IE"),
+    SK("SK");
 
     val isFailure: Boolean get() = this != AC && this != SK
 

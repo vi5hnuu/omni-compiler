@@ -18,6 +18,7 @@ import solutions.laxmi.omnicompiler.core.database.entity.ProjectEntity
 import solutions.laxmi.omnicompiler.core.database.entity.TestCaseEntity
 import solutions.laxmi.omnicompiler.core.datastore.PreferencesStore
 import solutions.laxmi.omnicompiler.core.model.AppError
+import solutions.laxmi.omnicompiler.core.model.ErrorReason
 import solutions.laxmi.omnicompiler.core.model.Limits
 import solutions.laxmi.omnicompiler.core.model.Outcome
 import solutions.laxmi.omnicompiler.core.model.ProjectFilter
@@ -105,7 +106,7 @@ internal class LocalProjectRepository @Inject constructor(
         preferences.lastProjectId.first()?.let { id -> if (projects.get(id) != null) return Outcome.Success(id) }
         projects.mostRecent()?.let { return Outcome.Success(it.id) }
         val runtime = runtimes.defaultRuntime()
-            ?: return Outcome.Failure(AppError.Offline("Couldn't load languages from the server. Check your connection and try again."))
+            ?: return Outcome.Failure(AppError.Offline(reason = ErrorReason.LanguagesUnavailable))
         return create(runtime)
     }
 
@@ -129,7 +130,7 @@ internal class LocalProjectRepository @Inject constructor(
     }
 
     override suspend fun duplicate(projectId: String): Outcome<String> {
-        val source = projects.get(projectId) ?: return Outcome.Failure(AppError.NotFound("Project not found."))
+        val source = projects.get(projectId) ?: return Outcome.Failure(AppError.NotFound(reason = ErrorReason.ProjectNotFound))
         val now = time.now().toEpochMilliseconds()
         val copyId = ids.newId()
         db.withTransaction {
@@ -142,8 +143,8 @@ internal class LocalProjectRepository @Inject constructor(
 
     override suspend fun rename(projectId: String, name: String): Outcome<Unit> {
         val slug = slugify(name)
-        if (slug.isEmpty()) return Outcome.Failure(AppError.Validation("Enter a name."))
-        val project = projects.get(projectId) ?: return Outcome.Failure(AppError.NotFound("Project not found."))
+        if (slug.isEmpty()) return Outcome.Failure(AppError.Validation(reason = ErrorReason.NameRequired))
+        val project = projects.get(projectId) ?: return Outcome.Failure(AppError.NotFound(reason = ErrorReason.ProjectNotFound))
         projects.upsert(project.copy(name = slug, updatedAt = time.now().toEpochMilliseconds()))
         return Outcome.Success(Unit)
     }
@@ -158,12 +159,12 @@ internal class LocalProjectRepository @Inject constructor(
     }
 
     override suspend fun changeRuntime(projectId: String, runtime: Runtime): Outcome<Unit> {
-        val project = projects.get(projectId) ?: return Outcome.Failure(AppError.NotFound("Project not found."))
+        val project = projects.get(projectId) ?: return Outcome.Failure(AppError.NotFound(reason = ErrorReason.ProjectNotFound))
         val previous = runtimes.runtime(project.runtimeId)
         val fileRows = files.list(projectId)
         val entry = fileRows.firstOrNull { it.isEntry }
         if (fileRows.any { !it.isEntry && it.name == runtime.filename }) {
-            return Outcome.Failure(AppError.Validation("Rename ${runtime.filename} first: the ${runtime.id} entry file uses that name."))
+            return Outcome.Failure(AppError.Validation(reason = ErrorReason.EntryNameTaken(runtime.filename, runtime.id)))
         }
         val switchingLanguage = previous?.language != runtime.language
         val newInfo = runtimes.languageInfo(runtime.language)
@@ -212,7 +213,7 @@ internal class LocalProjectRepository @Inject constructor(
     override suspend fun addFile(projectId: String, name: String, content: String): Outcome<SourceFile> {
         val existing = files.list(projectId)
         validateFileName(name, existing.map { it.name })?.let { return Outcome.Failure(it) }
-        if (existing.size > MAX_EXTRA_FILES) return Outcome.Failure(AppError.Validation("A project can have at most $MAX_EXTRA_FILES extra files."))
+        if (existing.size > MAX_EXTRA_FILES) return Outcome.Failure(AppError.Validation(reason = ErrorReason.TooManyFiles(MAX_EXTRA_FILES)))
         val entity = FileEntity(ids.newId(), projectId, name.trim(), content, isEntry = false, position = files.nextPosition(projectId))
         files.insert(entity)
         projects.touch(projectId, time.now().toEpochMilliseconds())
@@ -221,8 +222,8 @@ internal class LocalProjectRepository @Inject constructor(
 
     override suspend fun renameFile(fileId: String, projectId: String, name: String): Outcome<Unit> {
         val existing = files.list(projectId)
-        val file = existing.firstOrNull { it.id == fileId } ?: return Outcome.Failure(AppError.NotFound("File not found."))
-        if (file.isEntry) return Outcome.Failure(AppError.Validation("The entry file is named by its runtime."))
+        val file = existing.firstOrNull { it.id == fileId } ?: return Outcome.Failure(AppError.NotFound(reason = ErrorReason.FileNotFound))
+        if (file.isEntry) return Outcome.Failure(AppError.Validation(reason = ErrorReason.EntryNamedByRuntime))
         validateFileName(name, existing.filter { it.id != fileId }.map { it.name })?.let { return Outcome.Failure(it) }
         files.rename(fileId, name.trim())
         return Outcome.Success(Unit)
@@ -250,10 +251,10 @@ internal class LocalProjectRepository @Inject constructor(
     }
 
     override suspend fun resetToStarter(projectId: String): Outcome<Unit> {
-        val project = projects.get(projectId) ?: return Outcome.Failure(AppError.NotFound("Project not found."))
+        val project = projects.get(projectId) ?: return Outcome.Failure(AppError.NotFound(reason = ErrorReason.ProjectNotFound))
         val runtime = runtimes.runtime(project.runtimeId)
         val info = runtimes.languageInfo(runtime?.language ?: project.runtimeId.substringBefore('-'))
-        val entry = files.list(projectId).firstOrNull { it.isEntry } ?: return Outcome.Failure(AppError.NotFound("Entry file missing."))
+        val entry = files.list(projectId).firstOrNull { it.isEntry } ?: return Outcome.Failure(AppError.NotFound(reason = ErrorReason.EntryFileMissing))
         db.withTransaction {
             files.updateContent(entry.id, info.placeholderCode())
             tests.replaceAll(projectId, (info.starter?.tests ?: listOf(TestCaseDraft("", ""))).mapIndexed { i, d -> d.toEntity(projectId, i) })
@@ -274,11 +275,11 @@ internal class LocalProjectRepository @Inject constructor(
     private fun validateFileName(name: String, taken: List<String>): AppError.Validation? {
         val trimmed = name.trim()
         return when {
-            trimmed.isEmpty() -> AppError.Validation("Enter a file name.")
+            trimmed.isEmpty() -> AppError.Validation(reason = ErrorReason.FileNameRequired)
             '/' in trimmed || '\\' in trimmed || trimmed.contains("..") || '\u0000' in trimmed ->
-                AppError.Validation("All files share one flat /workspace: no folders or '..'.")
-            trimmed.length > MAX_FILE_NAME -> AppError.Validation("File names can be at most $MAX_FILE_NAME characters.")
-            trimmed in taken -> AppError.Validation("$trimmed already exists.")
+                AppError.Validation(reason = ErrorReason.FlatWorkspace)
+            trimmed.length > MAX_FILE_NAME -> AppError.Validation(reason = ErrorReason.FileNameTooLong(MAX_FILE_NAME))
+            trimmed in taken -> AppError.Validation(reason = ErrorReason.FileExists(trimmed))
             else -> null
         }
     }

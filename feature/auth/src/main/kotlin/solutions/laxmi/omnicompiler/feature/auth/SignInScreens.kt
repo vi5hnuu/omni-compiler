@@ -1,5 +1,14 @@
 package solutions.laxmi.omnicompiler.feature.auth
 
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.TextLinkStyles
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.LinkAnnotation
+import solutions.laxmi.omnicompiler.core.ui.asString
+import androidx.compose.ui.platform.LocalResources
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -43,10 +52,11 @@ import solutions.laxmi.omnicompiler.core.ui.openUrl
 
 @Composable
 internal fun AuthEvents(viewModel: SignInMethodsViewModel, navigator: Navigator, snackbar: SnackbarHostState) {
+    val resources = LocalResources.current
     LaunchedEffect(viewModel) {
         viewModel.eventFlow.collect { event ->
             when (event) {
-                is AuthEvent.Message -> snackbar.showSnackbar(event.text)
+                is AuthEvent.Message -> snackbar.showSnackbar(event.text.asString(resources))
                 is AuthEvent.CheckInbox -> navigator.navigate(CheckInboxRoute(event.email))
                 // New sessions are routed by the app's session gate; an existing one (guest) just returns.
                 AuthEvent.SignedIn -> navigator.resetTo(EditorRoute())
@@ -67,36 +77,36 @@ fun SignInScreen(navigator: Navigator) {
     AuthEvents(viewModel, navigator, snackbar)
     val colors = OmniTheme.colors
     AuthScaffold(snackbar, topBar = { OmniTopBar("", onBack = navigator::back) }) {
-        AuthHeading("Sign in", "Sync run history, API keys and plan across devices.")
+        AuthHeading(stringResource(R.string.sign_in_title), stringResource(R.string.sign_in_subtitle))
         OmniTextField(
-            state.identifier, viewModel::setIdentifier, label = "E-mail or username", placeholder = "ada@lovelace.dev",
+            state.identifier, viewModel::setIdentifier, label = stringResource(R.string.sign_in_identifier), placeholder = stringResource(R.string.auth_email_placeholder),
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email, imeAction = ImeAction.Next, autoCorrectEnabled = false),
         )
         OmniPasswordField(
             state.password, viewModel::setPassword,
-            labelAction = { OmniTextButton("Forgot password?", { navigator.navigate(ForgotPasswordRoute(state.identifier.takeIf { '@' in it }.orEmpty())) }) },
+            labelAction = { OmniTextButton(stringResource(R.string.sign_in_forgot), { navigator.navigate(ForgotPasswordRoute(state.identifier.takeIf { '@' in it }.orEmpty())) }) },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done),
             keyboardActions = KeyboardActions(onDone = { viewModel.signIn() }),
-            error = state.error,
+            error = state.error?.asString(),
         )
         state.unverifiedEmail?.let { email ->
             InfoBanner(
-                "Open the link we sent to $email to finish creating your account.",
+                stringResource(R.string.sign_in_verify_message, email),
                 icon = OmniIcons.Mail,
-                title = "Verify your e-mail",
-                action = { OmniTextButton(if (busy == AuthAction.Resend) "Sending…" else "Resend link", viewModel::resendVerification, enabled = busy == null) },
+                title = stringResource(R.string.sign_in_verify_title),
+                action = { OmniTextButton(stringResource(if (busy == AuthAction.Resend) R.string.sign_in_sending else R.string.sign_in_resend), viewModel::resendVerification, enabled = busy == null) },
             )
         }
-        OmniButton("Sign in", viewModel::signIn, loading = busy == AuthAction.Email, enabled = busy == null)
+        OmniButton(stringResource(R.string.sign_in_button), viewModel::signIn, loading = busy == AuthAction.Email, enabled = busy == null)
         if (viewModel.googleAvailable) {
             OrDivider()
-            GoogleButton("Continue with Google", loading = busy == AuthAction.Google, enabled = busy == null) {
+            GoogleButton(stringResource(R.string.welcome_google), loading = busy == AuthAction.Google, enabled = busy == null) {
                 viewModel.signInWithGoogle(context.findActivityContext())
             }
         }
         Row(Modifier.fillMaxWidth().padding(vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text("New to omni? ", style = OmniTheme.typography.body, color = colors.textSecondary)
-            OmniTextButton("Create account", { navigator.navigate(SignUpRoute()) })
+            Text(stringResource(R.string.sign_in_new) + " ", style = OmniTheme.typography.body, color = colors.textSecondary)
+            OmniTextButton(stringResource(R.string.sign_in_create_account), { navigator.navigate(SignUpRoute()) })
         }
     }
 }
@@ -114,12 +124,12 @@ fun SignUpScreen(route: SignUpRoute, navigator: Navigator) {
     val converting = route.convertGuest && state.isGuest
     AuthScaffold(snackbar, topBar = { OmniTopBar("", onBack = navigator::back) }) {
         AuthHeading(
-            "Create account",
-            if (converting) "Your guest run history comes with you. Projects already live on this device." else "Free plan. Projects stay on this device; run history syncs.",
+            stringResource(R.string.sign_up_title),
+            stringResource(if (converting) R.string.sign_up_subtitle_convert else R.string.sign_up_subtitle),
         )
-        OmniTextField(state.name, viewModel::setName, label = "Name", placeholder = "Ada Lovelace", keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next))
+        OmniTextField(state.name, viewModel::setName, label = stringResource(R.string.sign_up_name), placeholder = stringResource(R.string.sign_up_name_placeholder), keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next))
         OmniTextField(
-            state.email, viewModel::setEmail, label = "E-mail", placeholder = "ada@lovelace.dev",
+            state.email, viewModel::setEmail, label = stringResource(R.string.auth_email), placeholder = stringResource(R.string.auth_email_placeholder),
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email, imeAction = ImeAction.Next, autoCorrectEnabled = false),
         )
         OmniPasswordField(
@@ -131,25 +141,20 @@ fun SignUpScreen(route: SignUpRoute, navigator: Navigator) {
             checked = state.acceptedTerms,
             onCheckedChange = viewModel::setAcceptedTerms,
             label = {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("I agree to the ", style = OmniTheme.typography.bodySmall, color = colors.textSecondary)
-                    OmniTextButton("Terms", { context.openUrl(viewModel.config.termsUrl) })
-                    Text(" and ", style = OmniTheme.typography.bodySmall, color = colors.textSecondary)
-                    OmniTextButton("Privacy Policy", { context.openUrl(viewModel.config.privacyPolicyUrl) })
-                }
+                AgreementText(termsUrl = viewModel.config.termsUrl, privacyUrl = viewModel.config.privacyPolicyUrl)
             },
         )
-        state.error?.let { Text(it, style = OmniTheme.typography.bodySmall, color = colors.accentText) }
-        OmniButton("Create account", { viewModel.submit(route.convertGuest) }, enabled = state.canSubmit && busy == null, loading = busy == AuthAction.Register)
+        state.error?.let { Text(it.asString(), style = OmniTheme.typography.bodySmall, color = colors.accentText) }
+        OmniButton(stringResource(R.string.sign_up_button), { viewModel.submit(route.convertGuest) }, enabled = state.canSubmit && busy == null, loading = busy == AuthAction.Register)
         if (viewModel.googleAvailable && !converting) {
             OrDivider()
-            GoogleButton("Sign up with Google", loading = busy == AuthAction.Google, enabled = busy == null) {
+            GoogleButton(stringResource(R.string.sign_up_google), loading = busy == AuthAction.Google, enabled = busy == null) {
                 viewModel.signInWithGoogle(context.findActivityContext())
             }
         }
         Row(Modifier.fillMaxWidth().padding(vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text("Have an account? ", style = OmniTheme.typography.body, color = colors.textSecondary)
-            OmniTextButton("Sign in", { navigator.replace(SignInRoute) })
+            Text(stringResource(R.string.sign_up_have_account) + " ", style = OmniTheme.typography.body, color = colors.textSecondary)
+            OmniTextButton(stringResource(R.string.sign_in_button), { navigator.replace(SignInRoute) })
         }
     }
 }
@@ -174,8 +179,26 @@ private fun StrengthMeter(password: String) {
             }
         }
         Row {
-            Text("${strength.label} · ${password.length} characters", style = OmniTheme.typography.label, color = colors.textSecondary, modifier = Modifier.weight(1f))
-            PasswordStrength.hint(password)?.let { Text(it, style = OmniTheme.typography.label, color = colors.textTertiary) }
+            Text(stringResource(R.string.password_strength_summary, strength.labelRes?.let { stringResource(it) }.orEmpty(), pluralStringResource(R.plurals.password_characters, password.length, password.length)), style = OmniTheme.typography.label, color = colors.textSecondary, modifier = Modifier.weight(1f))
+            PasswordStrength.hint(password)?.let { Text(it.asString(), style = OmniTheme.typography.label, color = colors.textTertiary) }
         }
     }
+}
+
+/** "I agree to the Terms and Privacy Policy" as one translatable sentence with two tappable links. */
+@Composable
+private fun AgreementText(termsUrl: String, privacyUrl: String) {
+    val colors = OmniTheme.colors
+    val terms = stringResource(R.string.sign_up_terms)
+    val privacy = stringResource(R.string.sign_up_privacy)
+    val sentence = stringResource(R.string.sign_up_agree, terms, privacy)
+    val linkStyle = TextLinkStyles(SpanStyle(color = colors.accentText, fontWeight = FontWeight.SemiBold))
+    val text = buildAnnotatedString {
+        append(sentence)
+        listOf(terms to termsUrl, privacy to privacyUrl).forEach { (label, url) ->
+            val start = sentence.indexOf(label)
+            if (start >= 0) addLink(LinkAnnotation.Url(url, linkStyle), start, start + label.length)
+        }
+    }
+    Text(text, style = OmniTheme.typography.bodySmall, color = colors.textSecondary)
 }

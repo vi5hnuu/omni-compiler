@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="languages_title">Language</string>
+    <plurals name="languages_count">
+        <item quantity="one">%1$d language</item>
+        <item quantity="other">%1$d languages</item>
+    </plurals>
+    <plurals name="languages_runtime_count">
+        <item quantity="one">%1$d runtime</item>
+        <item quantity="other">%1$d runtimes</item>
+    </plurals>
+    <string name="languages_subtitle">%1$s · %2$s</string>
+    <string name="languages_search">Search languages or runtimes</string>
+    <string name="languages_no_matches_title">No matches</string>
+    <string name="languages_no_matches_message">Try another name, version or runtime id.</string>
+    <string name="languages_recent">Recent</string>
+    <string name="languages_all">All languages</string>
+    <string name="languages_filter_all">All</string>
+    <string name="languages_filter_recent">Recent</string>
+    <string name="languages_accepted">%1$d%% accepted</string>
+    <string name="languages_fast">FAST</string>
+    <string name="languages_runtimes_title">%1$s runtimes</string>
+    <plurals name="languages_available">
+        <item quantity="one">%1$d available</item>
+        <item quantity="other">%1$d available</item>
+    </plurals>
+    <string name="languages_runtime_name">%1$s %2$s</string>
+    <string name="languages_limit_time">Time</string>
+    <string name="languages_limit_memory">Memory</string>
+    <string name="languages_limit_lane">Lane</string>
+    <string name="languages_time_value">%1$d ms</string>
+    <string name="languages_memory_value">%1$d MB</string>
+    <string name="languages_lane_hot">hot</string>
+    <string name="languages_lane_cold">cold</string>
+    <string name="languages_make_default">Default for new projects</string>
+    <string name="languages_use">Use %1$s %2$s</string>
+    <string name="languages_status_default">DEFAULT</string>
+    <string name="languages_status_deprecated">DEPRECATED</string>
+    <string name="languages_status_building">BUILDING</string>
+    <string name="languages_status_unavailable">UNAVAILABLE</string>
+    <string name="languages_status_ready">READY</string>
+</resources>

@@ -1,5 +1,9 @@
 package solutions.laxmi.omnicompiler.feature.workspace.console
 
+import solutions.laxmi.omnicompiler.core.ui.formatDuration
+import solutions.laxmi.omnicompiler.core.ui.R as CommonR
+import solutions.laxmi.omnicompiler.feature.workspace.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -35,7 +39,6 @@ import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
-import solutions.laxmi.omnicompiler.core.common.formatMillis
 import solutions.laxmi.omnicompiler.core.common.shortJobId
 import solutions.laxmi.omnicompiler.core.designsystem.component.EmptyState
 import solutions.laxmi.omnicompiler.core.designsystem.component.OmniButton
@@ -82,16 +85,16 @@ internal fun TestsPanel(
                 if (run.verdict == Verdict.TLE || run.verdict == Verdict.MLE) item { LimitTips(run, actions.onRaiseLimits) }
             }
             if (tests.isEmpty()) {
-                item { EmptyState("No test cases", "Add stdin and the expected output. The judge compares output exactly (trailing newlines ignored).", icon = OmniIcons.Check) }
+                item { EmptyState(stringResource(R.string.tests_empty_title), stringResource(R.string.tests_empty_message), icon = OmniIcons.Check) }
             }
             itemsIndexed(tests, key = { _, t -> t.id }) { index, test ->
                 TestRow(index, test, alignedRun?.results?.firstOrNull { it.index == index + 1 }, alignedRun?.phase?.isActive == true, actions)
             }
         }
         Row(Modifier.fillMaxWidth().padding(12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            OmniButton("Add test", actions.onAdd, Modifier.weight(1f), style = OmniButtonStyle.Secondary, leadingIcon = OmniIcons.Plus, trailingIcon = null)
+            OmniButton(stringResource(R.string.tests_add), actions.onAdd, Modifier.weight(1f), style = OmniButtonStyle.Secondary, leadingIcon = OmniIcons.Plus, trailingIcon = null)
             OmniButton(
-                text = "Run all ${tests.size}",
+                text = stringResource(R.string.tests_run_all, tests.size),
                 onClick = actions.onRunAll,
                 modifier = Modifier.weight(1f),
                 enabled = tests.isNotEmpty() && !running,
@@ -119,13 +122,16 @@ private fun VerdictBanner(run: RunRecord) {
         Column(Modifier.weight(1f)) {
             Text(run.headline(), style = OmniTheme.typography.bodyStrong, color = if (accepted) colors.textPrimary else colors.onAccent)
             Text(
-                listOfNotNull(run.jobId?.let { "job ${shortJobId(it)}" }, run.totalTimeMs?.let { "${formatMillis(it)} total" }).joinToString(" · "),
+                listOfNotNull(
+                    run.jobId?.let { stringResource(R.string.tests_banner_meta_job, shortJobId(it)) },
+                    run.totalTimeMs?.let { stringResource(R.string.tests_banner_meta_total, formatDuration(it)) },
+                ).joinToString(" · "),
                 style = OmniTheme.typography.monoSmall,
                 color = if (accepted) colors.textTertiary else colors.onAccent.copy(alpha = 0.8f),
             )
         }
         run.jobId?.let { jobId ->
-            OmniIconButton(OmniIcons.Copy, "Copy job id", { clipboard.setText(AnnotatedString(jobId)) }, tint = if (accepted) colors.textSecondary else colors.onAccent)
+            OmniIconButton(OmniIcons.Copy, stringResource(R.string.tests_copy_job_id), { clipboard.setText(AnnotatedString(jobId)) }, tint = if (accepted) colors.textSecondary else colors.onAccent)
         }
     }
 }
@@ -134,10 +140,10 @@ private fun VerdictBanner(run: RunRecord) {
 private fun Metrics(run: RunRecord) {
     val slowest = run.results.mapNotNull { it.timeMs }.maxOrNull()
     val cells = listOf(
-        Triple("Slowest", formatMillis(slowest), slowest?.let { it.toFloat() / (run.totalTimeMs ?: it).coerceAtLeast(1) } ?: 0f),
-        Triple("Passed", "${run.passed} / ${run.testCount}", run.passed.toFloat() / run.testCount.coerceAtLeast(1)),
-        Triple("Total", formatMillis(run.totalTimeMs), 1f),
-        Triple("Source", if (run.fromCache) "cached" else "fresh", if (run.fromCache) 1f else 0f),
+        Triple(stringResource(R.string.tests_metric_slowest), formatDuration(slowest), slowest?.let { it.toFloat() / (run.totalTimeMs ?: it).coerceAtLeast(1) } ?: 0f),
+        Triple(stringResource(R.string.tests_metric_passed), stringResource(R.string.stage_tests_progress, run.passed, run.testCount), run.passed.toFloat() / run.testCount.coerceAtLeast(1)),
+        Triple(stringResource(R.string.tests_metric_total), formatDuration(run.totalTimeMs), 1f),
+        Triple(stringResource(R.string.tests_metric_source), stringResource(if (run.fromCache) R.string.tests_source_cached else R.string.tests_source_fresh), if (run.fromCache) 1f else 0f),
     )
     val colors = OmniTheme.colors
     Row(Modifier.fillMaxWidth().drawBehind { drawLine(colors.divider, Offset(0f, size.height), Offset(size.width, size.height), 1f) }) {
@@ -162,19 +168,20 @@ private fun LimitTips(run: RunRecord, onRaiseLimits: () -> Unit) {
     val colors = OmniTheme.colors
     val failing = run.firstFailure
     Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        Text("THINGS TO TRY", style = OmniTheme.typography.overline, color = colors.textTertiary)
-        val tips = buildList {
-            failing?.let { add("Run ${run.testName(it.index)} alone with a smaller input") }
-            add(if (run.verdict == Verdict.TLE) "Look for nested loops or repeated work on large inputs" else "Avoid holding the whole input or large tables in memory")
-            add("Raise the ${if (run.verdict == Verdict.TLE) "time" else "memory"} limit for this project")
-        }
+        Text(stringResource(R.string.tests_things_to_try).uppercase(), style = OmniTheme.typography.overline, color = colors.textTertiary)
+        val timeLimited = run.verdict == Verdict.TLE
+        val tips = listOfNotNull(
+            failing?.let { stringResource(R.string.tests_tip_run_alone, run.testName(it.index)) },
+            stringResource(if (timeLimited) R.string.tests_tip_time else R.string.tests_tip_memory),
+            stringResource(if (timeLimited) R.string.tests_tip_raise_time else R.string.tests_tip_raise_memory),
+        )
         tips.forEachIndexed { i, tip ->
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text("%02d".format(i + 1), style = OmniTheme.typography.mono, color = colors.accentText)
                 Text(tip, style = OmniTheme.typography.bodySmall, color = colors.textSecondary)
             }
         }
-        OmniTextButton("Change limits", onRaiseLimits)
+        OmniTextButton(stringResource(R.string.tests_change_limits), onRaiseLimits)
     }
 }
 
@@ -182,7 +189,7 @@ private fun LimitTips(run: RunRecord, onRaiseLimits: () -> Unit) {
 private fun TestRow(index: Int, test: TestCase, result: TestResult?, runActive: Boolean, actions: TestActions) {
     val colors = OmniTheme.colors
     var expanded by rememberSaveable(test.id) { mutableStateOf(result?.verdict?.isFailure == true) }
-    val name = test.name.ifBlank { "Test ${index + 1}" }
+    val name = test.name.ifBlank { stringResource(R.string.run_test_default_name, index + 1) }
     Column(
         Modifier
             .fillMaxWidth()
@@ -200,7 +207,7 @@ private fun TestRow(index: Int, test: TestCase, result: TestResult?, runActive: 
                 result != null -> VerdictBadge(result.verdict)
                 runActive -> VerdictBadge(VerdictState.Pending)
             }
-            Text(result?.timeMs?.let(::formatMillis) ?: "—", style = OmniTheme.typography.monoSmall, color = colors.textTertiary)
+            Text(formatDuration(result?.timeMs), style = OmniTheme.typography.monoSmall, color = colors.textTertiary)
             Icon(if (expanded) OmniIcons.ChevronUp else OmniIcons.ChevronRight, null, tint = colors.textTertiary, modifier = Modifier.size(14.dp))
         }
         if (expanded) {
@@ -209,22 +216,22 @@ private fun TestRow(index: Int, test: TestCase, result: TestResult?, runActive: 
                 if (output != null) {
                     val mismatched = diffLines(test.expected, output)
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        CodeBlock("Expected", test.expected, mismatched, Modifier.weight(1f))
-                        CodeBlock("Output", output, mismatched, Modifier.weight(1f), accentLabel = true)
+                        CodeBlock(stringResource(R.string.tests_expected), test.expected, mismatched, Modifier.weight(1f))
+                        CodeBlock(stringResource(R.string.tests_output), output, mismatched, Modifier.weight(1f), accentLabel = true)
                     }
                 } else {
-                    CodeBlock("Expected", test.expected, emptySet())
+                    CodeBlock(stringResource(R.string.tests_expected), test.expected, emptySet())
                 }
-                CodeBlock("stdin", test.stdin, emptySet())
-                result?.stderr?.takeIf { it.isNotBlank() }?.let { CodeBlock("stderr", it, emptySet(), accentLabel = true) }
+                CodeBlock(stringResource(R.string.tests_stdin), test.stdin, emptySet())
+                result?.stderr?.takeIf { it.isNotBlank() }?.let { CodeBlock(stringResource(R.string.tests_stderr), it, emptySet(), accentLabel = true) }
                 Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                    OmniTextButton("Run only this", { actions.onRunOne(test) })
-                    OmniTextButton("Edit", { actions.onEdit(test) }, color = colors.textSecondary)
-                    OmniTextButton("Duplicate", { actions.onDuplicate(test) }, color = colors.textSecondary)
+                    OmniTextButton(stringResource(R.string.tests_run_only_this), { actions.onRunOne(test) })
+                    OmniTextButton(stringResource(R.string.tests_edit), { actions.onEdit(test) }, color = colors.textSecondary)
+                    OmniTextButton(stringResource(R.string.tests_duplicate), { actions.onDuplicate(test) }, color = colors.textSecondary)
                     if (output != null && result.verdict == Verdict.WA) {
-                        OmniTextButton("Use output as expected", { actions.onAcceptOutput(test, output) }, color = colors.textSecondary)
+                        OmniTextButton(stringResource(R.string.tests_use_output), { actions.onAcceptOutput(test, output) }, color = colors.textSecondary)
                     }
-                    OmniTextButton("Delete", { actions.onDelete(test) }, color = colors.textSecondary)
+                    OmniTextButton(stringResource(CommonR.string.common_delete), { actions.onDelete(test) }, color = colors.textSecondary)
                 }
             }
         }
@@ -252,7 +259,7 @@ internal fun CodeBlock(label: String, text: String, highlight: Set<Int>, modifie
                 .horizontalScroll(rememberScrollState())
                 .padding(8.dp),
         ) {
-            Text(if (text.isEmpty()) AnnotatedString("(empty)") else content, style = OmniTheme.typography.mono, color = if (text.isEmpty()) colors.textTertiary else colors.textPrimary)
+            Text(if (text.isEmpty()) AnnotatedString(stringResource(R.string.tests_empty_block)) else content, style = OmniTheme.typography.mono, color = if (text.isEmpty()) colors.textTertiary else colors.textPrimary)
         }
     }
 }

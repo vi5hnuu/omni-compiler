@@ -1,5 +1,11 @@
 package solutions.laxmi.omnicompiler.feature.projects
 
+import solutions.laxmi.omnicompiler.core.ui.testCount
+import solutions.laxmi.omnicompiler.core.ui.labelRes
+import solutions.laxmi.omnicompiler.core.ui.asString
+import androidx.compose.ui.platform.LocalResources
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -60,8 +66,8 @@ fun ExamplesScreen(navigator: Navigator) {
     val colors = OmniTheme.colors
     Box(Modifier.fillMaxSize().background(colors.background)) {
         Column(Modifier.fillMaxSize().navigationBarsPadding()) {
-            OmniTopBar("Examples & problems", onBack = navigator::back)
-            OmniTabRow(listOf(OmniTab("Examples", state.examples.size.toString()), OmniTab("Problems", state.problems.size.toString())), tab, { tab = it })
+            OmniTopBar(stringResource(R.string.practice_title), onBack = navigator::back)
+            OmniTabRow(listOf(OmniTab(stringResource(R.string.practice_tab_examples), state.examples.size.toString()), OmniTab(stringResource(R.string.practice_tab_problems), state.problems.size.toString())), tab, { tab = it })
             LazyColumn(Modifier.weight(1f)) {
                 if (tab == 0) {
                     items(state.examples, key = { it.id }) { example ->
@@ -109,7 +115,7 @@ fun ProblemScreen(route: ProblemRoute, navigator: Navigator) {
     val problem = state.problem
     Box(Modifier.fillMaxSize().background(colors.background)) {
         Column(Modifier.fillMaxSize().navigationBarsPadding()) {
-            OmniTopBar(problem?.title ?: "Problem", onBack = navigator::back)
+            OmniTopBar(problem?.title ?: stringResource(R.string.practice_problem), onBack = navigator::back)
             if (problem == null) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { OmniSpinner() }
                 return@Column
@@ -123,22 +129,22 @@ fun ProblemScreen(route: ProblemRoute, navigator: Navigator) {
                 }
                 item { Text(problem.tagline, style = OmniTheme.typography.bodyStrong, color = colors.textPrimary) }
                 items(problem.statement) { paragraph -> Text(paragraph.replace("`", ""), style = OmniTheme.typography.body, color = colors.textSecondary) }
-                if (problem.examples.isNotEmpty()) item { SectionLabel("Examples", Modifier.padding(horizontal = 0.dp)) }
+                if (problem.examples.isNotEmpty()) item { SectionLabel(stringResource(R.string.practice_examples), Modifier.padding(horizontal = 0.dp)) }
                 items(problem.examples) { example ->
                     Column(Modifier.fillMaxWidth().background(colors.surfaceRaised).padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text("Input", style = OmniTheme.typography.overline, color = colors.textTertiary)
+                        Text(stringResource(R.string.practice_input).uppercase(), style = OmniTheme.typography.overline, color = colors.textTertiary)
                         Text(example.input, style = OmniTheme.typography.mono, color = colors.textPrimary)
-                        Text("Output", style = OmniTheme.typography.overline, color = colors.textTertiary)
+                        Text(stringResource(R.string.practice_output).uppercase(), style = OmniTheme.typography.overline, color = colors.textTertiary)
                         Text(example.output, style = OmniTheme.typography.mono, color = colors.textPrimary)
                         example.explanation?.let { Text(it, style = OmniTheme.typography.bodySmall, color = colors.textSecondary) }
                     }
                 }
                 if (problem.constraints.isNotEmpty()) {
-                    item { SectionLabel("Constraints", Modifier.padding(horizontal = 0.dp)) }
+                    item { SectionLabel(stringResource(R.string.practice_constraints), Modifier.padding(horizontal = 0.dp)) }
                     items(problem.constraints) { Text("·  ${it.replace("`", "")}", style = OmniTheme.typography.mono, color = colors.textSecondary) }
                 }
                 item {
-                    Text("Starter solutions: ${state.solutionLanguages.size} languages · ${problem.tests.size} tests", style = OmniTheme.typography.bodySmall, color = colors.textTertiary)
+                    Text(stringResource(R.string.practice_starters, pluralStringResource(R.plurals.practice_languages, state.solutionLanguages.size, state.solutionLanguages.size), testCount(problem.tests.size)), style = OmniTheme.typography.bodySmall, color = colors.textTertiary)
                 }
             }
             if (state.solutionLanguages.isNotEmpty()) {
@@ -150,8 +156,8 @@ fun ProblemScreen(route: ProblemRoute, navigator: Navigator) {
             }
             val picked: Language? = state.solutionLanguages.firstOrNull { it.base == pickedBase }
             Row(Modifier.padding(16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OmniButton("Tests only", viewModel::useTestsInCurrentProject, Modifier.weight(1f), style = OmniButtonStyle.Secondary, trailingIcon = null)
-                OmniButton(picked?.let { "Solve in ${it.info.name}" } ?: "Solve", { viewModel.solve(picked) }, Modifier.weight(1f), trailingIcon = OmniIcons.ArrowRight)
+                OmniButton(stringResource(R.string.practice_tests_only), viewModel::useTestsInCurrentProject, Modifier.weight(1f), style = OmniButtonStyle.Secondary, trailingIcon = null)
+                OmniButton(picked?.let { stringResource(R.string.practice_solve_in, it.info.name) } ?: stringResource(R.string.practice_solve), { viewModel.solve(picked) }, Modifier.weight(1f), trailingIcon = OmniIcons.ArrowRight)
             }
         }
         SnackbarHost(snackbar, Modifier.align(Alignment.BottomCenter).navigationBarsPadding())
@@ -160,11 +166,12 @@ fun ProblemScreen(route: ProblemRoute, navigator: Navigator) {
 
 @Composable
 private fun PracticeEvents(events: kotlinx.coroutines.flow.Flow<PracticeEvent>, navigator: Navigator, snackbar: SnackbarHostState) {
+    val resources = LocalResources.current
     LaunchedEffect(events) {
         events.collect { event ->
             when (event) {
                 is PracticeEvent.Open -> navigator.resetTo(EditorRoute(event.projectId))
-                is PracticeEvent.Message -> snackbar.showSnackbar(event.text)
+                is PracticeEvent.Message -> snackbar.showSnackbar(event.text.asString(resources))
             }
         }
     }
@@ -174,7 +181,7 @@ private fun PracticeEvents(events: kotlinx.coroutines.flow.Flow<PracticeEvent>, 
 private fun DifficultyBadge(difficulty: Difficulty) {
     val colors = OmniTheme.colors
     OmniBadge(
-        difficulty.name,
+        stringResource(difficulty.labelRes).uppercase(),
         container = if (difficulty == Difficulty.HARD) colors.accent else colors.surfaceMuted,
         content = if (difficulty == Difficulty.HARD) colors.onAccent else colors.textSecondary,
     )
@@ -194,10 +201,10 @@ private fun ExampleSheet(example: Example, onDismiss: () -> Unit, onUse: (newPro
         Column(Modifier.fillMaxWidth().navigationBarsPadding().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text(example.title, style = OmniTheme.typography.title, color = colors.textPrimary)
             Text(example.statement, style = OmniTheme.typography.body, color = colors.textSecondary)
-            Text("${example.tests.size} test cases", style = OmniTheme.typography.mono, color = colors.textTertiary)
+            Text(pluralStringResource(R.plurals.practice_test_cases, example.tests.size, example.tests.size), style = OmniTheme.typography.mono, color = colors.textTertiary)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OmniButton("Use in current", { onUse(false) }, Modifier.weight(1f), style = OmniButtonStyle.Secondary, trailingIcon = null)
-                OmniButton("New project", { onUse(true) }, Modifier.weight(1f), trailingIcon = OmniIcons.Plus)
+                OmniButton(stringResource(R.string.practice_use_in_current), { onUse(false) }, Modifier.weight(1f), style = OmniButtonStyle.Secondary, trailingIcon = null)
+                OmniButton(stringResource(R.string.projects_new), { onUse(true) }, Modifier.weight(1f), trailingIcon = OmniIcons.Plus)
             }
         }
     }

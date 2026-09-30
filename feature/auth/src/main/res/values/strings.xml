@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="auth_wordmark" translatable="false">omni compiler</string>
+    <string name="auth_or">or</string>
+
+    <!-- Welcome -->
+    <string name="welcome_skip">Skip</string>
+    <plurals name="welcome_languages">
+        <item quantity="one">%1$d language</item>
+        <item quantity="other">%1$d languages</item>
+    </plurals>
+    <plurals name="welcome_runtimes">
+        <item quantity="one">%1$d runtime</item>
+        <item quantity="other">%1$d runtimes</item>
+    </plurals>
+    <string name="welcome_counts">%1$s · %2$s</string>
+    <string name="welcome_headline">Write in any language. Get a judge verdict in milliseconds.</string>
+    <string name="welcome_subtitle">Each run gets an isolated microVM, per-test verdicts and full stdout and stderr.</string>
+    <string name="welcome_google">Continue with Google</string>
+    <string name="welcome_email">Continue with email</string>
+    <string name="welcome_guest">Continue as guest</string>
+    <string name="welcome_guest_starting">Starting…</string>
+    <string name="welcome_guest_note">· projects stay on this device</string>
+    <string name="welcome_terms">Terms</string>
+    <string name="welcome_privacy">Privacy</string>
+    <string name="welcome_version">v%1$s</string>
+    <string name="welcome_demo_file" translatable="false">main.cpp · GCC</string>
+    <string name="welcome_run_demo">Run</string>
+    <string name="welcome_demo_meta" translatable="false">3/3 · 12 ms</string>
+
+    <!-- Sign in -->
+    <string name="sign_in_title">Sign in</string>
+    <string name="sign_in_subtitle">Sync run history, API keys and plan across devices.</string>
+    <string name="sign_in_identifier">E-mail or username</string>
+    <string name="auth_email_placeholder" translatable="false">ada@lovelace.dev</string>
+    <string name="sign_in_forgot">Forgot password?</string>
+    <string name="sign_in_verify_title">Verify your e-mail</string>
+    <string name="sign_in_verify_message">Open the link we sent to %1$s to finish creating your account.</string>
+    <string name="sign_in_sending">Sending…</string>
+    <string name="sign_in_resend">Resend link</string>
+    <string name="sign_in_button">Sign in</string>
+    <string name="sign_in_new">New to omni?</string>
+    <string name="sign_in_create_account">Create account</string>
+    <string name="sign_in_missing_fields">Enter your e-mail or username and password.</string>
+
+    <!-- Sign up -->
+    <string name="sign_up_title">Create account</string>
+    <string name="sign_up_subtitle_convert">Your guest run history comes with you. Projects already live on this device.</string>
+    <string name="sign_up_subtitle">Free plan. Projects stay on this device; run history syncs.</string>
+    <string name="sign_up_name">Name</string>
+    <string name="sign_up_name_placeholder" translatable="false">Ada Lovelace</string>
+    <string name="auth_email">E-mail</string>
+    <string name="sign_up_agree">I agree to the %1$s and %2$s</string>
+    <string name="sign_up_terms">Terms</string>
+    <string name="sign_up_privacy">Privacy Policy</string>
+    <string name="sign_up_button">Create account</string>
+    <string name="sign_up_google">Sign up with Google</string>
+    <string name="sign_up_have_account">Have an account?</string>
+    <string name="password_strength_summary">%1$s · %2$s</string>
+    <plurals name="password_characters">
+        <item quantity="one">%1$d character</item>
+        <item quantity="other">%1$d characters</item>
+    </plurals>
+    <string name="password_too_short">Too short</string>
+    <string name="password_weak">Weak</string>
+    <string name="password_fair">Fair</string>
+    <string name="password_good">Good</string>
+    <string name="password_strong">Strong</string>
+    <plurals name="password_hint_min">
+        <item quantity="one">Use at least %1$d character</item>
+        <item quantity="other">Use at least %1$d characters</item>
+    </plurals>
+    <string name="password_hint_symbol">Add a symbol for max</string>
+    <string name="password_hint_number">Add a number</string>
+    <string name="password_hint_length">12+ characters is stronger</string>
+
+    <!-- Check inbox -->
+    <string name="inbox_title">Check your inbox</string>
+    <string name="inbox_subtitle">We sent a verification link to %1$s. It expires in 24 hours.</string>
+    <string name="inbox_open_email">Open e-mail app</string>
+    <string name="inbox_resend_cooldown">Resend link · 0:%1$02d</string>
+    <string name="inbox_resend">Resend link</string>
+    <string name="inbox_while_you_wait">While you wait</string>
+    <string name="inbox_step_projects">Your projects are saved on this device and stay put.</string>
+    <string name="inbox_step_signed_in">You can keep coding; password sign-in on other devices works once you verify.</string>
+    <string name="inbox_step_signed_out">After opening the link, come back and sign in with your password.</string>
+    <string name="inbox_continue">Continue to editor</string>
+    <string name="inbox_verified_sign_in">I\'ve verified · Sign in</string>
+    <string name="inbox_wrong_address">Wrong address?</string>
+    <string name="inbox_change_email">Change e-mail</string>
+    <string name="inbox_sent">Verification e-mail sent.</string>
+
+    <!-- Reset password -->
+    <string name="reset_title">Reset password</string>
+    <string name="reset_subtitle">Enter the e-mail you signed up with and we\'ll send you a reset link.</string>
+    <string name="reset_send">Send reset link</string>
+    <string name="reset_send_again">Send again</string>
+    <string name="reset_sent_title">Link sent</string>
+    <string name="reset_sent_message">If %1$s has an account, a link is on its way. Open it to choose a new password, then sign in here. Resetting signs you out on every device.</string>
+    <string name="reset_back_to_sign_in">Back to sign in</string>
+    <string name="reset_email_required">Enter the e-mail you signed up with.</string>
+</resources>

@@ -1,5 +1,12 @@
 package solutions.laxmi.omnicompiler.feature.languages
 
+import solutions.laxmi.omnicompiler.core.ui.R as CommonR
+import solutions.laxmi.omnicompiler.core.ui.labelRes
+import solutions.laxmi.omnicompiler.core.ui.asString
+import androidx.compose.ui.platform.LocalResources
+import androidx.annotation.StringRes
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -70,11 +77,12 @@ fun LanguagePickerScreen(route: LanguagePickerRoute, navigator: Navigator) {
     val viewModel = hiltViewModel<LanguagePickerViewModel, LanguagePickerViewModel.Factory> { it.create(route.projectId) }
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
+    val resources = LocalResources.current
     LaunchedEffect(viewModel) {
         viewModel.eventFlow.collect { event ->
             when (event) {
                 LanguagePickerEvent.Done -> navigator.back()
-                is LanguagePickerEvent.Message -> snackbar.showSnackbar(event.text)
+                is LanguagePickerEvent.Message -> snackbar.showSnackbar(event.text.asString(resources))
             }
         }
     }
@@ -82,30 +90,34 @@ fun LanguagePickerScreen(route: LanguagePickerRoute, navigator: Navigator) {
     Box(Modifier.fillMaxSize().background(colors.background)) {
         Column(Modifier.fillMaxSize().navigationBarsPadding().imePadding()) {
             OmniTopBar(
-                title = "Language",
-                subtitle = "${state.languages.size} languages · ${state.totalRuntimes} runtimes",
+                title = stringResource(R.string.languages_title),
+                subtitle = stringResource(
+                    R.string.languages_subtitle,
+                    pluralStringResource(R.plurals.languages_count, state.languages.size, state.languages.size),
+                    pluralStringResource(R.plurals.languages_runtime_count, state.totalRuntimes, state.totalRuntimes),
+                ),
                 onBack = navigator::back,
                 navigationIcon = OmniIcons.Close,
             )
             OmniTextField(
                 value = state.query,
                 onValueChange = viewModel::setQuery,
-                placeholder = "Search languages or runtimes",
+                placeholder = stringResource(R.string.languages_search),
                 leadingIcon = OmniIcons.Search,
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
             )
             FilterChips(state.filter, viewModel::setFilter)
             state.refreshError?.let {
-                InfoBanner(it, Modifier.padding(horizontal = 16.dp, vertical = 4.dp), icon = OmniIcons.WifiOff, action = { OmniTextButton("Retry", viewModel::refresh) })
+                InfoBanner(it.asString(), Modifier.padding(horizontal = 16.dp, vertical = 4.dp), icon = OmniIcons.WifiOff, action = { OmniTextButton(stringResource(CommonR.string.common_retry), viewModel::refresh) })
             }
             when {
                 state.loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { OmniSpinner() }
-                state.languages.isEmpty() -> EmptyState("No matches", "Try another name, version or runtime id.", icon = OmniIcons.Search)
+                state.languages.isEmpty() -> EmptyState(stringResource(R.string.languages_no_matches_title), stringResource(R.string.languages_no_matches_message), icon = OmniIcons.Search)
                 else -> LazyColumn(Modifier.weight(1f)) {
                     if (state.recent.isNotEmpty()) {
-                        item { SectionLabel("Recent") }
+                        item { SectionLabel(stringResource(R.string.languages_recent)) }
                         items(state.recent, key = { "recent-${it.base}" }) { LanguageRow(it, state.currentRuntimeId, viewModel::select) }
-                        item { SectionLabel("All languages") }
+                        item { SectionLabel(stringResource(R.string.languages_all)) }
                     }
                     items(state.languages, key = { it.base }) { LanguageRow(it, state.currentRuntimeId, viewModel::select) }
                 }
@@ -127,8 +139,10 @@ fun LanguagePickerScreen(route: LanguagePickerRoute, navigator: Navigator) {
 
 @Composable
 private fun FilterChips(selected: LanguageFilter, onSelect: (LanguageFilter) -> Unit) {
-    val options = listOf<Pair<String, LanguageFilter>>("All" to LanguageFilter.All, "Recent" to LanguageFilter.Recent) +
-        LanguageCategory.entries.map { it.label to LanguageFilter.Category(it) }
+    val options = listOf<Pair<String, LanguageFilter>>(
+        stringResource(R.string.languages_filter_all) to LanguageFilter.All,
+        stringResource(R.string.languages_filter_recent) to LanguageFilter.Recent,
+    ) + LanguageCategory.entries.map { stringResource(it.labelRes) to LanguageFilter.Category(it) }
     Row(
         Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 4.dp),
         horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -141,18 +155,18 @@ private fun FilterChips(selected: LanguageFilter, onSelect: (LanguageFilter) -> 
 private fun LanguageRow(language: Language, currentRuntimeId: String?, onSelect: (Language) -> Unit) {
     val colors = OmniTheme.colors
     val isCurrent = language.runtimes.any { it.id == currentRuntimeId }
-    val subtitle = buildList {
-        add("${language.runtimes.size} runtime${if (language.runtimes.size == 1) "" else "s"}")
-        language.defaultRuntime?.let { add(it.id) }
-        language.acceptanceRate?.let { add("${(it * 100).roundToInt()}% accepted") }
-    }.joinToString(" · ")
+    val subtitle = listOfNotNull(
+        pluralStringResource(R.plurals.languages_runtime_count, language.runtimes.size, language.runtimes.size),
+        language.defaultRuntime?.id,
+        language.acceptanceRate?.let { stringResource(R.string.languages_accepted, (it * 100).roundToInt()) },
+    ).joinToString(" · ")
     OmniListRow(
         title = language.info.name,
         subtitle = subtitle,
         selected = isCurrent,
         leading = { LanguageTile(language.info.shortCode, selected = isCurrent) },
         trailing = {
-            if (language.runtimes.any { it.lane == Lane.HOT }) OmniBadge("FAST", content = colors.textSecondary)
+            if (language.runtimes.any { it.lane == Lane.HOT }) OmniBadge(stringResource(R.string.languages_fast), content = colors.textSecondary)
         },
         onClick = { onSelect(language) },
     )
@@ -183,8 +197,8 @@ private fun RuntimeSheet(
     ) {
         Column(Modifier.fillMaxWidth().navigationBarsPadding().padding(bottom = 16.dp)) {
             Column(Modifier.padding(horizontal = 16.dp)) {
-                Text("${language.info.name} runtimes", style = OmniTheme.typography.title, color = colors.textPrimary)
-                Text("${language.runtimes.size} available", style = OmniTheme.typography.bodySmall, color = colors.textTertiary)
+                Text(stringResource(R.string.languages_runtimes_title, language.info.name), style = OmniTheme.typography.title, color = colors.textPrimary)
+                Text(pluralStringResource(R.plurals.languages_available, language.runtimes.size, language.runtimes.size), style = OmniTheme.typography.bodySmall, color = colors.textTertiary)
                 language.info.tagline?.let { Text(it, style = OmniTheme.typography.bodySmall, color = colors.textSecondary, modifier = Modifier.padding(top = 4.dp)) }
             }
             language.runtimes.forEach { runtime ->
@@ -200,27 +214,27 @@ private fun RuntimeSheet(
                 ) {
                     OmniRadio(runtime.id == chosenId)
                     Column(Modifier.weight(1f)) {
-                        Text("${language.info.name} ${runtime.version}", style = OmniTheme.typography.bodyStrong, color = colors.textPrimary)
+                        Text(stringResource(R.string.languages_runtime_name, language.info.name, runtime.version), style = OmniTheme.typography.bodyStrong, color = colors.textPrimary)
                         Text(runtime.id, style = OmniTheme.typography.mono, color = colors.textTertiary)
                     }
-                    OmniBadge(runtime.statusTag(isDefault = runtime.id == defaultRuntimeId))
+                    OmniBadge(stringResource(runtime.statusTag(isDefault = runtime.id == defaultRuntimeId)))
                 }
             }
             chosen?.let { runtime ->
                 val lim = limits[runtime.id] ?: Limits.Default
                 Row(Modifier.fillMaxWidth().padding(16.dp).background(colors.background).padding(12.dp)) {
-                    LimitCell("Time", "${lim.timeMs} ms", Modifier.weight(1f))
-                    LimitCell("Memory", "${lim.memMb} MB", Modifier.weight(1f))
-                    LimitCell("Lane", if (runtime.lane == Lane.HOT) "hot" else "cold", Modifier.weight(1f))
+                    LimitCell(stringResource(R.string.languages_limit_time), stringResource(R.string.languages_time_value, lim.timeMs), Modifier.weight(1f))
+                    LimitCell(stringResource(R.string.languages_limit_memory), stringResource(R.string.languages_memory_value, lim.memMb), Modifier.weight(1f))
+                    LimitCell(stringResource(R.string.languages_limit_lane), stringResource(if (runtime.lane == Lane.HOT) R.string.languages_lane_hot else R.string.languages_lane_cold), Modifier.weight(1f))
                 }
                 OmniCheckbox(
                     checked = makeDefault,
                     onCheckedChange = { makeDefault = it },
-                    label = { Text("Default for new projects", style = OmniTheme.typography.body, color = colors.textSecondary) },
+                    label = { Text(stringResource(R.string.languages_make_default), style = OmniTheme.typography.body, color = colors.textSecondary) },
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
                 )
                 OmniButton(
-                    text = "Use ${language.info.name} ${runtime.version}",
+                    text = stringResource(R.string.languages_use, language.info.name, runtime.version),
                     onClick = { onUse(runtime, makeDefault) },
                     trailingIcon = OmniIcons.Check,
                     modifier = Modifier.padding(16.dp),
@@ -238,10 +252,11 @@ private fun LimitCell(label: String, value: String, modifier: Modifier) {
     }
 }
 
-private fun Runtime.statusTag(isDefault: Boolean): String = when {
-    isDefault -> "DEFAULT"
-    status == RuntimeStatus.DEPRECATED -> "DEPRECATED"
-    status == RuntimeStatus.BUILDING -> "BUILDING"
-    !available || status == RuntimeStatus.FAILED -> "UNAVAILABLE"
-    else -> "READY"
+@StringRes
+private fun Runtime.statusTag(isDefault: Boolean): Int = when {
+    isDefault -> R.string.languages_status_default
+    status == RuntimeStatus.DEPRECATED -> R.string.languages_status_deprecated
+    status == RuntimeStatus.BUILDING -> R.string.languages_status_building
+    !available || status == RuntimeStatus.FAILED -> R.string.languages_status_unavailable
+    else -> R.string.languages_status_ready
 }

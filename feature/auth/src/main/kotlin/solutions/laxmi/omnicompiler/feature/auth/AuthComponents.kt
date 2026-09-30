@@ -1,5 +1,6 @@
 package solutions.laxmi.omnicompiler.feature.auth
 
+import androidx.compose.ui.res.stringResource
 import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
@@ -28,7 +29,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import solutions.laxmi.omnicompiler.core.designsystem.R
+import solutions.laxmi.omnicompiler.core.designsystem.R as DesignR
 import solutions.laxmi.omnicompiler.core.designsystem.component.OmniButton
 import solutions.laxmi.omnicompiler.core.designsystem.component.OmniButtonStyle
 import solutions.laxmi.omnicompiler.core.designsystem.component.OmniDivider
@@ -43,7 +44,7 @@ internal fun Wordmark() {
         Box(Modifier.size(22.dp).background(colors.accent), contentAlignment = Alignment.Center) {
             Text("{}", style = OmniTheme.typography.badge.copy(fontSize = 11.sp), color = colors.onAccent)
         }
-        Text("omni compiler", style = OmniTheme.typography.title.copy(fontSize = 15.sp), color = colors.textPrimary)
+        Text(stringResource(R.string.auth_wordmark), style = OmniTheme.typography.title.copy(fontSize = 15.sp), color = colors.textPrimary)
     }
 }
 
@@ -81,7 +82,7 @@ internal fun GoogleButton(text: String, loading: Boolean, enabled: Boolean, onCl
         text = text,
         onClick = onClick,
         style = OmniButtonStyle.Light,
-        leadingPainter = painterResource(R.drawable.ic_google),
+        leadingPainter = painterResource(DesignR.drawable.ic_google),
         loading = loading,
         enabled = enabled,
         height = OmniDimens.buttonHeightLarge,
@@ -92,7 +93,7 @@ internal fun GoogleButton(text: String, loading: Boolean, enabled: Boolean, onCl
 internal fun OrDivider() {
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
         OmniDivider(Modifier.weight(1f))
-        Text("or", style = OmniTheme.typography.label, color = OmniTheme.colors.textTertiary)
+        Text(stringResource(R.string.auth_or), style = OmniTheme.typography.label, color = OmniTheme.colors.textTertiary)
         OmniDivider(Modifier.weight(1f))
     }
 }

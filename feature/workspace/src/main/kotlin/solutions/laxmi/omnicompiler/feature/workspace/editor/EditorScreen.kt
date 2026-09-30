@@ -34,7 +34,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.platform.LocalResources
+import androidx.compose.ui.res.stringResource
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import solutions.laxmi.omnicompiler.core.ui.UiText
+import solutions.laxmi.omnicompiler.core.ui.asString
+import solutions.laxmi.omnicompiler.feature.workspace.R
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.launch
 import solutions.laxmi.omnicompiler.core.designsystem.component.EmptyState
@@ -65,11 +70,12 @@ fun EditorScreen(route: EditorRoute, navigator: Navigator) {
     val viewModel = hiltViewModel<EditorViewModel, EditorViewModel.Factory>(key = route.toString()) { it.create(route) }
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
+    val resources = LocalResources.current
 
     LaunchedEffect(viewModel) {
         viewModel.eventFlow.collect { event ->
             when (event) {
-                is EditorEvent.Message -> snackbar.showSnackbar(event.text)
+                is EditorEvent.Message -> snackbar.showSnackbar(event.text.asString(resources))
                 is EditorEvent.OpenProject -> navigator.replace(EditorRoute(event.projectId))
             }
         }
@@ -221,16 +227,17 @@ private fun EditorContent(state: EditorUiState, snackbar: SnackbarHostState, act
         )
     }
     if (renamingProject && workspace != null) {
-        RenameDialog("Rename project", workspace.project.name, onDismiss = { renamingProject = false }) {
+        RenameDialog(stringResource(R.string.editor_rename_project_title), workspace.project.name, onDismiss = { renamingProject = false }) {
             actions.onRenameProject(it)
             renamingProject = false
         }
     }
     if (confirmReset) {
         ConfirmDialog(
-            title = "Reset to starter?",
-            message = "The entry file and test cases are replaced with ${state.language?.name ?: "the language"}'s reference sample. Extra files are kept.",
-            confirmLabel = "Reset",
+            title = stringResource(R.string.editor_reset_title),
+            message = state.language?.name?.let { stringResource(R.string.editor_reset_message, it) }
+                ?: stringResource(R.string.editor_reset_message_generic),
+            confirmLabel = stringResource(R.string.editor_reset),
             onDismiss = { confirmReset = false },
             onConfirm = {
                 actions.onResetToStarter()
@@ -241,8 +248,8 @@ private fun EditorContent(state: EditorUiState, snackbar: SnackbarHostState, act
     fileMenuFor?.let { file ->
         ConfirmDialog(
             title = file.name,
-            message = "Rename or delete this file.",
-            confirmLabel = "Rename",
+            message = stringResource(R.string.editor_file_actions_message),
+            confirmLabel = stringResource(R.string.editor_rename),
             onDismiss = { fileMenuFor = null },
             onConfirm = {
                 renamingFile = file
@@ -251,7 +258,7 @@ private fun EditorContent(state: EditorUiState, snackbar: SnackbarHostState, act
         )
     }
     renamingFile?.let { file ->
-        RenameDialog("Rename file", file.name, onDismiss = { renamingFile = null }) {
+        RenameDialog(stringResource(R.string.editor_rename_file_title), file.name, onDismiss = { renamingFile = null }) {
             actions.onRenameFile(file.id, it)
             renamingFile = null
         }
@@ -264,13 +271,13 @@ private fun Loading() {
 }
 
 @Composable
-private fun StartupError(message: String, onRetry: () -> Unit) {
+private fun StartupError(message: UiText, onRetry: () -> Unit) {
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         EmptyState(
-            title = "Can't open a project",
-            message = message,
+            title = stringResource(R.string.editor_cant_open_title),
+            message = message.asString(),
             icon = OmniIcons.WifiOff,
-            action = { OmniButton("Try again", onRetry, trailingIcon = OmniIcons.Refresh) },
+            action = { OmniButton(stringResource(R.string.editor_try_again), onRetry, trailingIcon = OmniIcons.Refresh) },
         )
     }
 }

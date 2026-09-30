@@ -22,11 +22,13 @@ import solutions.laxmi.omnicompiler.core.model.ReplayProof
 import solutions.laxmi.omnicompiler.core.model.TestCaseDraft
 import solutions.laxmi.omnicompiler.core.model.Verdict
 import solutions.laxmi.omnicompiler.core.navigation.JobDetailRoute
-import solutions.laxmi.omnicompiler.core.ui.userMessage
+import solutions.laxmi.omnicompiler.core.model.ErrorReason
+import solutions.laxmi.omnicompiler.core.ui.UiText
+import solutions.laxmi.omnicompiler.core.ui.toUiText
 
 data class JobDetailUiState(
     val loading: Boolean = true,
-    val error: String? = null,
+    val error: UiText? = null,
     val job: Job? = null,
     val runtimeId: String? = null,
     val verifying: Boolean = false,
@@ -35,7 +37,7 @@ data class JobDetailUiState(
 
 sealed interface JobDetailEvent {
     data class OpenProject(val projectId: String) : JobDetailEvent
-    data class Message(val text: String) : JobDetailEvent
+    data class Message(val text: UiText) : JobDetailEvent
 }
 
 @HiltViewModel(assistedFactory = JobDetailViewModel.Factory::class)
@@ -66,7 +68,7 @@ class JobDetailViewModel @AssistedInject constructor(
             state.update { it.copy(loading = true, error = null) }
             when (val result = executions.job(route.jobId)) {
                 is Outcome.Success -> state.update { it.copy(loading = false, job = result.value) }
-                is Outcome.Failure -> state.update { it.copy(loading = false, error = result.error.userMessage()) }
+                is Outcome.Failure -> state.update { it.copy(loading = false, error = result.error.toUiText()) }
             }
         }
     }
@@ -78,7 +80,7 @@ class JobDetailViewModel @AssistedInject constructor(
                 is Outcome.Success -> state.update { it.copy(verifying = false, proof = result.value) }
                 is Outcome.Failure -> {
                     state.update { it.copy(verifying = false) }
-                    events.send(JobDetailEvent.Message(result.error.userMessage()))
+                    events.send(JobDetailEvent.Message(result.error.toUiText()))
                 }
             }
         }
@@ -93,7 +95,7 @@ class JobDetailViewModel @AssistedInject constructor(
         viewModelScope.launch {
             val runtime = route.runtimeId?.let { runtimes.runtime(it) }
             if (runtime == null) {
-                events.send(JobDetailEvent.Message("This runtime is no longer available."))
+                events.send(JobDetailEvent.Message(ErrorReason.RuntimeUnavailable.toUiText()))
                 return@launch
             }
             val tests = job.results
@@ -102,7 +104,7 @@ class JobDetailViewModel @AssistedInject constructor(
                 .ifEmpty { null }
             when (val result = projects.create(runtime, ProjectTemplate("job-${route.jobId.take(6)}", code, tests))) {
                 is Outcome.Success -> events.send(JobDetailEvent.OpenProject(result.value))
-                is Outcome.Failure -> events.send(JobDetailEvent.Message(result.error.userMessage()))
+                is Outcome.Failure -> events.send(JobDetailEvent.Message(result.error.toUiText()))
             }
         }
     }

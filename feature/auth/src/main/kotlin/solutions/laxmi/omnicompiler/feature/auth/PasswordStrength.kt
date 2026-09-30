@@ -1,13 +1,16 @@
 package solutions.laxmi.omnicompiler.feature.auth
 
+import androidx.annotation.StringRes
+import solutions.laxmi.omnicompiler.core.ui.UiText
+
 /** Four-segment meter from design A4. The auth service only enforces length (8–72). */
-enum class PasswordStrength(val segments: Int, val label: String) {
-    Empty(0, ""),
-    TooShort(1, "Too short"),
-    Weak(1, "Weak"),
-    Fair(2, "Fair"),
-    Good(3, "Good"),
-    Strong(4, "Strong");
+enum class PasswordStrength(val segments: Int, @StringRes val labelRes: Int?) {
+    Empty(0, null),
+    TooShort(1, R.string.password_too_short),
+    Weak(1, R.string.password_weak),
+    Fair(2, R.string.password_fair),
+    Good(3, R.string.password_good),
+    Strong(4, R.string.password_strong);
 
     companion object {
         const val MIN = 8
@@ -32,11 +35,11 @@ enum class PasswordStrength(val segments: Int, val label: String) {
         }
 
         /** Next improvement to suggest, or null when there's nothing obvious left. */
-        fun hint(password: String): String? = when {
-            password.length < MIN -> "Use at least $MIN characters"
-            !password.any { !it.isLetterOrDigit() } -> "Add a symbol for max"
-            !password.any(Char::isDigit) -> "Add a number"
-            password.length < 12 -> "12+ characters is stronger"
+        fun hint(password: String): UiText? = when {
+            password.length < MIN -> UiText.Plural(R.plurals.password_hint_min, MIN, MIN)
+            !password.any { !it.isLetterOrDigit() } -> UiText.Res(R.string.password_hint_symbol)
+            !password.any(Char::isDigit) -> UiText.Res(R.string.password_hint_number)
+            password.length < 12 -> UiText.Res(R.string.password_hint_length)
             else -> null
         }
     }

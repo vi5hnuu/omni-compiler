@@ -19,6 +19,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import solutions.laxmi.omnicompiler.core.designsystem.theme.OmniDimens
@@ -38,7 +39,7 @@ fun SymbolRow(state: CodeEditorState, modifier: Modifier = Modifier) {
             .drawBehind { drawLine(colors.border, Offset(0f, 0f), Offset(size.width, 0f), 1f) }
             .horizontalScroll(rememberScrollState()),
     ) {
-        SymbolKey("⇥", width = 44, highlighted = true, description = "Tab") { state.indent() }
+        SymbolKey("⇥", width = 44, highlighted = true, description = stringResource(R.string.editor_key_tab)) { state.indent() }
         Symbols.forEach { symbol -> SymbolKey(symbol, width = 34) { state.insert(symbol) } }
     }
 }

@@ -103,7 +103,7 @@ internal class RetrofitAuthNetworkDataSource @Inject constructor(
     )
 
     private fun <T> AuthEnvelope<T>.requireData(): T =
-        data ?: throw MissingDataException(message ?: AppError.Unknown().message)
+        data ?: throw MissingDataException(message ?: "Missing data in auth response")
 }
 
 /** A 2xx envelope without `data` is a contract violation; surfaced like a malformed body. */

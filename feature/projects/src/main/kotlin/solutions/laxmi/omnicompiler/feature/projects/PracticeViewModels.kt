@@ -20,18 +20,20 @@ import solutions.laxmi.omnicompiler.core.data.project.ProjectRepository
 import solutions.laxmi.omnicompiler.core.data.project.ProjectTemplate
 import solutions.laxmi.omnicompiler.core.data.runtime.RuntimeRepository
 import solutions.laxmi.omnicompiler.core.model.AppError
+import solutions.laxmi.omnicompiler.core.model.ErrorReason
 import solutions.laxmi.omnicompiler.core.model.Example
 import solutions.laxmi.omnicompiler.core.model.Language
 import solutions.laxmi.omnicompiler.core.model.Outcome
 import solutions.laxmi.omnicompiler.core.model.Problem
 import solutions.laxmi.omnicompiler.core.model.Runtime
 import solutions.laxmi.omnicompiler.core.model.TestCaseDraft
-import solutions.laxmi.omnicompiler.core.ui.userMessage
+import solutions.laxmi.omnicompiler.core.ui.UiText
+import solutions.laxmi.omnicompiler.core.ui.toUiText
 import javax.inject.Inject
 
 sealed interface PracticeEvent {
     data class Open(val projectId: String) : PracticeEvent
-    data class Message(val text: String) : PracticeEvent
+    data class Message(val text: UiText) : PracticeEvent
 }
 
 /** Shared "start coding" logic for examples and problems. */
@@ -41,14 +43,14 @@ internal class PracticeLauncher @Inject constructor(
 ) {
     /** Replaces the current project's tests with [tests], keeping its code. */
     suspend fun useInCurrentProject(tests: List<TestCaseDraft>): Outcome<String> {
-        val id = projects.lastProjectId.first() ?: return Outcome.Failure(AppError.NotFound("Open a project first."))
+        val id = projects.lastProjectId.first() ?: return Outcome.Failure(AppError.NotFound(reason = ErrorReason.OpenProjectFirst))
         projects.replaceTests(id, tests)
         return Outcome.Success(id)
     }
 
     suspend fun newProject(name: String, runtime: Runtime?, code: String?, tests: List<TestCaseDraft>): Outcome<String> {
         val target = runtime ?: runtimes.defaultRuntime()
-            ?: return Outcome.Failure(AppError.Offline("Connect to the internet to load languages."))
+            ?: return Outcome.Failure(AppError.Offline(reason = ErrorReason.LanguagesUnavailable))
         return projects.create(target, ProjectTemplate(name, code, tests))
     }
 }
@@ -76,7 +78,7 @@ class ExamplesViewModel @Inject internal constructor(
             else launcher.useInCurrentProject(example.tests)
             when (result) {
                 is Outcome.Success -> events.send(PracticeEvent.Open(result.value))
-                is Outcome.Failure -> events.send(PracticeEvent.Message(result.error.userMessage()))
+                is Outcome.Failure -> events.send(PracticeEvent.Message(result.error.toUiText()))
             }
         }
     }
@@ -130,7 +132,7 @@ class ProblemViewModel @AssistedInject internal constructor(
             )
             when (result) {
                 is Outcome.Success -> events.send(PracticeEvent.Open(result.value))
-                is Outcome.Failure -> events.send(PracticeEvent.Message(result.error.userMessage()))
+                is Outcome.Failure -> events.send(PracticeEvent.Message(result.error.toUiText()))
             }
         }
     }
@@ -140,7 +142,7 @@ class ProblemViewModel @AssistedInject internal constructor(
         viewModelScope.launch {
             when (val result = launcher.useInCurrentProject(current.tests)) {
                 is Outcome.Success -> events.send(PracticeEvent.Open(result.value))
-                is Outcome.Failure -> events.send(PracticeEvent.Message(result.error.userMessage()))
+                is Outcome.Failure -> events.send(PracticeEvent.Message(result.error.toUiText()))
             }
         }
     }

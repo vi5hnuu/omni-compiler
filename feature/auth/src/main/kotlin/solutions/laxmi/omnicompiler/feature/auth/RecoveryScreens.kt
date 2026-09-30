@@ -1,5 +1,8 @@
 package solutions.laxmi.omnicompiler.feature.auth
 
+import solutions.laxmi.omnicompiler.core.ui.asString
+import androidx.compose.ui.platform.LocalResources
+import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -44,27 +47,28 @@ import solutions.laxmi.omnicompiler.core.navigation.SignInRoute
 fun CheckInboxScreen(route: CheckInboxRoute, navigator: Navigator) {
     val viewModel = hiltViewModel<CheckInboxViewModel>()
     val cooldown by viewModel.resendCooldown.collectAsStateWithLifecycle()
+    val resources = LocalResources.current
     val signedIn by viewModel.signedIn.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
     val context = LocalContext.current
-    LaunchedEffect(viewModel) { viewModel.messages.collect { snackbar.showSnackbar(it) } }
+    LaunchedEffect(viewModel) { viewModel.messages.collect { snackbar.showSnackbar(it.asString(resources)) } }
     val colors = OmniTheme.colors
     AuthScaffold(snackbar, topBar = { OmniTopBar("", onBack = navigator::back) }) {
-        AuthHeading("Check your inbox", "We sent a verification link to ${route.email}. It expires in 24 hours.")
-        OmniButton("Open e-mail app", {
+        AuthHeading(stringResource(R.string.inbox_title), stringResource(R.string.inbox_subtitle, route.email))
+        OmniButton(stringResource(R.string.inbox_open_email), {
             if (!context.openEmailApp()) { /* no mail app: the address is on screen */ }
         }, leadingIcon = OmniIcons.Mail)
         OmniButton(
-            if (cooldown > 0) "Resend link · 0:%02d".format(cooldown) else "Resend link",
+            if (cooldown > 0) stringResource(R.string.inbox_resend_cooldown, cooldown) else stringResource(R.string.inbox_resend),
             { viewModel.resend(route.email) },
             style = OmniButtonStyle.Outline,
             enabled = cooldown == 0,
             trailingIcon = OmniIcons.Refresh,
         )
-        Text("WHILE YOU WAIT", style = OmniTheme.typography.overline, color = colors.textTertiary, modifier = Modifier.padding(top = 8.dp))
+        Text(stringResource(R.string.inbox_while_you_wait).uppercase(), style = OmniTheme.typography.overline, color = colors.textTertiary, modifier = Modifier.padding(top = 8.dp))
         listOf(
-            "Your projects are saved on this device and stay put.",
-            if (signedIn) "You can keep coding; password sign-in on other devices works once you verify." else "After opening the link, come back and sign in with your password.",
+            stringResource(R.string.inbox_step_projects),
+            stringResource(if (signedIn) R.string.inbox_step_signed_in else R.string.inbox_step_signed_out),
         ).forEachIndexed { i, text ->
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text("%02d".format(i + 1), style = OmniTheme.typography.mono, color = colors.accentText)
@@ -72,13 +76,13 @@ fun CheckInboxScreen(route: CheckInboxRoute, navigator: Navigator) {
             }
         }
         if (signedIn) {
-            OmniButton("Continue to editor", { navigator.resetTo(EditorRoute()) }, modifier = Modifier.padding(top = 8.dp))
+            OmniButton(stringResource(R.string.inbox_continue), { navigator.resetTo(EditorRoute()) }, modifier = Modifier.padding(top = 8.dp))
         } else {
-            OmniButton("I've verified · Sign in", { navigator.replace(SignInRoute) }, modifier = Modifier.padding(top = 8.dp))
+            OmniButton(stringResource(R.string.inbox_verified_sign_in), { navigator.replace(SignInRoute) }, modifier = Modifier.padding(top = 8.dp))
         }
         Row(Modifier.fillMaxWidth().padding(vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text("Wrong address? ", style = OmniTheme.typography.body, color = colors.textSecondary)
-            OmniTextButton("Change e-mail", navigator::back)
+            Text(stringResource(R.string.inbox_wrong_address) + " ", style = OmniTheme.typography.body, color = colors.textSecondary)
+            OmniTextButton(stringResource(R.string.inbox_change_email), navigator::back)
         }
     }
 }
@@ -93,21 +97,21 @@ fun ForgotPasswordScreen(route: ForgotPasswordRoute, navigator: Navigator) {
     val context = LocalContext.current
     LaunchedEffect(route.email) { viewModel.init(route.email) }
     AuthScaffold(snackbar, topBar = { OmniTopBar("", onBack = navigator::back) }) {
-        AuthHeading("Reset password", "Enter the e-mail you signed up with and we'll send you a reset link.")
+        AuthHeading(stringResource(R.string.reset_title), stringResource(R.string.reset_subtitle))
         OmniTextField(
-            state.email, viewModel::setEmail, label = "E-mail", placeholder = "ada@lovelace.dev", error = state.error,
+            state.email, viewModel::setEmail, label = stringResource(R.string.auth_email), placeholder = stringResource(R.string.auth_email_placeholder), error = state.error?.asString(),
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email, imeAction = ImeAction.Send, autoCorrectEnabled = false),
             keyboardActions = KeyboardActions(onSend = { viewModel.send() }),
         )
-        OmniButton(if (state.sent) "Send again" else "Send reset link", viewModel::send, loading = busy)
+        OmniButton(stringResource(if (state.sent) R.string.reset_send_again else R.string.reset_send), viewModel::send, loading = busy)
         if (state.sent) {
             InfoBanner(
-                "If ${state.email} has an account, a link is on its way. Open it to choose a new password, then sign in here. Resetting signs you out on every device.",
-                title = "Link sent",
+                stringResource(R.string.reset_sent_message, state.email),
+                title = stringResource(R.string.reset_sent_title),
                 icon = OmniIcons.Mail,
-                action = { OmniTextButton("Open e-mail app", { context.openEmailApp() }) },
+                action = { OmniTextButton(stringResource(R.string.inbox_open_email), { context.openEmailApp() }) },
             )
-            OmniButton("Back to sign in", { navigator.replace(SignInRoute) }, style = OmniButtonStyle.Outline, trailingIcon = null)
+            OmniButton(stringResource(R.string.reset_back_to_sign_in), { navigator.replace(SignInRoute) }, style = OmniButtonStyle.Outline, trailingIcon = null)
         }
     }
 }

@@ -1,5 +1,8 @@
 package solutions.laxmi.omnicompiler.feature.workspace.console
 
+import solutions.laxmi.omnicompiler.core.model.RunPhase
+import solutions.laxmi.omnicompiler.feature.workspace.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.Arrangement
@@ -65,16 +68,16 @@ internal fun ConsoleSheet(
         SheetHandle(Modifier.pointerInput(Unit) { detectVerticalDragGestures { _, drag -> if (drag > 8f) actions.onClose() } })
         OmniTabRow(
             tabs = listOf(
-                OmniTab("Console"),
-                OmniTab("Tests", badge = state.tests.size.toString()),
-                OmniTab("Input"),
-                OmniTab("Problems", badge = latestProblems.size.takeIf { it > 0 }?.toString(), badgeIsAlert = latestProblems.any { it.isError }),
+                OmniTab(stringResource(R.string.console_tab_console)),
+                OmniTab(stringResource(R.string.console_tab_tests), badge = state.tests.size.toString()),
+                OmniTab(stringResource(R.string.console_tab_input)),
+                OmniTab(stringResource(R.string.console_tab_problems), badge = latestProblems.size.takeIf { it > 0 }?.toString(), badgeIsAlert = latestProblems.any { it.isError }),
             ),
             selectedIndex = tab.ordinal,
             onSelect = { actions.onSelectTab(ConsoleTab.entries[it]) },
         ) {
-            if (tab == ConsoleTab.Console) OmniIconButton(OmniIcons.Trash, "Clear console", actions.onClear, size = 32.dp, iconSize = 14.dp)
-            OmniIconButton(OmniIcons.ChevronDown, "Close console", actions.onClose, size = 32.dp, iconSize = 14.dp)
+            if (tab == ConsoleTab.Console) OmniIconButton(OmniIcons.Trash, stringResource(R.string.console_clear), actions.onClear, size = 32.dp, iconSize = 14.dp)
+            OmniIconButton(OmniIcons.ChevronDown, stringResource(R.string.console_close), actions.onClose, size = 32.dp, iconSize = 14.dp)
         }
         if (state.pending.isNotEmpty() || !state.online) {
             OfflineQueueCard(state, actions.onCancelPending, actions.onSendPendingNow, actions.onSendWhenOnline)
@@ -103,7 +106,7 @@ private fun ConsoleFooter(state: ConsoleUiState, stdin: String, actions: Console
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Text("stdin ›", style = OmniTheme.typography.mono, color = colors.accentText)
+        Text(stringResource(R.string.console_stdin_prompt), style = OmniTheme.typography.mono, color = colors.accentText)
         Box(Modifier.weight(1f)) {
             BasicTextField(
                 value = stdin,
@@ -112,16 +115,16 @@ private fun ConsoleFooter(state: ConsoleUiState, stdin: String, actions: Console
                 textStyle = OmniTheme.typography.mono.copy(color = colors.textPrimary),
                 cursorBrush = SolidColor(colors.accent),
                 decorationBox = { inner ->
-                    if (stdin.isEmpty()) Text("custom input, then Run", style = OmniTheme.typography.mono, color = colors.textTertiary)
+                    if (stdin.isEmpty()) Text(stringResource(R.string.console_stdin_placeholder), style = OmniTheme.typography.mono, color = colors.textTertiary)
                     inner()
                 },
             )
         }
         val latest = state.latest
         if (state.isRunning && latest != null) {
-            OmniCompactButton(if (latest.phase.name == "PENDING") "Stop" else "Detach", OmniIcons.Stop, actions.onStop, height = 32.dp)
+            OmniCompactButton(stringResource(if (latest.phase == RunPhase.PENDING || latest.phase == RunPhase.SUBMITTING) R.string.editor_stop else R.string.editor_detach), OmniIcons.Stop, actions.onStop, height = 32.dp)
         } else {
-            OmniCompactButton("Run", OmniIcons.Play, actions.onRunWithInput, height = 32.dp)
+            OmniCompactButton(stringResource(R.string.editor_run), OmniIcons.Play, actions.onRunWithInput, height = 32.dp)
         }
     }
 }

@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_title">Settings</string>
+    <string name="settings_editor">Editor</string>
+    <string name="settings_theme_font">Theme · font</string>
+    <string name="settings_theme_font_value">%1$s · %2$s %3$dpx</string>
+    <string name="settings_minimap">Minimap</string>
+    <string name="settings_minimap_note">Code overview beside the editor</string>
+    <string name="settings_symbol_row">Symbol row above keyboard</string>
+    <string name="settings_symbol_row_note">{ } ( ) ; and more, one tap away</string>
+    <string name="settings_autocomplete">Autocomplete</string>
+    <string name="settings_autocomplete_note">Suggest identifiers and keywords while typing</string>
+    <string name="settings_word_wrap">Word wrap</string>
+    <string name="settings_word_wrap_note">Long lines scroll sideways when off</string>
+    <string name="settings_tab_size">Tab size</string>
+    <string name="settings_run">Run</string>
+    <string name="settings_default_language">Default language</string>
+    <string name="settings_default_language_auto">Chosen automatically (Python, C++, …)</string>
+    <string name="settings_default_limits">Default limits</string>
+    <string name="settings_default_limits_value">%1$d ms · %2$d MB for new projects</string>
+    <string name="settings_ctrl_enter">Run on Ctrl + Enter</string>
+    <string name="settings_ctrl_enter_note">With a hardware keyboard</string>
+    <string name="settings_skip_cache">Skip result cache</string>
+    <string name="settings_skip_cache_note">Always execute, even for an identical recent submission</string>
+    <string name="settings_send_queued">Send queued runs when back online</string>
+    <string name="settings_send_queued_note">Runs started offline go out automatically</string>
+    <string name="settings_account">Account</string>
+    <string name="settings_guest_account">Guest account</string>
+    <string name="settings_not_signed_in">Not signed in</string>
+    <string name="settings_sign_in_note">Sign in to sync run history</string>
+    <string name="settings_account_note">Profile, password, delete account</string>
+    <string name="settings_sign_out">Sign out</string>
+    <string name="settings_about">About</string>
+    <string name="settings_privacy">Privacy policy</string>
+    <string name="settings_terms">Terms of service</string>
+    <string name="settings_open_source">Open-source licenses</string>
+    <string name="settings_version">Version</string>
+    <string name="settings_automatic">Automatic</string>
+    <string name="settings_automatic_note">Python, then C++, JavaScript, Java</string>
+    <string name="settings_limit_time_field">Time limit per test (ms, ≤ %1$d)</string>
+    <string name="settings_limit_memory_field">Memory per run (MB, ≤ %1$d)</string>
+
+    <string name="appearance_title">Editor appearance</string>
+    <string name="appearance_theme">Theme</string>
+    <string name="appearance_font">Font</string>
+    <string name="appearance_font_size">Font size</string>
+    <string name="appearance_font_size_value">%1$d px</string>
+    <string name="appearance_ligatures">Font ligatures</string>
+    <string name="appearance_ligatures_note">Render -&gt; != &gt;= as single glyphs</string>
+    <string name="appearance_indent_guides">Indent guides</string>
+    <string name="appearance_indent_guides_note">Vertical lines for nested blocks</string>
+    <string name="appearance_line_height">Line height</string>
+    <string name="appearance_preview">Preview</string>
+
+    <string name="oss_title">Open-source licenses</string>
+    <plurals name="oss_components">
+        <item quantity="one">%1$d component</item>
+        <item quantity="other">%1$d components</item>
+    </plurals>
+    <string name="oss_lgpl_title" translatable="false">Sora Editor · LGPL-2.1</string>
+    <string name="oss_lgpl_notice">omni compiler uses Sora Editor %1$s without modifications. Its complete corresponding source code is available at %2$s. You may replace the library with a modified version; it ships unobfuscated so the app can be relinked against your build. Nothing in our Terms restricts your rights under the LGPL, including modifying the library and reverse engineering the app to debug such modifications.</string>
+    <string name="oss_view_source">View source</string>
+    <string name="oss_source_website">Source / website</string>
+    <string name="oss_read_license">Read license</string>
+</resources>

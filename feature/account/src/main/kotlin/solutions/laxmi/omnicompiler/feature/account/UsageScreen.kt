@@ -1,5 +1,11 @@
 package solutions.laxmi.omnicompiler.feature.account
 
+import solutions.laxmi.omnicompiler.core.model.Limits
+import solutions.laxmi.omnicompiler.core.ui.asString
+import androidx.compose.ui.platform.LocalResources
+import solutions.laxmi.omnicompiler.core.ui.R as CommonR
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -50,68 +56,70 @@ fun UsageScreen(navigator: Navigator) {
     val viewModel = hiltViewModel<UsageViewModel>()
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
+    val resources = LocalResources.current
     var confirmCancel by rememberSaveable { mutableStateOf(false) }
-    LaunchedEffect(viewModel) { viewModel.messages.collect { snackbar.showSnackbar(it) } }
+    LaunchedEffect(viewModel) { viewModel.messages.collect { snackbar.showSnackbar(it.asString(resources)) } }
     val colors = OmniTheme.colors
     Box(Modifier.fillMaxSize().background(colors.background)) {
         Column(Modifier.fillMaxSize().navigationBarsPadding()) {
-            OmniTopBar("Usage & plan", onBack = navigator::back) {
-                OmniIconButton(OmniIcons.Refresh, "Refresh", viewModel::load)
+            OmniTopBar(stringResource(R.string.usage_title), onBack = navigator::back) {
+                OmniIconButton(OmniIcons.Refresh, stringResource(R.string.usage_refresh), viewModel::load)
             }
             when {
-                !state.signedIn -> EmptyState("Sign in to see usage", "Plans and quotas belong to an account.", icon = OmniIcons.Chart, action = { OmniButton("Sign in", { navigator.navigate(WelcomeRoute) }) })
+                !state.signedIn -> EmptyState(stringResource(R.string.usage_signed_out_title), stringResource(R.string.usage_signed_out_message), icon = OmniIcons.Chart, action = { OmniButton(stringResource(CommonR.string.common_sign_in), { navigator.navigate(WelcomeRoute) }) })
                 state.loading && state.plan == null -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { OmniSpinner() }
-                state.plan == null -> EmptyState("Couldn't load usage", state.error.orEmpty(), icon = OmniIcons.WifiOff, action = { OmniButton("Retry", viewModel::load) })
+                state.plan == null -> EmptyState(stringResource(R.string.usage_load_failed), state.error?.asString().orEmpty(), icon = OmniIcons.WifiOff, action = { OmniButton(stringResource(CommonR.string.common_retry), viewModel::load) })
                 else -> Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
                     val plan = state.plan!!
                     plan.expiryWarning?.let { InfoBanner(it, Modifier.padding(16.dp), icon = OmniIcons.Alert) }
-                    if (state.billing?.testMode == true) InfoBanner("Billing is in test mode on this server.", Modifier.padding(horizontal = 16.dp), icon = OmniIcons.Info)
+                    if (state.billing?.testMode == true) InfoBanner(stringResource(R.string.usage_test_mode), Modifier.padding(horizontal = 16.dp), icon = OmniIcons.Info)
                     Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
                         Column(Modifier.weight(1f)) {
-                            Text("CURRENT PLAN", style = OmniTheme.typography.overline, color = colors.textTertiary)
+                            Text(stringResource(R.string.usage_current_plan).uppercase(), style = OmniTheme.typography.overline, color = colors.textTertiary)
                             Text(plan.effectivePlan.replaceFirstChar { it.uppercase() }, style = OmniTheme.typography.headline, color = colors.textPrimary)
-                            plan.expiresAt?.let { Text("Renews or ends ${it.take(10)}", style = OmniTheme.typography.bodySmall, color = colors.textTertiary) }
+                            plan.expiresAt?.let { Text(stringResource(R.string.usage_renews_or_ends, it.take(10)), style = OmniTheme.typography.bodySmall, color = colors.textTertiary) }
                         }
                         plan.planSource?.let { OmniBadge(it.uppercase()) }
                     }
                     state.billing?.let { billing ->
-                        SectionLabel("This billing period")
+                        SectionLabel(stringResource(R.string.usage_billing_period))
                         Meter(
-                            label = "Runs",
-                            value = "${billing.executionsUsed} / ${billing.quotaLimit}",
+                            label = stringResource(R.string.usage_runs),
+                            value = stringResource(R.string.usage_fraction, billing.executionsUsed.toInt(), billing.quotaLimit.toInt()),
                             fraction = if (billing.quotaLimit > 0) billing.executionsUsed.toFloat() / billing.quotaLimit else 0f,
                         )
-                        Text("${billing.quotaRemaining} runs remaining", style = OmniTheme.typography.bodySmall, color = colors.textTertiary, modifier = Modifier.padding(horizontal = 16.dp))
+                        Text(billing.quotaRemaining.toInt().let { pluralStringResource(R.plurals.usage_runs_remaining, it, it) }, style = OmniTheme.typography.bodySmall, color = colors.textTertiary, modifier = Modifier.padding(horizontal = 16.dp))
                     }
-                    SectionLabel("Rate limit")
+                    SectionLabel(stringResource(R.string.usage_rate_limit))
                     val limit = state.rateLimit
                     Meter(
-                        label = "Runs this minute",
-                        value = limit?.let { "${it.limit - it.remaining} / ${it.limit}" } ?: "${plan.rateLimitRpm} / min",
+                        label = stringResource(R.string.usage_runs_this_minute),
+                        value = limit?.let { stringResource(R.string.usage_fraction, it.limit - it.remaining, it.limit) }
+                            ?: stringResource(R.string.usage_per_minute, plan.rateLimitRpm),
                         fraction = limit?.let { (it.limit - it.remaining).toFloat() / it.limit.coerceAtLeast(1) } ?: 0f,
                     )
-                    SectionLabel("Your limits")
+                    SectionLabel(stringResource(R.string.usage_your_limits))
                     listOf(
-                        "Time limit / test" to "up to 30 s",
-                        "Memory / run" to "up to 1024 MB",
-                        "Tests / run" to "100",
-                        "Extra files / run" to "20 × 64 KB",
-                        "Queue" to if (plan.effectivePlan.equals("free", true)) "Normal" else "Priority",
+                        stringResource(R.string.usage_limit_time) to stringResource(R.string.usage_limit_time_value, Limits.MAX_TIME_MS / 1_000),
+                        stringResource(R.string.usage_limit_memory) to stringResource(R.string.usage_limit_memory_value, Limits.MAX_MEM_MB),
+                        stringResource(R.string.usage_limit_tests) to JUDGE_MAX_TESTS.toString(),
+                        stringResource(R.string.usage_limit_files) to stringResource(R.string.usage_limit_files_value, JUDGE_MAX_FILES, JUDGE_MAX_FILE_KB),
+                        stringResource(R.string.usage_queue) to stringResource(if (plan.effectivePlan.equals("free", true)) R.string.usage_queue_normal else R.string.usage_queue_priority),
                     ).forEach { (k, v) -> KeyValue(k, v) }
                     state.stats?.let { stats ->
-                        SectionLabel("All time")
-                        KeyValue("Runs", stats.totalJobs.toString())
-                        KeyValue("Accepted", "${(stats.acceptanceRate * 100).roundToInt()}%")
+                        SectionLabel(stringResource(R.string.usage_all_time))
+                        KeyValue(stringResource(R.string.usage_runs), stats.totalJobs.toString())
+                        KeyValue(stringResource(R.string.usage_accepted), stringResource(R.string.usage_percent, (stats.acceptanceRate * 100).roundToInt()))
                     }
                     state.billing?.let { billing ->
-                        SectionLabel("Billing")
-                        KeyValue("Status", billing.status.ifBlank { "none" })
-                        billing.provider?.let { KeyValue("Provider", it) }
-                        billing.periodStart?.let { KeyValue("Period started", it.take(10)) }
+                        SectionLabel(stringResource(R.string.usage_billing))
+                        KeyValue(stringResource(R.string.usage_status), billing.status.ifBlank { stringResource(R.string.usage_status_none) })
+                        billing.provider?.let { KeyValue(stringResource(R.string.usage_provider), it) }
+                        billing.periodStart?.let { KeyValue(stringResource(R.string.usage_period_started), it.take(10)) }
                         Row(Modifier.padding(16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            OmniButton("Sync billing", viewModel::sync, Modifier.weight(1f), style = OmniButtonStyle.Secondary, loading = state.busy, trailingIcon = OmniIcons.Refresh)
+                            OmniButton(stringResource(R.string.usage_sync), viewModel::sync, Modifier.weight(1f), style = OmniButtonStyle.Secondary, loading = state.busy, trailingIcon = OmniIcons.Refresh)
                             if (billing.hasCancellableSubscription) {
-                                OmniButton("Cancel plan", { confirmCancel = true }, Modifier.weight(1f), style = OmniButtonStyle.Outline, enabled = !state.busy, trailingIcon = null)
+                                OmniButton(stringResource(R.string.usage_cancel_plan), { confirmCancel = true }, Modifier.weight(1f), style = OmniButtonStyle.Outline, enabled = !state.busy, trailingIcon = null)
                             }
                         }
                     }
@@ -125,15 +133,15 @@ fun UsageScreen(navigator: Navigator) {
             onDismissRequest = { confirmCancel = false },
             shape = androidx.compose.ui.graphics.RectangleShape,
             containerColor = colors.surfaceRaised,
-            title = { Text("Cancel subscription?", style = OmniTheme.typography.title, color = colors.textPrimary) },
-            text = { Text("Your plan stays active until the end of the current period.", style = OmniTheme.typography.body, color = colors.textSecondary) },
+            title = { Text(stringResource(R.string.usage_cancel_title), style = OmniTheme.typography.title, color = colors.textPrimary) },
+            text = { Text(stringResource(R.string.usage_cancel_message), style = OmniTheme.typography.body, color = colors.textSecondary) },
             confirmButton = {
-                OmniTextButton("Cancel plan", {
+                OmniTextButton(stringResource(R.string.usage_cancel_plan), {
                     confirmCancel = false
                     viewModel.cancelSubscription()
                 })
             },
-            dismissButton = { OmniTextButton("Keep", { confirmCancel = false }, color = colors.textSecondary) },
+            dismissButton = { OmniTextButton(stringResource(R.string.usage_keep), { confirmCancel = false }, color = colors.textSecondary) },
         )
     }
 }
@@ -160,3 +168,8 @@ internal fun KeyValue(key: String, value: String) {
         Text(value, style = OmniTheme.typography.mono, color = OmniTheme.colors.textPrimary)
     }
 }
+
+/** Judge-enforced per-run caps (ls-judge MAX_TEST_CASES / MAX_FILES / MAX_CODE_BYTES defaults). */
+private const val JUDGE_MAX_TESTS = 100
+private const val JUDGE_MAX_FILES = 20
+private const val JUDGE_MAX_FILE_KB = 64

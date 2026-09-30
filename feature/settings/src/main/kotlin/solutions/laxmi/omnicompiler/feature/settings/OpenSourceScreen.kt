@@ -1,5 +1,7 @@
 package solutions.laxmi.omnicompiler.feature.settings
 
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.annotation.RawRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -28,6 +30,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.unit.dp
 import com.mikepenz.aboutlibraries.Libs
 import com.mikepenz.aboutlibraries.entity.Library
@@ -53,16 +56,17 @@ import solutions.laxmi.omnicompiler.core.ui.openUrl
 @Composable
 fun OpenSourceScreen(navigator: Navigator, @RawRes licensesResId: Int) {
     val context = LocalContext.current
-    val libraries by produceState<List<Library>?>(null, licensesResId) {
+    val resources = LocalResources.current
+    val libraries by produceState<List<Library>?>(null, licensesResId, resources) {
         value = withContext(Dispatchers.IO) {
-            val json = context.resources.openRawResource(licensesResId).bufferedReader().use { it.readText() }
+            val json = resources.openRawResource(licensesResId).bufferedReader().use { it.readText() }
             Libs.Builder().withJson(json).build().libraries.sortedBy { it.name.lowercase() }
         }
     }
     var selected by remember { mutableStateOf<Library?>(null) }
     val colors = OmniTheme.colors
     Column(Modifier.fillMaxSize().background(colors.background).navigationBarsPadding()) {
-        OmniTopBar("Open-source licenses", onBack = navigator::back, subtitle = libraries?.let { "${it.size} components" })
+        OmniTopBar(stringResource(R.string.oss_title), onBack = navigator::back, subtitle = libraries?.let { pluralStringResource(R.plurals.oss_components, it.size, it.size) })
         val list = libraries
         if (list == null) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { OmniSpinner() }
@@ -91,14 +95,11 @@ fun OpenSourceScreen(navigator: Navigator, @RawRes licensesResId: Int) {
 private fun LgplNotice(version: String, onOpen: (String) -> Unit) {
     val source = "https://github.com/Rosemoe/sora-editor/tree/$version"
     InfoBanner(
-        title = "Sora Editor · LGPL-2.1",
+        title = stringResource(R.string.oss_lgpl_title),
         icon = OmniIcons.Info,
-        text = "omni compiler uses Sora Editor $version without modifications. Its complete corresponding source code is " +
-            "available at $source. You may replace the library with a modified version; it ships unobfuscated so the " +
-            "app can be relinked against your build. Nothing in our Terms restricts your rights under the LGPL, including " +
-            "modifying the library and reverse engineering the app to debug such modifications.",
+        text = stringResource(R.string.oss_lgpl_notice, version, source),
         modifier = Modifier.padding(16.dp),
-        action = { OmniTextButton("View source", { onOpen(source) }) },
+        action = { OmniTextButton(stringResource(R.string.oss_view_source), { onOpen(source) }) },
     )
 }
 
@@ -122,12 +123,12 @@ private fun LicenseSheet(library: Library, onDismiss: () -> Unit, onOpen: (Strin
             library.description?.takeIf { it.isNotBlank() }?.let { Text(it, style = OmniTheme.typography.bodySmall, color = colors.textSecondary) }
             val developers = library.developers.mapNotNull { it.name }.joinToString(", ")
             if (developers.isNotBlank()) Text(developers, style = OmniTheme.typography.bodySmall, color = colors.textTertiary)
-            (library.scm?.url ?: library.website)?.let { url -> OmniTextButton("Source / website", { onOpen(url) }) }
+            (library.scm?.url ?: library.website)?.let { url -> OmniTextButton(stringResource(R.string.oss_source_website), { onOpen(url) }) }
             library.distinctLicenses().forEach { license ->
                 Text(license.name, style = OmniTheme.typography.bodyStrong, color = colors.textPrimary)
                 val content = license.licenseContent
                 if (content.isNullOrBlank()) {
-                    license.url?.let { url -> OmniTextButton("Read license", { onOpen(url) }) }
+                    license.url?.let { url -> OmniTextButton(stringResource(R.string.oss_read_license), { onOpen(url) }) }
                 } else {
                     Text(content, style = OmniTheme.typography.mono, color = colors.textSecondary)
                 }

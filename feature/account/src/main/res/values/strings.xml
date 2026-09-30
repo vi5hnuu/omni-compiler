@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Usage & plan -->
+    <string name="usage_title">Usage &amp; plan</string>
+    <string name="usage_refresh">Refresh</string>
+    <string name="usage_signed_out_title">Sign in to see usage</string>
+    <string name="usage_signed_out_message">Plans and quotas belong to an account.</string>
+    <string name="usage_load_failed">Couldn\'t load usage</string>
+    <string name="usage_test_mode">Billing is in test mode on this server.</string>
+    <string name="usage_current_plan">Current plan</string>
+    <string name="usage_renews_or_ends">Renews or ends %1$s</string>
+    <string name="usage_billing_period">This billing period</string>
+    <string name="usage_runs">Runs</string>
+    <string name="usage_fraction">%1$d / %2$d</string>
+    <plurals name="usage_runs_remaining">
+        <item quantity="one">%1$d run remaining</item>
+        <item quantity="other">%1$d runs remaining</item>
+    </plurals>
+    <string name="usage_rate_limit">Rate limit</string>
+    <string name="usage_runs_this_minute">Runs this minute</string>
+    <string name="usage_per_minute">%1$d / min</string>
+    <string name="usage_your_limits">Your limits</string>
+    <string name="usage_limit_time">Time limit / test</string>
+    <string name="usage_limit_time_value">up to %1$d s</string>
+    <string name="usage_limit_memory">Memory / run</string>
+    <string name="usage_limit_memory_value">up to %1$d MB</string>
+    <string name="usage_limit_tests">Tests / run</string>
+    <string name="usage_limit_files">Extra files / run</string>
+    <string name="usage_limit_files_value">%1$d × %2$d KB</string>
+    <string name="usage_queue">Queue</string>
+    <string name="usage_queue_normal">Normal</string>
+    <string name="usage_queue_priority">Priority</string>
+    <string name="usage_all_time">All time</string>
+    <string name="usage_accepted">Accepted</string>
+    <string name="usage_percent">%1$d%%</string>
+    <string name="usage_billing">Billing</string>
+    <string name="usage_status">Status</string>
+    <string name="usage_status_none">none</string>
+    <string name="usage_provider">Provider</string>
+    <string name="usage_period_started">Period started</string>
+    <string name="usage_sync">Sync billing</string>
+    <string name="usage_cancel_plan">Cancel plan</string>
+    <string name="usage_cancel_title">Cancel subscription?</string>
+    <string name="usage_cancel_message">Your plan stays active until the end of the current period.</string>
+    <string name="usage_keep">Keep</string>
+    <string name="usage_billing_updated">Billing updated.</string>
+    <string name="usage_billing_current">Already up to date.</string>
+    <string name="usage_cancelled">Subscription cancelled. Your plan stays active until the period ends.</string>
+
+    <!-- Profile -->
+    <string name="profile_title">Account</string>
+    <string name="profile_not_signed_in">You\'re not signed in.</string>
+    <string name="profile_verify_banner">Verify %1$s to sign in with a password on other devices.</string>
+    <string name="profile_resend_link">Resend link</string>
+    <string name="profile_security">Security</string>
+    <string name="profile_change_password">Change password</string>
+    <string name="profile_google_no_password">You sign in with Google, so there\'s no password to change.</string>
+    <string name="profile_sign_out">Sign out</string>
+    <string name="profile_danger_zone">Danger zone</string>
+    <string name="profile_delete_explainer">Deleting your account erases your run history, API key and webhooks on the judge, then your sign-in. Projects on this device are removed too.</string>
+    <string name="profile_delete_account">Delete account</string>
+    <string name="profile_badge_guest">GUEST</string>
+    <string name="profile_guest_notice">Guest accounts expire after a week without use. Create an account to keep your run history; your projects stay on this device either way.</string>
+    <string name="profile_create_account">Create account</string>
+    <string name="profile_have_account">I already have an account</string>
+    <string name="profile_section">Profile</string>
+    <string name="profile_first_name">First name</string>
+    <string name="profile_last_name">Last name</string>
+    <string name="profile_image_url">Profile image URL</string>
+    <string name="profile_image_url_placeholder" translatable="false">https://…</string>
+    <string name="profile_username">Username</string>
+    <string name="profile_save">Save profile</string>
+    <string name="profile_updated">Profile updated.</string>
+    <string name="profile_image_https">Profile image must be an https:// link.</string>
+    <string name="profile_verification_sent">Verification e-mail sent.</string>
+    <string name="profile_password_warning">You\'ll be signed out on every device, including this one.</string>
+    <string name="profile_current_password">Current password</string>
+    <string name="profile_new_password">New password</string>
+    <string name="profile_confirm_password">Confirm</string>
+    <string name="profile_password_length">Use 8–72 characters.</string>
+    <string name="profile_password_mismatch">Doesn\'t match.</string>
+    <string name="profile_saving">Saving…</string>
+    <string name="profile_change">Change</string>
+    <string name="profile_delete_title">Delete account?</string>
+    <string name="profile_delete_message">This can\'t be undone. If you have an active paid plan, cancel it first. Type %1$s to confirm.</string>
+    <!-- The word users type to confirm deletion; translate together with profile_delete_message. -->
+    <string name="profile_delete_confirm_word">DELETE</string>
+    <string name="profile_deleting">Deleting…</string>
+</resources>

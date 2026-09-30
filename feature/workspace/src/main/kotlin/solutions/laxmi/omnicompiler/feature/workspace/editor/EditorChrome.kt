@@ -1,5 +1,9 @@
 package solutions.laxmi.omnicompiler.feature.workspace.editor
 
+import androidx.annotation.StringRes
+import solutions.laxmi.omnicompiler.feature.workspace.R
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
@@ -62,7 +66,7 @@ internal fun ReadingTopBar(
     onToggleMinimap: () -> Unit,
     onRun: () -> Unit,
     overflow: @Composable () -> Unit,
-    runLabel: String = "Run",
+    runButton: RunButtonState = RunButtonState.Run,
 ) {
     val colors = OmniTheme.colors
     Row(
@@ -73,7 +77,7 @@ internal fun ReadingTopBar(
             .padding(start = 2.dp, end = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        OmniIconButton(OmniIcons.Menu, "Open drawer", onMenu, size = 40.dp, tint = colors.textPrimary, iconSize = 18.dp)
+        OmniIconButton(OmniIcons.Menu, stringResource(R.string.editor_open_drawer), onMenu, size = 40.dp, tint = colors.textPrimary, iconSize = 18.dp)
         Column(
             Modifier
                 .weight(1f)
@@ -86,10 +90,10 @@ internal fun ReadingTopBar(
                 Icon(OmniIcons.ChevronDown, null, tint = colors.textSecondary, modifier = Modifier.size(12.dp))
             }
         }
-        OmniIconButton(OmniIcons.Search, "Find", onSearch)
-        OmniIconButton(OmniIcons.Minimap, if (minimapOn) "Hide minimap" else "Show minimap", onToggleMinimap, selected = minimapOn)
+        OmniIconButton(OmniIcons.Search, stringResource(R.string.editor_find), onSearch)
+        OmniIconButton(OmniIcons.Minimap, stringResource(if (minimapOn) R.string.editor_hide_minimap else R.string.editor_show_minimap), onToggleMinimap, selected = minimapOn)
         overflow()
-        OmniCompactButton(runLabel, if (runLabel == "Run") OmniIcons.Play else OmniIcons.Stop, onRun, modifier = Modifier.padding(start = 4.dp), enabled = runEnabled)
+        OmniCompactButton(stringResource(runButton.labelRes), runButton.icon, onRun, modifier = Modifier.padding(start = 4.dp), enabled = runEnabled)
     }
 }
 
@@ -102,6 +106,7 @@ internal fun TypingTopBar(
     runEnabled: Boolean,
     onMenu: () -> Unit,
     onRun: () -> Unit,
+    runButton: RunButtonState = RunButtonState.Run,
 ) {
     val colors = OmniTheme.colors
     Row(
@@ -113,13 +118,13 @@ internal fun TypingTopBar(
             .padding(start = 2.dp, end = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        OmniIconButton(OmniIcons.Menu, "Open drawer", onMenu, size = 40.dp, tint = colors.textPrimary, iconSize = 18.dp)
+        OmniIconButton(OmniIcons.Menu, stringResource(R.string.editor_open_drawer), onMenu, size = 40.dp, tint = colors.textPrimary, iconSize = 18.dp)
         Text(fileName, style = OmniTheme.typography.bodyStrong, color = colors.textPrimary, maxLines = 1)
         if (dirty) Box(Modifier.padding(start = 6.dp).size(5.dp).background(colors.textPrimary))
         Box(Modifier.weight(1f))
-        OmniIconButton(OmniIcons.Undo, "Undo", state::undo, enabled = state.canUndo, iconSize = 16.dp)
-        OmniIconButton(OmniIcons.Redo, "Redo", state::redo, enabled = state.canRedo, iconSize = 16.dp)
-        OmniCompactButton("Run", OmniIcons.Play, onRun, modifier = Modifier.padding(start = 4.dp), enabled = runEnabled, height = 32.dp)
+        OmniIconButton(OmniIcons.Undo, stringResource(R.string.editor_undo), state::undo, enabled = state.canUndo, iconSize = 16.dp)
+        OmniIconButton(OmniIcons.Redo, stringResource(R.string.editor_redo), state::redo, enabled = state.canRedo, iconSize = 16.dp)
+        OmniCompactButton(stringResource(runButton.labelRes), runButton.icon, onRun, modifier = Modifier.padding(start = 4.dp), enabled = runEnabled, height = 32.dp)
     }
 }
 
@@ -174,7 +179,7 @@ internal fun FileTabs(
                 }
             }
         }
-        OmniIconButton(OmniIcons.Plus, "New file", onAdd, size = 34.dp, iconSize = 14.dp)
+        OmniIconButton(OmniIcons.Plus, stringResource(R.string.editor_new_file), onAdd, size = 34.dp, iconSize = 14.dp)
     }
 }
 
@@ -187,7 +192,7 @@ internal fun Breadcrumb(fileName: String) {
         horizontalArrangement = Arrangement.spacedBy(5.dp),
     ) {
         val style = OmniTheme.typography.monoSmall
-        Text("workspace", style = style, color = colors.textTertiary)
+        Text(stringResource(R.string.editor_breadcrumb_root), style = style, color = colors.textTertiary)
         Text("›", style = style, color = colors.textTertiary)
         Text(fileName, style = style, color = colors.textSecondary, maxLines = 1)
     }
@@ -223,17 +228,17 @@ internal fun FindBar(state: CodeEditorState, onClose: () -> Unit) {
             keyboardActions = KeyboardActions(onSearch = { state.findNext() }),
             modifier = Modifier.weight(1f).padding(horizontal = 10.dp).focusRequester(focus),
             decorationBox = { inner ->
-                if (query.isEmpty()) Text("Find in file", style = OmniTheme.typography.mono, color = colors.textTertiary)
+                if (query.isEmpty()) Text(stringResource(R.string.editor_find_placeholder), style = OmniTheme.typography.mono, color = colors.textTertiary)
                 inner()
             },
         )
         if (query.isNotEmpty()) {
-            val label = if (state.searchMatches == 0) "0" else "${state.searchIndex + 1}/${state.searchMatches}"
+            val label = if (state.searchMatches == 0) "0" else stringResource(R.string.editor_find_count, state.searchIndex + 1, state.searchMatches)
             Text(label, style = OmniTheme.typography.monoSmall, color = colors.textTertiary)
         }
-        OmniIconButton(OmniIcons.ChevronUp, "Previous match", state::findPrevious, iconSize = 15.dp)
-        OmniIconButton(OmniIcons.ChevronDown, "Next match", state::findNext, iconSize = 15.dp)
-        OmniIconButton(OmniIcons.Close, "Close find", {
+        OmniIconButton(OmniIcons.ChevronUp, stringResource(R.string.editor_previous_match), state::findPrevious, iconSize = 15.dp)
+        OmniIconButton(OmniIcons.ChevronDown, stringResource(R.string.editor_next_match), state::findNext, iconSize = 15.dp)
+        OmniIconButton(OmniIcons.Close, stringResource(R.string.editor_close_find), {
             state.stopSearch()
             onClose()
         }, iconSize = 15.dp)
@@ -255,19 +260,26 @@ internal fun EditorStatusBar(state: CodeEditorState, tabSize: Int, problems: Int
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         val style = OmniTheme.typography.monoSmall
-        Text("Ln ${state.cursor.line}, Col ${state.cursor.column}", style = style, color = colors.textTertiary)
-        Text("Spaces $tabSize", style = style, color = colors.textTertiary)
-        Text("UTF-8", style = style, color = colors.textTertiary)
+        Text(stringResource(R.string.editor_cursor_position, state.cursor.line, state.cursor.column), style = style, color = colors.textTertiary)
+        Text(stringResource(R.string.editor_indent_spaces, tabSize), style = style, color = colors.textTertiary)
+        Text(stringResource(R.string.editor_encoding), style = style, color = colors.textTertiary)
         Box(Modifier.weight(1f))
-        if (problems > 0) Text(if (problems == 1) "1 problem" else "$problems problems", style = style, color = colors.accentText)
+        if (problems > 0) Text(pluralStringResource(R.plurals.editor_problems, problems, problems), style = style, color = colors.accentText)
     }
+}
+
+/** What the app-bar action does right now; the label follows the run's phase. */
+internal enum class RunButtonState(@StringRes val labelRes: Int, val icon: androidx.compose.ui.graphics.vector.ImageVector) {
+    Run(R.string.editor_run, OmniIcons.Play),
+    Stop(R.string.editor_stop, OmniIcons.Stop),
+    Detach(R.string.editor_detach, OmniIcons.Stop),
 }
 
 @Composable
 internal fun OverflowMenu(items: List<Pair<String, () -> Unit>>) {
     var open by remember { mutableStateOf(false) }
     Box {
-        OmniIconButton(OmniIcons.MoreVertical, "More options", { open = true })
+        OmniIconButton(OmniIcons.MoreVertical, stringResource(R.string.editor_more_options), { open = true })
         DropdownMenu(
             expanded = open,
             onDismissRequest = { open = false },

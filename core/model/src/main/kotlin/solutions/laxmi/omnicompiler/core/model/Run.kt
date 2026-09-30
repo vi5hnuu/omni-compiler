@@ -16,7 +16,10 @@ enum class RunPhase {
     /** Stopped before a worker picked it up. */
     CANCELLED,
     /** Stopped listening; the job keeps running and appears in history. */
-    DETACHED;
+    DETACHED,
+
+    /** Neither the stream nor polling could follow the job; it may still finish and appear in history. */
+    LOST;
 
     val isActive: Boolean get() = this == SUBMITTING || this == PENDING || this == RUNNING
 }

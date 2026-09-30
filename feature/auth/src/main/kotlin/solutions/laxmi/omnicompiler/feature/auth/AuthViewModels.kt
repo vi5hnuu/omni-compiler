@@ -25,14 +25,15 @@ import solutions.laxmi.omnicompiler.core.data.runtime.RuntimeRepository
 import solutions.laxmi.omnicompiler.core.model.AppError
 import solutions.laxmi.omnicompiler.core.model.Outcome
 import solutions.laxmi.omnicompiler.core.model.Session
-import solutions.laxmi.omnicompiler.core.ui.userMessage
+import solutions.laxmi.omnicompiler.core.ui.UiText
+import solutions.laxmi.omnicompiler.core.ui.toUiText
 import javax.inject.Inject
 
 /** Which sign-in path is running, so only that button shows progress. */
 enum class AuthAction { Email, Google, Guest, Register, Resend, Reset }
 
 sealed interface AuthEvent {
-    data class Message(val text: String) : AuthEvent
+    data class Message(val text: UiText) : AuthEvent
     data class CheckInbox(val email: String) : AuthEvent
     /** Signed in: the app's session gate takes over navigation; this only closes auth screens. */
     data object SignedIn : AuthEvent
@@ -59,7 +60,7 @@ abstract class SignInMethodsViewModel(
     fun signInWithGoogle(activityContext: Context) = perform(AuthAction.Google) {
         when (val token = google.requestIdToken(activityContext)) {
             GoogleIdTokenResult.Cancelled -> Unit
-            is GoogleIdTokenResult.Failed -> events.send(AuthEvent.Message(token.error.userMessage()))
+            is GoogleIdTokenResult.Failed -> events.send(AuthEvent.Message(token.error.toUiText()))
             is GoogleIdTokenResult.Token -> report(auth.signInWithGoogle(token.idToken))
         }
     }
@@ -68,7 +69,7 @@ abstract class SignInMethodsViewModel(
 
     protected suspend fun report(result: Outcome<*>) = when (result) {
         is Outcome.Success -> events.send(AuthEvent.SignedIn)
-        is Outcome.Failure -> events.send(AuthEvent.Message(result.error.userMessage()))
+        is Outcome.Failure -> events.send(AuthEvent.Message(result.error.toUiText()))
     }
 
     protected fun perform(action: AuthAction, block: suspend () -> Unit) {
@@ -114,7 +115,7 @@ data class SignInUiState(
     val password: String = "",
     /** Set when the account exists but its e-mail isn't verified yet (403 from the auth service). */
     val unverifiedEmail: String? = null,
-    val error: String? = null,
+    val error: UiText? = null,
 )
 
 @HiltViewModel
@@ -132,7 +133,7 @@ class SignInViewModel @Inject constructor(
     fun signIn() = perform(AuthAction.Email) {
         val s = state.value
         if (s.identifier.isBlank() || s.password.isEmpty()) {
-            state.update { it.copy(error = "Enter your e-mail or username and password.") }
+            state.update { it.copy(error = UiText.Res(R.string.sign_in_missing_fields)) }
             return@perform
         }
         when (val result = auth.signIn(s.identifier, s.password)) {
@@ -141,7 +142,7 @@ class SignInViewModel @Inject constructor(
                 val error = result.error
                 state.update {
                     it.copy(
-                        error = error.userMessage(),
+                        error = error.toUiText(),
                         unverifiedEmail = if (error is AppError.EmailNotVerified) s.identifier.trim().takeIf { id -> '@' in id } else null,
                     )
                 }
@@ -153,7 +154,7 @@ class SignInViewModel @Inject constructor(
         val email = state.value.unverifiedEmail ?: return@perform
         when (val result = auth.resendVerification(email)) {
             is Outcome.Success -> events.send(AuthEvent.CheckInbox(email))
-            is Outcome.Failure -> events.send(AuthEvent.Message(result.error.userMessage()))
+            is Outcome.Failure -> events.send(AuthEvent.Message(result.error.toUiText()))
         }
     }
 }
@@ -164,7 +165,7 @@ data class SignUpUiState(
     val password: String = "",
     val acceptedTerms: Boolean = false,
     val isGuest: Boolean = false,
-    val error: String? = null,
+    val error: UiText? = null,
 ) {
     val strength: PasswordStrength get() = PasswordStrength.of(password)
     val canSubmit: Boolean
@@ -198,12 +199,12 @@ class SignUpViewModel @Inject constructor(
         if (convertGuest && f.isGuest) {
             when (val result = auth.convertGuest(signUp)) {
                 is Outcome.Success -> events.send(AuthEvent.CheckInbox(f.email))
-                is Outcome.Failure -> form.update { it.copy(error = result.error.userMessage()) }
+                is Outcome.Failure -> form.update { it.copy(error = result.error.toUiText()) }
             }
         } else {
             when (val result = auth.register(signUp)) {
                 is Outcome.Success -> events.send(AuthEvent.CheckInbox(f.email))
-                is Outcome.Failure -> form.update { it.copy(error = result.error.userMessage()) }
+                is Outcome.Failure -> form.update { it.copy(error = result.error.toUiText()) }
             }
         }
     }
@@ -220,7 +221,7 @@ class CheckInboxViewModel @Inject constructor(private val auth: AuthRepository) 
     private val cooldown = MutableStateFlow(RESEND_COOLDOWN_SECONDS)
     val resendCooldown: StateFlow<Int> = cooldown
 
-    private val events = Channel<String>(Channel.BUFFERED)
+    private val events = Channel<UiText>(Channel.BUFFERED)
     val messages = events.receiveAsFlow()
 
     /** Signed-in (converted guest) users continue straight to the editor once they've checked mail. */
@@ -236,8 +237,8 @@ class CheckInboxViewModel @Inject constructor(private val auth: AuthRepository) 
         if (cooldown.value > 0) return
         viewModelScope.launch {
             when (val result = auth.resendVerification(email)) {
-                is Outcome.Success -> events.send(result.value.ifBlank { "Verification e-mail sent." })
-                is Outcome.Failure -> events.send(result.error.userMessage())
+                is Outcome.Success -> events.send(if (result.value.isBlank()) UiText.Res(R.string.inbox_sent) else UiText.Raw(result.value))
+                is Outcome.Failure -> events.send(result.error.toUiText())
             }
             startCooldown()
         }
@@ -259,7 +260,7 @@ class CheckInboxViewModel @Inject constructor(private val auth: AuthRepository) 
     }
 }
 
-data class ForgotPasswordUiState(val email: String = "", val sent: Boolean = false, val error: String? = null)
+data class ForgotPasswordUiState(val email: String = "", val sent: Boolean = false, val error: UiText? = null)
 
 @HiltViewModel
 class ForgotPasswordViewModel @Inject constructor(private val auth: AuthRepository) : ViewModel() {
@@ -277,14 +278,14 @@ class ForgotPasswordViewModel @Inject constructor(private val auth: AuthReposito
     fun send() {
         val email = state.value.email
         if ('@' !in email) {
-            state.update { it.copy(error = "Enter the e-mail you signed up with.") }
+            state.update { it.copy(error = UiText.Res(R.string.reset_email_required)) }
             return
         }
         viewModelScope.launch {
             busyState.value = true
             when (val result = auth.requestPasswordReset(email)) {
                 is Outcome.Success -> state.update { it.copy(sent = true) }
-                is Outcome.Failure -> state.update { it.copy(error = result.error.userMessage()) }
+                is Outcome.Failure -> state.update { it.copy(error = result.error.toUiText()) }
             }
             busyState.value = false
         }

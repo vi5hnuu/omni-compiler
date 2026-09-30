@@ -1,5 +1,8 @@
 package solutions.laxmi.omnicompiler.feature.auth
 
+import solutions.laxmi.omnicompiler.core.ui.labelRes
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -57,46 +60,50 @@ fun WelcomeScreen(navigator: Navigator, appVersion: String) {
             Row(Modifier.fillMaxWidth().statusBarsPadding().height(48.dp).padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
                 Wordmark()
                 Box(Modifier.weight(1f))
-                OmniTextButton("Skip", viewModel::continueAsGuest, enabled = busy == null, color = colors.textSecondary)
+                OmniTextButton(stringResource(R.string.welcome_skip), viewModel::continueAsGuest, enabled = busy == null, color = colors.textSecondary)
             }
         },
     ) {
         DemoCard()
         Text(
-            if (counts.runtimes > 0) "${counts.languages} LANGUAGES · ${counts.runtimes} RUNTIMES" else "${counts.languages} LANGUAGES",
+            (
+                pluralStringResource(R.plurals.welcome_languages, counts.languages, counts.languages).let { languages ->
+                    if (counts.runtimes > 0) stringResource(R.string.welcome_counts, languages, pluralStringResource(R.plurals.welcome_runtimes, counts.runtimes, counts.runtimes)) else languages
+                }
+            ).uppercase(),
             style = OmniTheme.typography.overline,
             color = colors.accentText,
         )
-        Text("Write in any language. Get a judge verdict in milliseconds.", style = OmniTheme.typography.display, color = colors.textPrimary)
+        Text(stringResource(R.string.welcome_headline), style = OmniTheme.typography.display, color = colors.textPrimary)
         Text(
-            "Each run gets an isolated microVM, per-test verdicts and full stdout and stderr.",
+            stringResource(R.string.welcome_subtitle),
             style = OmniTheme.typography.body,
             color = colors.textSecondary,
         )
         Column(Modifier.padding(top = 8.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             if (viewModel.googleAvailable) {
-                GoogleButton("Continue with Google", loading = busy == AuthAction.Google, enabled = busy == null) {
+                GoogleButton(stringResource(R.string.welcome_google), loading = busy == AuthAction.Google, enabled = busy == null) {
                     viewModel.signInWithGoogle(context.findActivityContext())
                 }
             }
             OmniButton(
-                "Continue with email",
+                stringResource(R.string.welcome_email),
                 { navigator.navigate(SignInRoute) },
                 style = OmniButtonStyle.Outline,
                 leadingIcon = OmniIcons.Mail,
                 enabled = busy == null,
             )
             Row(verticalAlignment = Alignment.CenterVertically) {
-                OmniTextButton(if (busy == AuthAction.Guest) "Starting…" else "Continue as guest", viewModel::continueAsGuest, enabled = busy == null)
-                Text("  · projects stay on this device", style = OmniTheme.typography.bodySmall, color = colors.textTertiary)
+                OmniTextButton(stringResource(if (busy == AuthAction.Guest) R.string.welcome_guest_starting else R.string.welcome_guest), viewModel::continueAsGuest, enabled = busy == null)
+                Text("  " + stringResource(R.string.welcome_guest_note), style = OmniTheme.typography.bodySmall, color = colors.textTertiary)
             }
         }
         Row(Modifier.fillMaxWidth().padding(vertical = 16.dp), verticalAlignment = Alignment.CenterVertically) {
-            OmniTextButton("Terms", { context.openUrl(viewModel.config.termsUrl) }, color = colors.textTertiary)
+            OmniTextButton(stringResource(R.string.welcome_terms), { context.openUrl(viewModel.config.termsUrl) }, color = colors.textTertiary)
             Text(" · ", color = colors.textTertiary)
-            OmniTextButton("Privacy", { context.openUrl(viewModel.config.privacyPolicyUrl) }, color = colors.textTertiary)
+            OmniTextButton(stringResource(R.string.welcome_privacy), { context.openUrl(viewModel.config.privacyPolicyUrl) }, color = colors.textTertiary)
             Box(Modifier.weight(1f))
-            Text("v$appVersion", style = OmniTheme.typography.monoSmall, color = colors.textTertiary)
+            Text(stringResource(R.string.welcome_version, appVersion), style = OmniTheme.typography.monoSmall, color = colors.textTertiary)
         }
     }
 }
@@ -117,8 +124,8 @@ private fun DemoCard() {
     Column(Modifier.fillMaxWidth().padding(top = 8.dp).background(colors.surface)) {
         Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("C+", style = OmniTheme.typography.badge, color = colors.accentText)
-            Text("main.cpp · GCC", style = OmniTheme.typography.mono, color = colors.textSecondary, modifier = Modifier.weight(1f))
-            OmniCompactButton("Run", OmniIcons.Play, {}, height = 26.dp, enabled = true)
+            Text(stringResource(R.string.welcome_demo_file), style = OmniTheme.typography.mono, color = colors.textSecondary, modifier = Modifier.weight(1f))
+            OmniCompactButton(stringResource(R.string.welcome_run_demo), OmniIcons.Play, {}, height = 26.dp, enabled = true)
         }
         Column(Modifier.background(p.background).fillMaxWidth().padding(vertical = 8.dp)) {
             code.forEachIndexed { i, line ->
@@ -130,8 +137,8 @@ private fun DemoCard() {
         }
         Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             VerdictBadge(Verdict.AC)
-            Text("Accepted", style = OmniTheme.typography.bodyStrong, color = colors.textPrimary)
-            Text("3/3 · 12 ms", style = OmniTheme.typography.monoSmall, color = colors.textTertiary, modifier = Modifier.weight(1f))
+            Text(stringResource(Verdict.AC.labelRes), style = OmniTheme.typography.bodyStrong, color = colors.textPrimary)
+            Text(stringResource(R.string.welcome_demo_meta), style = OmniTheme.typography.monoSmall, color = colors.textTertiary, modifier = Modifier.weight(1f))
             repeat(3) { Box(Modifier.size(8.dp).background(colors.textPrimary)) }
         }
     }

@@ -36,7 +36,9 @@ import solutions.laxmi.omnicompiler.core.model.RunRecord
 import solutions.laxmi.omnicompiler.core.model.RunSettings
 import solutions.laxmi.omnicompiler.core.model.TestCase
 import solutions.laxmi.omnicompiler.core.model.TestCaseDraft
-import solutions.laxmi.omnicompiler.core.ui.userMessage
+import solutions.laxmi.omnicompiler.core.ui.UiText
+import solutions.laxmi.omnicompiler.core.ui.toUiText
+import solutions.laxmi.omnicompiler.feature.workspace.R
 
 enum class ConsoleTab { Console, Tests, Input, Problems }
 
@@ -65,7 +67,7 @@ sealed interface ConsoleOverlay {
 }
 
 sealed interface ConsoleEvent {
-    data class Message(val text: String) : ConsoleEvent
+    data class Message(val text: UiText) : ConsoleEvent
     data class RunStarted(val mode: RunMode) : ConsoleEvent
 }
 
@@ -149,7 +151,7 @@ class ConsoleViewModel @AssistedInject constructor(
         viewModelScope.launch {
             when (val result = documents.read(uri)) {
                 is Outcome.Success -> if (intoTestEditor) loadedTestStdinState.value = result.value else setStdin(result.value)
-                is Outcome.Failure -> events.send(ConsoleEvent.Message(result.error.userMessage()))
+                is Outcome.Failure -> events.send(ConsoleEvent.Message(result.error.toUiText()))
             }
         }
     }
@@ -161,7 +163,7 @@ class ConsoleViewModel @AssistedInject constructor(
     /** Turns the current custom stdin into a test case (expected left empty to fill in). */
     fun saveStdinAsTest() {
         addTest(TestCaseDraft(stdin.value, ""))
-        viewModelScope.launch { events.send(ConsoleEvent.Message("Saved as a test. Add its expected output in Tests.")) }
+        viewModelScope.launch { events.send(ConsoleEvent.Message(UiText.Res(R.string.input_saved_as_test))) }
     }
 
     fun saveTest(existing: TestCase?, name: String, stdin: String, expected: String) {
@@ -206,7 +208,7 @@ class ConsoleViewModel @AssistedInject constructor(
 
     fun sendPendingNow() {
         viewModelScope.launch {
-            if (!executions.sendPendingRuns(force = true)) events.send(ConsoleEvent.Message("Still offline. The run stays queued."))
+            if (!executions.sendPendingRuns(force = true)) events.send(ConsoleEvent.Message(UiText.Res(R.string.input_still_offline)))
         }
     }
 
@@ -253,7 +255,7 @@ class ConsoleViewModel @AssistedInject constructor(
         if (error is AppError.RateLimited) {
             overlayState.update { ConsoleOverlay.RateLimited(error.retryAfterSeconds, uiState.value.rateLimit) }
         } else {
-            events.send(ConsoleEvent.Message(error.userMessage()))
+            events.send(ConsoleEvent.Message(error.toUiText()))
         }
     }
 

@@ -33,11 +33,14 @@ import solutions.laxmi.omnicompiler.core.model.Session
 import solutions.laxmi.omnicompiler.core.model.SourceFile
 import solutions.laxmi.omnicompiler.core.model.User
 import solutions.laxmi.omnicompiler.core.navigation.EditorRoute
-import solutions.laxmi.omnicompiler.core.ui.userMessage
+import solutions.laxmi.omnicompiler.core.model.ErrorReason
+import solutions.laxmi.omnicompiler.core.ui.UiText
+import solutions.laxmi.omnicompiler.core.ui.toUiText
+import solutions.laxmi.omnicompiler.feature.workspace.R
 
 data class EditorUiState(
     val loading: Boolean = true,
-    val error: String? = null,
+    val error: UiText? = null,
     val workspace: ProjectWorkspace? = null,
     val runtime: Runtime? = null,
     val language: LanguageInfo? = null,
@@ -48,11 +51,10 @@ data class EditorUiState(
     val projects: List<ProjectSummary> = emptyList(),
 ) {
     val activeFile: SourceFile? get() = workspace?.files?.firstOrNull { it.id == activeFileId } ?: workspace?.entry
-    val runtimeLabel: String get() = runtime?.let { "${language?.name ?: it.language} ${it.version}" } ?: workspace?.project?.runtimeId.orEmpty()
 }
 
 sealed interface EditorEvent {
-    data class Message(val text: String) : EditorEvent
+    data class Message(val text: UiText) : EditorEvent
     data class OpenProject(val projectId: String) : EditorEvent
 }
 
@@ -72,7 +74,7 @@ class EditorViewModel @AssistedInject constructor(
 
     private val projectId = MutableStateFlow(route.projectId)
     private val activeFileId = MutableStateFlow<String?>(null)
-    private val startupError = MutableStateFlow<String?>(null)
+    private val startupError = MutableStateFlow<UiText?>(null)
 
     /** Content the editor view currently holds per file; a DB value that differs means an external replace. */
     private val knownContent = mutableMapOf<String, String>()
@@ -114,7 +116,7 @@ class EditorViewModel @AssistedInject constructor(
         val (loadedId, ws) = loaded
         ws?.files?.forEach(::trackExternalChanges)
         // A resolved project that reads back as null was deleted while open (e.g. from Projects).
-        val shownError = error ?: PROJECT_DELETED.takeIf { loadedId != null && ws == null }
+        val shownError = error ?: UiText.Res(R.string.editor_project_deleted).takeIf { loadedId != null && ws == null }
         EditorUiState(
             loading = ws == null && shownError == null,
             error = shownError,
@@ -168,7 +170,7 @@ class EditorViewModel @AssistedInject constructor(
                     activeFileId.value = result.value.id
                     onDone()
                 }
-                is Outcome.Failure -> events.send(EditorEvent.Message(result.error.userMessage()))
+                is Outcome.Failure -> events.send(EditorEvent.Message(result.error.toUiText()))
             }
         }
     }
@@ -178,13 +180,13 @@ class EditorViewModel @AssistedInject constructor(
         val id = projectId.value ?: return
         viewModelScope.launch {
             val header = projects.addFile(id, "$baseName.h", "#pragma once\n")
-            if (header is Outcome.Failure) return@launch events.send(EditorEvent.Message(header.error.userMessage()))
+            if (header is Outcome.Failure) return@launch events.send(EditorEvent.Message(header.error.toUiText()))
             when (val source = projects.addFile(id, "$baseName.$sourceExtension", "#include \"$baseName.h\"\n")) {
                 is Outcome.Success -> {
                     activeFileId.value = source.value.id
                     onDone()
                 }
-                is Outcome.Failure -> events.send(EditorEvent.Message(source.error.userMessage()))
+                is Outcome.Failure -> events.send(EditorEvent.Message(source.error.toUiText()))
             }
         }
     }
@@ -193,7 +195,7 @@ class EditorViewModel @AssistedInject constructor(
         val id = projectId.value ?: return
         viewModelScope.launch {
             val result = projects.renameFile(fileId, id, name)
-            if (result is Outcome.Failure) events.send(EditorEvent.Message(result.error.userMessage()))
+            if (result is Outcome.Failure) events.send(EditorEvent.Message(result.error.toUiText()))
         }
     }
 
@@ -208,7 +210,7 @@ class EditorViewModel @AssistedInject constructor(
         val id = projectId.value ?: return
         viewModelScope.launch {
             val result = projects.rename(id, name)
-            if (result is Outcome.Failure) events.send(EditorEvent.Message(result.error.userMessage()))
+            if (result is Outcome.Failure) events.send(EditorEvent.Message(result.error.toUiText()))
         }
     }
 
@@ -216,7 +218,7 @@ class EditorViewModel @AssistedInject constructor(
         val id = projectId.value ?: return
         viewModelScope.launch {
             val result = projects.resetToStarter(id)
-            if (result is Outcome.Failure) events.send(EditorEvent.Message(result.error.userMessage()))
+            if (result is Outcome.Failure) events.send(EditorEvent.Message(result.error.toUiText()))
         }
     }
 
@@ -224,12 +226,12 @@ class EditorViewModel @AssistedInject constructor(
         viewModelScope.launch {
             val runtime = uiState.value.runtime ?: runtimes.defaultRuntime()
             if (runtime == null) {
-                events.send(EditorEvent.Message("Connect to the internet to load languages."))
+                events.send(EditorEvent.Message(ErrorReason.LanguagesUnavailable.toUiText()))
                 return@launch
             }
             when (val result = projects.create(runtime)) {
                 is Outcome.Success -> events.send(EditorEvent.OpenProject(result.value))
-                is Outcome.Failure -> events.send(EditorEvent.Message(result.error.userMessage()))
+                is Outcome.Failure -> events.send(EditorEvent.Message(result.error.toUiText()))
             }
         }
     }
@@ -241,7 +243,7 @@ class EditorViewModel @AssistedInject constructor(
                     projectId.value = result.value
                     projects.markOpened(result.value)
                 }
-                is Outcome.Failure -> startupError.value = result.error.userMessage()
+                is Outcome.Failure -> startupError.value = result.error.toUiText()
             }
         }
     }
@@ -259,9 +261,5 @@ class EditorViewModel @AssistedInject constructor(
 
     private fun updateSettings(transform: (EditorSettings) -> EditorSettings) {
         viewModelScope.launch { settingsRepository.updateEditor(transform) }
-    }
-
-    private companion object {
-        const val PROJECT_DELETED = "This project was deleted."
     }
 }

@@ -31,6 +31,7 @@ import solutions.laxmi.omnicompiler.core.database.dao.RunDao
 import solutions.laxmi.omnicompiler.core.database.entity.PendingRunEntity
 import solutions.laxmi.omnicompiler.core.datastore.PreferencesStore
 import solutions.laxmi.omnicompiler.core.model.AppError
+import solutions.laxmi.omnicompiler.core.model.ErrorReason
 import solutions.laxmi.omnicompiler.core.model.BenchmarkResult
 import solutions.laxmi.omnicompiler.core.model.BenchmarkRun
 import solutions.laxmi.omnicompiler.core.model.CompileDiagnostic
@@ -139,9 +140,9 @@ internal class DefaultExecutionRepository @Inject constructor(
 
     override suspend fun run(projectId: String, options: RunOptions): Outcome<Unit> {
         // One run per project at a time: an offline-queued run counts, so it can't be overtaken later.
-        if (live.value[projectId]?.phase?.isActive == true) return Outcome.Failure(AppError.Conflict("A run is already in progress."))
+        if (live.value[projectId]?.phase?.isActive == true) return Outcome.Failure(AppError.Conflict(reason = ErrorReason.RunInProgress))
         if (pendingDao.hasPendingFor(projectId)) {
-            return Outcome.Failure(AppError.Conflict("A run is waiting to be sent. Send it now or cancel it first."))
+            return Outcome.Failure(AppError.Conflict(reason = ErrorReason.RunQueued))
         }
         val prepared = when (val result = prepare(projectId, options)) {
             is Outcome.Failure -> return result
@@ -250,12 +251,12 @@ internal class DefaultExecutionRepository @Inject constructor(
 
     private suspend fun prepare(projectId: String, options: RunOptions): Outcome<Prepared> {
         val workspace = projects.observeWorkspace(projectId).first()
-            ?: return Outcome.Failure(AppError.NotFound("Project not found."))
-        val entry = workspace.entry ?: return Outcome.Failure(AppError.Validation("This project has no entry file."))
-        if (entry.content.isBlank()) return Outcome.Failure(AppError.Validation("Write some code first."))
+            ?: return Outcome.Failure(AppError.NotFound(reason = ErrorReason.ProjectNotFound))
+        val entry = workspace.entry ?: return Outcome.Failure(AppError.Validation(reason = ErrorReason.EntryFileMissing))
+        if (entry.content.isBlank()) return Outcome.Failure(AppError.Validation(reason = ErrorReason.WriteCodeFirst))
         val extras = workspace.files.filter { !it.isEntry }
         (listOf(entry) + extras).firstOrNull { it.content.encodeToByteArray().size > MAX_SOURCE_BYTES }?.let {
-            return Outcome.Failure(AppError.Validation("${it.name} is larger than 64 KB."))
+            return Outcome.Failure(AppError.Validation(reason = ErrorReason.SourceTooLarge(it.name, MAX_SOURCE_BYTES / 1024)))
         }
         val selected = when (options.mode) {
             RunMode.STDIN_ONLY -> listOf(TestCaseDraft(options.stdin.orEmpty(), expected = "", name = "Custom input"))
@@ -263,8 +264,8 @@ internal class DefaultExecutionRepository @Inject constructor(
                 .filter { options.testIds == null || it.id in options.testIds }
                 .map { t -> TestCaseDraft(t.stdin, t.expected, t.name.ifBlank { "Test ${t.position + 1}" }) }
         }
-        if (selected.isEmpty()) return Outcome.Failure(AppError.Validation("Add a test case, or run with custom input."))
-        if (selected.size > MAX_TESTS) return Outcome.Failure(AppError.Validation("A run can have at most $MAX_TESTS test cases."))
+        if (selected.isEmpty()) return Outcome.Failure(AppError.Validation(reason = ErrorReason.NoTests))
+        if (selected.size > MAX_TESTS) return Outcome.Failure(AppError.Validation(reason = ErrorReason.TooManyTests(MAX_TESTS)))
         val runId = ids.newId()
         val request = ExecutionRequest(
             runtimeId = workspace.project.runtimeId,
@@ -309,7 +310,8 @@ internal class DefaultExecutionRepository @Inject constructor(
                     return Outcome.Success(Unit)
                 }
                 if (!(result.error.isConnectivity() && fromQueue)) {
-                    finish(prepared.record.copy(phase = RunPhase.FAILED, errorMessage = result.error.message), diagnostic = null)
+                    // Only server text is persisted; device-side causes are shown by phase (localized in the UI).
+                    finish(prepared.record.copy(phase = RunPhase.FAILED, errorMessage = result.error.message.ifBlank { null }), diagnostic = null)
                 }
                 return result
             }
@@ -351,7 +353,7 @@ internal class DefaultExecutionRepository @Inject constructor(
         }
         val job = pollUntilDone(jobId) { partial -> current = current.mergeJob(partial); publish(current) }
         current = if (job != null) current.mergeJob(job).copy(phase = if (job.status == JobStatus.FAILED && job.verdict == null) RunPhase.FAILED else RunPhase.DONE)
-        else current.copy(phase = RunPhase.FAILED, errorMessage = "Lost track of the job. It will appear in run history.")
+        else current.copy(phase = RunPhase.LOST)
         val withProblems = current.copy(problems = CompilerOutputParser.parse(current.compileOutput, diagnostic, entryFileName))
         finish(withProblems, diagnostic)
         if (withProblems.mode == RunMode.TESTS) projects.recordVerdict(withProblems.projectId, withProblems.verdict)

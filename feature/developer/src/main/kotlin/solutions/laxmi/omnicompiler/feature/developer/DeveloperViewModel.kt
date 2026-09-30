@@ -17,7 +17,8 @@ import solutions.laxmi.omnicompiler.core.data.auth.AuthRepository
 import solutions.laxmi.omnicompiler.core.model.Outcome
 import solutions.laxmi.omnicompiler.core.model.Session
 import solutions.laxmi.omnicompiler.core.model.Webhook
-import solutions.laxmi.omnicompiler.core.ui.userMessage
+import solutions.laxmi.omnicompiler.core.ui.UiText
+import solutions.laxmi.omnicompiler.core.ui.toUiText
 import java.security.SecureRandom
 import javax.inject.Inject
 
@@ -29,7 +30,7 @@ data class DeveloperUiState(
     val rotating: Boolean = false,
     val webhooks: List<Webhook> = emptyList(),
     val webhooksLoading: Boolean = true,
-    val webhooksError: String? = null,
+    val webhooksError: UiText? = null,
     val savingWebhook: Boolean = false,
     val createdSecret: String? = null,
 )
@@ -41,7 +42,7 @@ class DeveloperViewModel @Inject constructor(
 ) : ViewModel() {
 
     private val state = MutableStateFlow(DeveloperUiState(apiBaseUrl = developer.apiBaseUrl))
-    private val events = Channel<String>(Channel.BUFFERED)
+    private val events = Channel<UiText>(Channel.BUFFERED)
     val messages = events.receiveAsFlow()
 
     val uiState: StateFlow<DeveloperUiState> = combine(state, auth.session) { s, session ->
@@ -59,7 +60,7 @@ class DeveloperViewModel @Inject constructor(
                 is Outcome.Success -> state.update { it.copy(rotating = false, revealedKey = result.value) }
                 is Outcome.Failure -> {
                     state.update { it.copy(rotating = false) }
-                    events.send(result.error.userMessage())
+                    events.send(result.error.toUiText())
                 }
             }
         }
@@ -72,7 +73,7 @@ class DeveloperViewModel @Inject constructor(
             state.update { it.copy(webhooksLoading = true, webhooksError = null) }
             when (val result = developer.webhooks()) {
                 is Outcome.Success -> state.update { it.copy(webhooksLoading = false, webhooks = result.value) }
-                is Outcome.Failure -> state.update { it.copy(webhooksLoading = false, webhooksError = result.error.userMessage()) }
+                is Outcome.Failure -> state.update { it.copy(webhooksLoading = false, webhooksError = result.error.toUiText()) }
             }
         }
     }
@@ -86,7 +87,7 @@ class DeveloperViewModel @Inject constructor(
     fun createWebhook(url: String, secret: String, onDone: () -> Unit) {
         val trimmed = url.trim()
         if (!trimmed.startsWith("https://")) {
-            viewModelScope.launch { events.send("Webhook URLs must use https://.") }
+            viewModelScope.launch { events.send(UiText.Res(R.string.developer_https_required)) }
             return
         }
         viewModelScope.launch {
@@ -98,7 +99,7 @@ class DeveloperViewModel @Inject constructor(
                 }
                 is Outcome.Failure -> {
                     state.update { it.copy(savingWebhook = false) }
-                    events.send(result.error.userMessage())
+                    events.send(result.error.toUiText())
                 }
             }
         }
@@ -110,7 +111,7 @@ class DeveloperViewModel @Inject constructor(
         viewModelScope.launch {
             when (val result = developer.deleteWebhook(webhook.id)) {
                 is Outcome.Success -> state.update { s -> s.copy(webhooks = s.webhooks.filter { it.id != webhook.id }) }
-                is Outcome.Failure -> events.send(result.error.userMessage())
+                is Outcome.Failure -> events.send(result.error.toUiText())
             }
         }
     }

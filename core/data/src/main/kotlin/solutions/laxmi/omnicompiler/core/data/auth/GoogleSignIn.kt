@@ -12,6 +12,7 @@ import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import com.google.android.libraries.identity.googleid.GoogleIdTokenParsingException
 import solutions.laxmi.omnicompiler.core.data.BuildConfig
 import solutions.laxmi.omnicompiler.core.model.AppError
+import solutions.laxmi.omnicompiler.core.model.ErrorReason
 import solutions.laxmi.omnicompiler.core.model.Outcome
 import javax.inject.Inject
 
@@ -37,7 +38,7 @@ internal class CredentialManagerGoogleIdTokenProvider @Inject constructor() : Go
     override val isAvailable: Boolean get() = serverClientId.isNotBlank()
 
     override suspend fun requestIdToken(activityContext: Context): GoogleIdTokenResult {
-        if (!isAvailable) return GoogleIdTokenResult.Failed(AppError.NotAvailable("Google sign-in is not configured."))
+        if (!isAvailable) return GoogleIdTokenResult.Failed(AppError.NotAvailable(reason = ErrorReason.GoogleNotConfigured))
         val request = GetCredentialRequest.Builder()
             .addCredentialOption(GetSignInWithGoogleOption.Builder(serverClientId).build())
             .build()
@@ -46,16 +47,16 @@ internal class CredentialManagerGoogleIdTokenProvider @Inject constructor() : Go
             if (credential is CustomCredential && credential.type == GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL) {
                 GoogleIdTokenResult.Token(GoogleIdTokenCredential.createFrom(credential.data).idToken)
             } else {
-                GoogleIdTokenResult.Failed(AppError.Unknown("Unsupported credential."))
+                GoogleIdTokenResult.Failed(AppError.Unknown(reason = ErrorReason.GoogleUnsupportedCredential))
             }
         } catch (e: GetCredentialCancellationException) {
             GoogleIdTokenResult.Cancelled
         } catch (e: NoCredentialException) {
-            GoogleIdTokenResult.Failed(AppError.NotAvailable("No Google account is available on this device."))
+            GoogleIdTokenResult.Failed(AppError.NotAvailable(reason = ErrorReason.GoogleNoAccount))
         } catch (e: GetCredentialException) {
-            GoogleIdTokenResult.Failed(AppError.Unknown(e.message ?: "Google sign-in failed."))
+            GoogleIdTokenResult.Failed(AppError.Unknown(reason = ErrorReason.GoogleFailed))
         } catch (e: GoogleIdTokenParsingException) {
-            GoogleIdTokenResult.Failed(AppError.Unknown("Google returned an invalid token."))
+            GoogleIdTokenResult.Failed(AppError.Unknown(reason = ErrorReason.GoogleInvalidToken))
         }
     }
 }

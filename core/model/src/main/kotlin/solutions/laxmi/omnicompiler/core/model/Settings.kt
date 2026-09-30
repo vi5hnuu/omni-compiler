@@ -1,22 +1,14 @@
 package solutions.laxmi.omnicompiler.core.model
 
-enum class EditorTheme(val label: String, val description: String) {
-    SIGNAL("Signal", "Default"),
-    GRAPHITE("Graphite", "Soft dark"),
-    PAPER("Paper", "Light"),
-    CONTRAST("Contrast", "AAA"),
-}
+/** Display names for these enums live in `core/ui` (localized). */
+enum class EditorTheme { SIGNAL, GRAPHITE, PAPER, CONTRAST }
 
-enum class CodeFont(val label: String) {
-    JETBRAINS_MONO("JetBrains Mono"),
-    FIRA_CODE("Fira Code"),
-    IBM_PLEX_MONO("IBM Plex"),
-}
+enum class CodeFont { JETBRAINS_MONO, FIRA_CODE, IBM_PLEX_MONO }
 
-enum class LineSpacing(val label: String, val multiplier: Float) {
-    TIGHT("Tight", 1.3f),
-    NORMAL("1.5", 1.5f),
-    LOOSE("Loose", 1.75f),
+enum class LineSpacing(val multiplier: Float) {
+    TIGHT(1.3f),
+    NORMAL(1.5f),
+    LOOSE(1.75f),
 }
 
 data class EditorSettings(

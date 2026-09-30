@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Shared words, domain labels and every client-side error message. Feature screens own their own copy. -->
+<resources>
+    <!-- Actions -->
+    <string name="common_cancel">Cancel</string>
+    <string name="common_save">Save</string>
+    <string name="common_delete">Delete</string>
+    <string name="common_retry">Retry</string>
+    <string name="common_close">Close</string>
+    <string name="common_done">Done</string>
+    <string name="common_copy">Copy</string>
+    <string name="common_ok">OK</string>
+    <string name="common_sign_in">Sign in</string>
+    <string name="common_back">Back</string>
+    <string name="common_profile_picture">Profile picture</string>
+
+    <!-- Formatting -->
+    <string name="common_duration_unknown">—</string>
+    <string name="common_duration_ms">%1$d ms</string>
+    <string name="common_duration_seconds">%1$.2f s</string>
+    <string name="common_age_now">now</string>
+    <string name="common_age_minutes">%1$d m</string>
+    <string name="common_age_hours">%1$d h</string>
+    <string name="common_age_yesterday">Yesterday</string>
+    <string name="common_age_days">%1$d d</string>
+    <plurals name="common_tests">
+        <item quantity="one">%1$d test</item>
+        <item quantity="other">%1$d tests</item>
+    </plurals>
+
+    <!-- Verdicts (judge codes such as AC/WA stay untranslated) -->
+    <string name="verdict_ac">Accepted</string>
+    <string name="verdict_wa">Wrong Answer</string>
+    <string name="verdict_tle">Time Limit Exceeded</string>
+    <string name="verdict_mle">Memory Limit Exceeded</string>
+    <string name="verdict_re">Runtime Error</string>
+    <string name="verdict_ce">Compile Error</string>
+    <string name="verdict_ie">Internal Error</string>
+    <string name="verdict_sk">Skipped</string>
+    <string name="verdict_pending">Pending</string>
+    <string name="verdict_running">Running</string>
+
+    <!-- Editor themes, spacing, language groups, difficulty -->
+    <string name="theme_signal">Signal</string>
+    <string name="theme_signal_description">Default</string>
+    <string name="theme_graphite">Graphite</string>
+    <string name="theme_graphite_description">Soft dark</string>
+    <string name="theme_paper">Paper</string>
+    <string name="theme_paper_description">Light</string>
+    <string name="theme_contrast">Contrast</string>
+    <string name="theme_contrast_description">AAA contrast</string>
+    <string name="line_spacing_tight">Tight</string>
+    <string name="line_spacing_normal">1.5</string>
+    <string name="line_spacing_loose">Loose</string>
+    <string name="category_compiled">Compiled</string>
+    <string name="category_scripting">Scripting</string>
+    <string name="category_jvm">JVM</string>
+    <string name="category_functional">Functional</string>
+    <string name="category_esoteric">Esoteric</string>
+    <string name="difficulty_easy">Easy</string>
+    <string name="difficulty_medium">Medium</string>
+    <string name="difficulty_hard">Hard</string>
+
+    <!-- Errors -->
+    <string name="common_error_retry_after">%1$s Try again in %2$d s.</string>
+    <string name="common_error_with_reference">%1$s (ref %2$s)</string>
+    <string name="common_error_offline">You\'re offline.</string>
+    <string name="common_error_timeout">The server took too long to respond.</string>
+    <string name="common_error_network">Network error. Check your connection.</string>
+    <string name="common_error_bad_response">Unexpected response from the server.</string>
+    <string name="common_error_too_many_requests">Too many requests. Please slow down.</string>
+    <string name="common_error_server_trouble">The server had a problem. Please try again.</string>
+    <string name="common_error_request_failed">Request failed (%1$d).</string>
+    <string name="common_error_unknown">Something went wrong. Please try again.</string>
+    <string name="common_error_google_not_configured">Google sign-in is not configured.</string>
+    <string name="common_error_google_no_account">No Google account is available on this device.</string>
+    <string name="common_error_google_unsupported">Unsupported credential.</string>
+    <string name="common_error_google_invalid_token">Google returned an invalid token.</string>
+    <string name="common_error_google_failed">Google sign-in failed.</string>
+    <string name="common_error_sign_in_incomplete">Sign-in didn\'t complete. Please try again.</string>
+    <string name="common_error_project_not_found">Project not found.</string>
+    <string name="common_error_file_not_found">File not found.</string>
+    <string name="common_error_entry_missing">This project has no entry file.</string>
+    <string name="common_error_entry_named_by_runtime">The entry file is named by its runtime.</string>
+    <string name="common_error_entry_name_taken">Rename %1$s first: the %2$s entry file uses that name.</string>
+    <string name="common_error_name_required">Enter a name.</string>
+    <string name="common_error_file_name_required">Enter a file name.</string>
+    <string name="common_error_flat_workspace">All files share one flat /workspace: no folders or \'..\'.</string>
+    <plurals name="common_error_file_name_too_long">
+        <item quantity="one">File names can be at most %1$d character.</item>
+        <item quantity="other">File names can be at most %1$d characters.</item>
+    </plurals>
+    <string name="common_error_file_exists">%1$s already exists.</string>
+    <plurals name="common_error_too_many_files">
+        <item quantity="one">A project can have at most %1$d extra file.</item>
+        <item quantity="other">A project can have at most %1$d extra files.</item>
+    </plurals>
+    <string name="common_error_languages_unavailable">Couldn\'t load languages from the server. Check your connection and try again.</string>
+    <string name="common_error_open_project_first">Open a project first.</string>
+    <string name="common_error_export_failed">Couldn\'t prepare the export.</string>
+    <string name="common_error_document_open_failed">Couldn\'t open that file.</string>
+    <string name="common_error_document_too_large">File is larger than %1$d KB.</string>
+    <string name="common_error_document_read_failed">Couldn\'t read that file.</string>
+    <string name="common_error_document_no_permission">No permission to read that file.</string>
+    <string name="common_error_run_in_progress">A run is already in progress.</string>
+    <string name="common_error_run_queued">A run is waiting to be sent. Send it now or cancel it first.</string>
+    <string name="common_error_write_code_first">Write some code first.</string>
+    <string name="common_error_source_too_large">%1$s is larger than %2$d KB.</string>
+    <string name="common_error_no_tests">Add a test case, or run with custom input.</string>
+    <plurals name="common_error_too_many_tests">
+        <item quantity="one">A run can have at most %1$d test case.</item>
+        <item quantity="other">A run can have at most %1$d test cases.</item>
+    </plurals>
+    <string name="common_error_runtime_unavailable">This runtime is no longer available.</string>
+</resources>

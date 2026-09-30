@@ -12,6 +12,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 
 /**
@@ -26,12 +27,13 @@ internal fun Minimap(
     modifier: Modifier = Modifier,
 ) {
     val lines = state.minimap
+    val description = stringResource(R.string.editor_minimap)
     val viewport = state.viewport
     Canvas(
         modifier = modifier
             .width(34.dp)
             .fillMaxHeight()
-            .semantics { contentDescription = "Minimap" }
+            .semantics { contentDescription = description }
             .pointerInput(state) { detectTapGestures { state.scrollToFraction(it.y / size.height - viewport.height / 2) } }
             .pointerInput(state) {
                 detectVerticalDragGestures { change, _ -> state.scrollToFraction(change.position.y / size.height - state.viewport.height / 2) }

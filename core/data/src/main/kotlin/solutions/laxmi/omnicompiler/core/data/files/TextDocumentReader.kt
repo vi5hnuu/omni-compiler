@@ -8,6 +8,7 @@ import kotlinx.coroutines.withContext
 import solutions.laxmi.omnicompiler.core.common.Dispatcher
 import solutions.laxmi.omnicompiler.core.common.OmniDispatcher
 import solutions.laxmi.omnicompiler.core.model.AppError
+import solutions.laxmi.omnicompiler.core.model.ErrorReason
 import solutions.laxmi.omnicompiler.core.model.Outcome
 import java.io.IOException
 import javax.inject.Inject
@@ -29,16 +30,16 @@ internal class ContentResolverTextReader @Inject constructor(
     override suspend fun read(uri: String, maxBytes: Int): Outcome<String> = withContext(io) {
         try {
             val stream = context.contentResolver.openInputStream(uri.toUri())
-                ?: return@withContext Outcome.Failure(AppError.NotFound("Couldn't open that file."))
+                ?: return@withContext Outcome.Failure(AppError.NotFound(reason = ErrorReason.DocumentOpenFailed))
             stream.use { input ->
                 val bytes = input.readBounded(maxBytes + 1)
-                if (bytes.size > maxBytes) Outcome.Failure(AppError.Validation("File is larger than ${maxBytes / 1024} KB."))
+                if (bytes.size > maxBytes) Outcome.Failure(AppError.Validation(reason = ErrorReason.DocumentTooLarge(maxBytes / 1024)))
                 else Outcome.Success(bytes.decodeToString())
             }
         } catch (e: IOException) {
-            Outcome.Failure(AppError.Unknown("Couldn't read that file."))
+            Outcome.Failure(AppError.Unknown(reason = ErrorReason.DocumentReadFailed))
         } catch (e: SecurityException) {
-            Outcome.Failure(AppError.Forbidden("No permission to read that file."))
+            Outcome.Failure(AppError.Forbidden(reason = ErrorReason.DocumentNoPermission))
         }
     }
 }

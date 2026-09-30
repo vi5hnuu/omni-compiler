@@ -26,6 +26,8 @@ android {
     buildTypes {
         debug {
             applicationIdSuffix = ".debug"
+            // en-XA / ar-XB in developer settings reveal untranslated or clipped text.
+            isPseudoLocalesEnabled = true
         }
         release {
             optimization {

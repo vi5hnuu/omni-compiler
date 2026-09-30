@@ -30,7 +30,9 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import solutions.laxmi.omnicompiler.core.designsystem.R
 import solutions.laxmi.omnicompiler.core.designsystem.icon.OmniIcons
 import solutions.laxmi.omnicompiler.core.designsystem.theme.OmniDimens
 import solutions.laxmi.omnicompiler.core.designsystem.theme.OmniTheme
@@ -70,7 +72,7 @@ fun OmniTopBar(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         if (onBack != null) {
-            OmniIconButton(navigationIcon, "Back", onBack, size = OmniDimens.touchTarget, tint = colors.textPrimary, iconSize = 18.dp)
+            OmniIconButton(navigationIcon, stringResource(R.string.ds_back), onBack, size = OmniDimens.touchTarget, tint = colors.textPrimary, iconSize = 18.dp)
         } else {
             Box(Modifier.width(OmniDimens.space12))
         }

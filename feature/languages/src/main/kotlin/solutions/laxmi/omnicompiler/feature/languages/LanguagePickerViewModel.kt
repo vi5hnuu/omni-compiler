@@ -22,7 +22,8 @@ import solutions.laxmi.omnicompiler.core.model.LanguageCategory
 import solutions.laxmi.omnicompiler.core.model.Limits
 import solutions.laxmi.omnicompiler.core.model.Outcome
 import solutions.laxmi.omnicompiler.core.model.Runtime
-import solutions.laxmi.omnicompiler.core.ui.userMessage
+import solutions.laxmi.omnicompiler.core.ui.UiText
+import solutions.laxmi.omnicompiler.core.ui.toUiText
 
 /** Chip filters on the picker: everything, recently used, or one category. */
 sealed interface LanguageFilter {
@@ -33,7 +34,7 @@ sealed interface LanguageFilter {
 
 data class LanguagePickerUiState(
     val loading: Boolean = true,
-    val refreshError: String? = null,
+    val refreshError: UiText? = null,
     val query: String = "",
     val filter: LanguageFilter = LanguageFilter.All,
     val languages: List<Language> = emptyList(),
@@ -47,7 +48,7 @@ data class LanguagePickerUiState(
 
 sealed interface LanguagePickerEvent {
     data object Done : LanguagePickerEvent
-    data class Message(val text: String) : LanguagePickerEvent
+    data class Message(val text: UiText) : LanguagePickerEvent
 }
 
 @HiltViewModel(assistedFactory = LanguagePickerViewModel.Factory::class)
@@ -67,7 +68,7 @@ class LanguagePickerViewModel @AssistedInject constructor(
     private val filter = MutableStateFlow<LanguageFilter>(LanguageFilter.All)
     private val selectedBase = MutableStateFlow<String?>(null)
     private val limits = MutableStateFlow<Map<String, Limits>>(emptyMap())
-    private val refreshError = MutableStateFlow<String?>(null)
+    private val refreshError = MutableStateFlow<UiText?>(null)
     private val refreshing = MutableStateFlow(true)
 
     private val events = Channel<LanguagePickerEvent>(Channel.BUFFERED)
@@ -112,7 +113,7 @@ class LanguagePickerViewModel @AssistedInject constructor(
         viewModelScope.launch {
             refreshing.value = true
             val result = runtimes.refresh()
-            refreshError.value = (result as? Outcome.Failure)?.error?.userMessage()
+            refreshError.value = (result as? Outcome.Failure)?.error?.toUiText()
             refreshing.value = false
         }
     }
@@ -141,7 +142,7 @@ class LanguagePickerViewModel @AssistedInject constructor(
             if (makeDefault) settings.updateRun { it.copy(defaultRuntimeId = runtime.id) }
             when (val result = projects.changeRuntime(projectId, runtime)) {
                 is Outcome.Success -> events.send(LanguagePickerEvent.Done)
-                is Outcome.Failure -> events.send(LanguagePickerEvent.Message(result.error.userMessage()))
+                is Outcome.Failure -> events.send(LanguagePickerEvent.Message(result.error.toUiText()))
             }
         }
     }

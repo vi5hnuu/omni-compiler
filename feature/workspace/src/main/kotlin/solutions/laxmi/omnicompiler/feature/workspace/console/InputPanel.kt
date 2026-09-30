@@ -1,5 +1,7 @@
 package solutions.laxmi.omnicompiler.feature.workspace.console
 
+import solutions.laxmi.omnicompiler.feature.workspace.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -33,7 +35,7 @@ internal fun InputPanel(
     val colors = OmniTheme.colors
     Column(modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Text(
-            "Runs your program once with this stdin and shows its output. Nothing is graded.",
+            stringResource(R.string.input_explainer),
             style = OmniTheme.typography.bodySmall,
             color = colors.textSecondary,
         )
@@ -45,15 +47,15 @@ internal fun InputPanel(
                 cursorBrush = SolidColor(colors.accent),
                 modifier = Modifier.fillMaxSize(),
                 decorationBox = { inner ->
-                    if (stdin.isEmpty()) Text("stdin…", style = OmniTheme.typography.code, color = colors.textTertiary)
+                    if (stdin.isEmpty()) Text(stringResource(R.string.input_placeholder), style = OmniTheme.typography.code, color = colors.textTertiary)
                     inner()
                 },
             )
         }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            OmniButton("From file", onLoadFile, Modifier.weight(1f), style = OmniButtonStyle.Secondary, leadingIcon = OmniIcons.Upload, trailingIcon = null)
-            OmniButton("Save as test", onSaveAsTest, Modifier.weight(1f), style = OmniButtonStyle.Secondary, leadingIcon = OmniIcons.Plus, trailingIcon = null)
+            OmniButton(stringResource(R.string.input_from_file), onLoadFile, Modifier.weight(1f), style = OmniButtonStyle.Secondary, leadingIcon = OmniIcons.Upload, trailingIcon = null)
+            OmniButton(stringResource(R.string.input_save_as_test), onSaveAsTest, Modifier.weight(1f), style = OmniButtonStyle.Secondary, leadingIcon = OmniIcons.Plus, trailingIcon = null)
         }
-        OmniButton("Run with this input", onRun, enabled = !running, trailingIcon = OmniIcons.Play)
+        OmniButton(stringResource(R.string.input_run), onRun, enabled = !running, trailingIcon = OmniIcons.Play)
     }
 }

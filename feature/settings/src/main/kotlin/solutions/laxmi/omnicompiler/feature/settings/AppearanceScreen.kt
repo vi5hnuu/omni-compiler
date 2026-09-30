@@ -1,5 +1,9 @@
 package solutions.laxmi.omnicompiler.feature.settings
 
+import solutions.laxmi.omnicompiler.core.ui.descriptionRes
+import solutions.laxmi.omnicompiler.core.ui.labelRes
+import solutions.laxmi.omnicompiler.core.ui.displayName
+import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -52,11 +56,13 @@ fun AppearanceScreen(navigator: Navigator) {
     val viewModel = hiltViewModel<SettingsViewModel>()
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val editor = state.editor
+    // Segment labels are plain lambdas, so resolve the localized names up front.
+    val spacingLabels = LineSpacing.entries.associateWith { stringResource(it.labelRes) }
     val colors = OmniTheme.colors
     Column(Modifier.fillMaxSize().background(colors.background).navigationBarsPadding()) {
-        OmniTopBar("Editor appearance", onBack = navigator::back)
+        OmniTopBar(stringResource(R.string.appearance_title), onBack = navigator::back)
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
-            SectionLabel("Theme")
+            SectionLabel(stringResource(R.string.appearance_theme))
             EditorTheme.entries.chunked(2).forEach { row ->
                 Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     row.forEach { theme ->
@@ -66,12 +72,12 @@ fun AppearanceScreen(navigator: Navigator) {
                     }
                 }
             }
-            SectionLabel("Font")
+            SectionLabel(stringResource(R.string.appearance_font))
             OmniSegmented(
-                CodeFont.entries, editor.font, { it.label }, { font -> viewModel.updateEditor { it.copy(font = font) } },
+                CodeFont.entries, editor.font, { it.displayName }, { font -> viewModel.updateEditor { it.copy(font = font) } },
                 Modifier.padding(horizontal = 16.dp).fillMaxWidth(),
             )
-            SectionLabel("Font size") { Text("${editor.fontSizeSp} px", style = OmniTheme.typography.mono, color = colors.textSecondary) }
+            SectionLabel(stringResource(R.string.appearance_font_size)) { Text(stringResource(R.string.appearance_font_size_value, editor.fontSizeSp), style = OmniTheme.typography.mono, color = colors.textSecondary) }
             Slider(
                 value = editor.fontSizeSp.toFloat(),
                 onValueChange = { v -> viewModel.updateEditor { it.copy(fontSizeSp = v.toInt()) } },
@@ -80,18 +86,18 @@ fun AppearanceScreen(navigator: Navigator) {
                 colors = SliderDefaults.colors(thumbColor = colors.accent, activeTrackColor = colors.accent, inactiveTrackColor = colors.surfaceMuted),
                 modifier = Modifier.padding(horizontal = 16.dp),
             )
-            OmniListRow("Font ligatures", subtitle = "Render -> != >= as single glyphs", trailing = {
+            OmniListRow(stringResource(R.string.appearance_ligatures), subtitle = stringResource(R.string.appearance_ligatures_note), trailing = {
                 OmniToggle(editor.ligatures, { v -> viewModel.updateEditor { it.copy(ligatures = v) } })
             })
-            OmniListRow("Indent guides", subtitle = "Vertical lines for nested blocks", trailing = {
+            OmniListRow(stringResource(R.string.appearance_indent_guides), subtitle = stringResource(R.string.appearance_indent_guides_note), trailing = {
                 OmniToggle(editor.indentGuides, { v -> viewModel.updateEditor { it.copy(indentGuides = v) } })
             })
-            SectionLabel("Line height")
+            SectionLabel(stringResource(R.string.appearance_line_height))
             OmniSegmented(
-                LineSpacing.entries, editor.lineSpacing, { it.label }, { spacing -> viewModel.updateEditor { it.copy(lineSpacing = spacing) } },
+                LineSpacing.entries, editor.lineSpacing, { spacingLabels.getValue(it) }, { spacing -> viewModel.updateEditor { it.copy(lineSpacing = spacing) } },
                 Modifier.padding(horizontal = 16.dp).fillMaxWidth(),
             )
-            SectionLabel("Preview")
+            SectionLabel(stringResource(R.string.appearance_preview))
             Preview(editor, Modifier.padding(horizontal = 16.dp).padding(bottom = 24.dp))
         }
     }
@@ -112,8 +118,8 @@ private fun ThemeCard(theme: EditorTheme, settings: EditorSettings, selected: Bo
             Text(sampleLine(palette, 2), style = codeStyle(settings.font).copy(fontSize = 9.sp))
         }
         Column(Modifier.padding(8.dp)) {
-            Text(theme.label, style = OmniTheme.typography.bodyStrong, color = colors.textPrimary)
-            Text(theme.description, style = OmniTheme.typography.label, color = colors.textTertiary)
+            Text(stringResource(theme.labelRes), style = OmniTheme.typography.bodyStrong, color = colors.textPrimary)
+            Text(stringResource(theme.descriptionRes), style = OmniTheme.typography.label, color = colors.textTertiary)
         }
     }
 }

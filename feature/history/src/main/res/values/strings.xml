@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="history_title">Run history</string>
+    <string name="history_subtitle">Recorded by the judge for this account</string>
+    <string name="history_signed_out_title">Sign in to see history</string>
+    <string name="history_signed_out_message">Runs are tied to your account. Guests and signed-in users keep a history.</string>
+    <string name="history_session_expired">Your session expired. Sign in again.</string>
+    <string name="history_load_failed">Couldn\'t load history.</string>
+    <string name="history_empty_title">No runs yet</string>
+    <string name="history_empty_message">Runs you start from any device with this account appear here.</string>
+    <string name="history_stat_runs">Runs</string>
+    <string name="history_stat_accepted">Accepted</string>
+    <string name="history_stat_median">Median time</string>
+    <string name="history_percent">%1$d%%</string>
+    <plurals name="history_week_total">
+        <item quantity="one">%1$d run in 7 days · from cached history</item>
+        <item quantity="other">%1$d runs in 7 days · from cached history</item>
+    </plurals>
+    <string name="history_filter_all">All</string>
+    <string name="history_today">Today</string>
+    <string name="history_yesterday">Yesterday</string>
+    <string name="history_job">job %1$s</string>
+
+    <string name="job_title">Job %1$s</string>
+    <string name="job_copy_id">Copy job id</string>
+    <string name="job_load_failed">Couldn\'t load this run</string>
+    <string name="job_code">Code</string>
+    <string name="job_tests">Tests</string>
+    <string name="job_verify">Verify run</string>
+    <string name="job_open_as_project">Open as project</string>
+    <string name="job_replay_proof">Replay proof</string>
+    <string name="job_proof_image">Runtime image</string>
+    <string name="job_proof_code">Code</string>
+    <string name="job_proof_input">Input</string>
+    <string name="job_proof_signature">Signature</string>
+    <string name="job_proof_signed_at">Signed at</string>
+    <string name="job_index">#%1$d</string>
+    <string name="job_stdin" translatable="false">stdin</string>
+    <string name="job_expected">expected</string>
+    <string name="job_stdout" translatable="false">stdout</string>
+    <string name="job_stderr" translatable="false">stderr</string>
+    <string name="job_status_pending">pending</string>
+    <string name="job_status_running">running</string>
+    <string name="job_status_done">done</string>
+    <string name="job_status_failed">failed</string>
+</resources>

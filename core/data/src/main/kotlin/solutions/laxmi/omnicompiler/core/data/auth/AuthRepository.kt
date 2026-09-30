@@ -12,6 +12,7 @@ import solutions.laxmi.omnicompiler.core.data.mapper.toStored
 import solutions.laxmi.omnicompiler.core.datastore.SessionStore
 import solutions.laxmi.omnicompiler.core.datastore.StoredSession
 import solutions.laxmi.omnicompiler.core.model.AppError
+import solutions.laxmi.omnicompiler.core.model.ErrorReason
 import solutions.laxmi.omnicompiler.core.model.Outcome
 import solutions.laxmi.omnicompiler.core.model.Session
 import solutions.laxmi.omnicompiler.core.model.User
@@ -131,7 +132,7 @@ internal class DefaultAuthRepository @Inject constructor(
             val previous = store.current()?.user?.id
             val user = result.value.user
             if (user == null) {
-                Outcome.Failure(AppError.Unknown("Sign-in response had no user."))
+                Outcome.Failure(AppError.Unknown(reason = ErrorReason.SignInIncomplete))
             } else {
                 if (previous != null && previous != user.id) cleaner.clearAccountScoped()
                 store.save(result.value)

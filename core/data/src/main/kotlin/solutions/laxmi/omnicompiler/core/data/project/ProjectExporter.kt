@@ -9,6 +9,7 @@ import kotlinx.coroutines.withContext
 import solutions.laxmi.omnicompiler.core.common.Dispatcher
 import solutions.laxmi.omnicompiler.core.common.OmniDispatcher
 import solutions.laxmi.omnicompiler.core.model.AppError
+import solutions.laxmi.omnicompiler.core.model.ErrorReason
 import solutions.laxmi.omnicompiler.core.model.Outcome
 import java.io.File
 import java.io.IOException
@@ -34,7 +35,7 @@ internal class CacheProjectExporter @Inject constructor(
     private val authority get() = "${context.packageName}$AUTHORITY_SUFFIX"
 
     override suspend fun exportZip(projectId: String): Outcome<SharedFile> {
-        val workspace = projects.observeWorkspace(projectId).first() ?: return Outcome.Failure(AppError.NotFound("Project not found."))
+        val workspace = projects.observeWorkspace(projectId).first() ?: return Outcome.Failure(AppError.NotFound(reason = ErrorReason.ProjectNotFound))
         return write("${workspace.project.name}.zip", MIME_ZIP) { file ->
             ZipOutputStream(file.outputStream().buffered()).use { zip ->
                 workspace.files.forEach { source ->
@@ -58,7 +59,7 @@ internal class CacheProjectExporter @Inject constructor(
 
     override suspend fun exportFile(projectId: String, fileId: String): Outcome<SharedFile> {
         val source = projects.observeWorkspace(projectId).first()?.files?.firstOrNull { it.id == fileId }
-            ?: return Outcome.Failure(AppError.NotFound("File not found."))
+            ?: return Outcome.Failure(AppError.NotFound(reason = ErrorReason.FileNotFound))
         return write(source.name, MIME_TEXT) { it.writeText(source.content) }
     }
 
@@ -71,7 +72,7 @@ internal class CacheProjectExporter @Inject constructor(
             block(file)
             Outcome.Success(SharedFile(FileProvider.getUriForFile(context, authority, file).toString(), mime, file.name))
         } catch (e: IOException) {
-            Outcome.Failure(AppError.Unknown("Couldn't prepare the export."))
+            Outcome.Failure(AppError.Unknown(reason = ErrorReason.ExportFailed))
         }
     }
 

@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="developer_title">API key &amp; webhooks</string>
+    <string name="developer_signed_out_title">Sign in first</string>
+    <string name="developer_signed_out_message">API keys and webhooks belong to your account.</string>
+    <string name="developer_api_key">API key</string>
+    <string name="developer_api_key_explainer">Call the judge from scripts, CI or your own apps with an X-API-Key header. Generating a key replaces the previous one immediately.</string>
+    <string name="developer_new_key">NEW KEY</string>
+    <string name="developer_copy_now">Copy it now: it won\'t be shown again.</string>
+    <string name="developer_copy_key">Copy key</string>
+    <string name="developer_hide">Hide</string>
+    <string name="developer_generate">Generate API key</string>
+    <string name="developer_generate_another">Generate another</string>
+    <string name="developer_quick_start">Quick start</string>
+    <string name="developer_webhooks">Webhooks</string>
+    <string name="developer_add">Add</string>
+    <string name="developer_webhooks_explainer">The judge POSTs job results to these URLs, signed with X-LS-Signature: sha256=&lt;hmac of body with your secret&gt;.</string>
+    <string name="developer_secret_once">Signing secret (shown once): %1$s</string>
+    <string name="developer_no_webhooks">No webhooks yet.</string>
+    <string name="developer_enabled">enabled</string>
+    <string name="developer_disabled">disabled</string>
+    <string name="developer_delete_webhook">Delete webhook</string>
+    <string name="developer_rotate_title">Generate a new key?</string>
+    <string name="developer_rotate_message">Any key you issued before stops working right away.</string>
+    <string name="developer_generate_confirm">Generate</string>
+    <string name="developer_add_webhook">Add webhook</string>
+    <string name="developer_url">URL</string>
+    <string name="developer_url_placeholder" translatable="false">https://example.com/hooks/omni</string>
+    <string name="developer_signing_secret">Signing secret</string>
+    <string name="developer_adding">Adding…</string>
+    <string name="developer_delete_webhook_title">Delete webhook?</string>
+    <string name="developer_https_required">Webhook URLs must use https://.</string>
+</resources>

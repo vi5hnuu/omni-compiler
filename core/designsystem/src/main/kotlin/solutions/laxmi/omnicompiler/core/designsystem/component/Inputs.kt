@@ -32,7 +32,9 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import solutions.laxmi.omnicompiler.core.designsystem.R
 import solutions.laxmi.omnicompiler.core.designsystem.icon.OmniIcons
 import solutions.laxmi.omnicompiler.core.designsystem.theme.OmniDimens
 import solutions.laxmi.omnicompiler.core.designsystem.theme.OmniTheme
@@ -122,7 +124,7 @@ fun OmniPasswordField(
     value: String,
     onValueChange: (String) -> Unit,
     modifier: Modifier = Modifier,
-    label: String? = "Password",
+    label: String? = stringResource(R.string.ds_password),
     placeholder: String? = null,
     error: String? = null,
     supporting: String? = null,
@@ -146,7 +148,7 @@ fun OmniPasswordField(
         trailing = {
             Icon(
                 imageVector = if (visible) OmniIcons.EyeOff else OmniIcons.Eye,
-                contentDescription = if (visible) "Hide password" else "Show password",
+                contentDescription = stringResource(if (visible) R.string.ds_hide_password else R.string.ds_show_password),
                 tint = OmniTheme.colors.textTertiary,
                 modifier = Modifier
                     .size(18.dp)

@@ -1,5 +1,7 @@
 package solutions.laxmi.omnicompiler.feature.workspace.console
 
+import solutions.laxmi.omnicompiler.feature.workspace.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
@@ -37,7 +39,7 @@ internal fun ConsolePeek(latest: RunRecord?, onOpen: () -> Unit) {
             .fillMaxWidth()
             .background(colors.surface)
             .drawBehind { drawLine(colors.border, Offset(0f, 0f), Offset(size.width, 0f), 1f) }
-            .clickable(role = Role.Button, onClickLabel = "Open console", onClick = onOpen)
+            .clickable(role = Role.Button, onClickLabel = stringResource(R.string.console_open), onClick = onOpen)
             .pointerInput(Unit) { detectVerticalDragGestures { _, drag -> if (drag < -8f) onOpen() } },
     ) {
         Box(Modifier.fillMaxWidth().height(10.dp), contentAlignment = Alignment.BottomCenter) {
@@ -49,8 +51,8 @@ internal fun ConsolePeek(latest: RunRecord?, onOpen: () -> Unit) {
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             if (latest == null) {
-                Text("Console", style = OmniTheme.typography.bodyStrong, color = colors.textPrimary)
-                Text("Run to see results here", style = OmniTheme.typography.mono, color = colors.textTertiary)
+                Text(stringResource(R.string.console_title), style = OmniTheme.typography.bodyStrong, color = colors.textPrimary)
+                Text(stringResource(R.string.console_empty_peek), style = OmniTheme.typography.mono, color = colors.textTertiary)
                 return@Row
             }
             when {

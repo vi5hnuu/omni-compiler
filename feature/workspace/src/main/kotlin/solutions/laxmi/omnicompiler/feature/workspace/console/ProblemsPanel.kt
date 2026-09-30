@@ -1,5 +1,9 @@
 package solutions.laxmi.omnicompiler.feature.workspace.console
 
+import solutions.laxmi.omnicompiler.core.ui.labelRes
+import solutions.laxmi.omnicompiler.feature.workspace.R
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -33,7 +37,7 @@ internal fun ProblemsPanel(run: RunRecord?, onGoTo: (CompileProblem) -> Unit, mo
     val colors = OmniTheme.colors
     val problems = run?.problems.orEmpty()
     if (run == null || (problems.isEmpty() && run.verdict != Verdict.CE)) {
-        EmptyState("No problems", "Compiler errors and warnings from the last run show up here.", modifier, icon = OmniIcons.Check)
+        EmptyState(stringResource(R.string.problems_empty_title), stringResource(R.string.problems_empty_message), modifier, icon = OmniIcons.Check)
         return
     }
     var rawOpen by rememberSaveable(run.id) { mutableStateOf(false) }
@@ -42,8 +46,8 @@ internal fun ProblemsPanel(run: RunRecord?, onGoTo: (CompileProblem) -> Unit, mo
             item {
                 Row(Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     VerdictBadge(Verdict.CE)
-                    Text("Compile Error", style = OmniTheme.typography.bodyStrong, color = colors.textPrimary)
-                    Text("0 tests run", style = OmniTheme.typography.monoSmall, color = colors.textTertiary)
+                    Text(stringResource(Verdict.CE.labelRes), style = OmniTheme.typography.bodyStrong, color = colors.textPrimary)
+                    Text(stringResource(R.string.problems_no_tests_run), style = OmniTheme.typography.monoSmall, color = colors.textTertiary)
                 }
             }
         }
@@ -64,7 +68,7 @@ internal fun ProblemsPanel(run: RunRecord?, onGoTo: (CompileProblem) -> Unit, mo
                         color = if (problem.isError) colors.accentText else colors.textSecondary,
                         modifier = Modifier.weight(1f),
                     )
-                    if (problem.line != null) OmniTextButton("Go to line", { onGoTo(problem) })
+                    if (problem.line != null) OmniTextButton(stringResource(R.string.problems_go_to_line), { onGoTo(problem) })
                 }
                 Text(problem.message, style = OmniTheme.typography.mono, color = colors.textPrimary)
             }
@@ -72,13 +76,13 @@ internal fun ProblemsPanel(run: RunRecord?, onGoTo: (CompileProblem) -> Unit, mo
         run.compileOutput?.takeIf { it.isNotBlank() }?.let { raw ->
             item {
                 OmniTextButton(
-                    if (rawOpen) "Hide raw compiler output" else "Raw compiler output · ${raw.lines().size} lines",
+                    if (rawOpen) stringResource(R.string.problems_hide_raw) else raw.lines().size.let { pluralStringResource(R.plurals.problems_show_raw, it, it) },
                     { rawOpen = !rawOpen },
                     Modifier.padding(horizontal = 12.dp),
                     color = colors.textSecondary,
                 )
             }
-            if (rawOpen) item { CodeBlock("stderr", raw, emptySet(), Modifier.padding(horizontal = 12.dp)) }
+            if (rawOpen) item { CodeBlock(stringResource(R.string.tests_stderr), raw, emptySet(), Modifier.padding(horizontal = 12.dp)) }
         }
     }
 }

@@ -1,5 +1,11 @@
 package solutions.laxmi.omnicompiler.feature.workspace.console
 
+import solutions.laxmi.omnicompiler.core.ui.testCount
+import solutions.laxmi.omnicompiler.core.ui.formatDuration
+import solutions.laxmi.omnicompiler.core.ui.R as CommonR
+import solutions.laxmi.omnicompiler.feature.workspace.R
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -33,7 +39,6 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
-import solutions.laxmi.omnicompiler.core.common.formatMillis
 import solutions.laxmi.omnicompiler.core.common.shortJobId
 import solutions.laxmi.omnicompiler.core.designsystem.component.InfoBanner
 import solutions.laxmi.omnicompiler.core.designsystem.component.OmniButton
@@ -98,18 +103,18 @@ internal fun TestEditorSheet(
     var expected by rememberSaveable { mutableStateOf(initial?.expected.orEmpty()) }
     LaunchedEffect(loadedStdin) { loadedStdin?.let { stdin = it } }
     OmniSheet(onDismiss) {
-        SheetTitle(if (initial == null) "New test case" else "Edit test case", "Output must match exactly; trailing newlines are ignored.")
-        OmniTextField(name, { name = it }, label = "Name", placeholder = "Sample 1")
+        SheetTitle(stringResource(if (initial == null) R.string.sheet_test_new else R.string.sheet_test_edit), stringResource(R.string.sheet_test_hint))
+        OmniTextField(name, { name = it }, label = stringResource(R.string.sheet_test_name), placeholder = stringResource(R.string.sheet_test_name_placeholder))
         OmniTextField(
-            stdin, { stdin = it }, label = "stdin", singleLine = false, minLines = 3, textStyle = OmniTheme.typography.code,
+            stdin, { stdin = it }, label = stringResource(R.string.sheet_test_stdin), singleLine = false, minLines = 3, textStyle = OmniTheme.typography.code,
             keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.None, autoCorrectEnabled = false),
-            labelAction = { OmniTextButton("From file", onLoadStdinFile) },
+            labelAction = { OmniTextButton(stringResource(R.string.input_from_file), onLoadStdinFile) },
         )
         OmniTextField(
-            expected, { expected = it }, label = "Expected output", singleLine = false, minLines = 3, textStyle = OmniTheme.typography.code,
+            expected, { expected = it }, label = stringResource(R.string.sheet_test_expected), singleLine = false, minLines = 3, textStyle = OmniTheme.typography.code,
             keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.None, autoCorrectEnabled = false),
         )
-        OmniButton("Save test", { onSave(name.trim(), stdin, expected) }, trailingIcon = OmniIcons.Check)
+        OmniButton(stringResource(R.string.sheet_test_save), { onSave(name.trim(), stdin, expected) }, trailingIcon = OmniIcons.Check)
     }
 }
 
@@ -121,29 +126,29 @@ internal fun LimitsSheet(current: Limits, runtimeDefaults: Limits, bypassCache: 
     val colors = OmniTheme.colors
     val sliderColors = SliderDefaults.colors(thumbColor = colors.accent, activeTrackColor = colors.accent, inactiveTrackColor = colors.surfaceMuted)
     OmniSheet(onDismiss) {
-        SheetTitle("Run limits", "Applies to every test in this project.")
-        LimitRow("Time limit / test", "${(time / 100).roundToInt() * 100} ms")
+        SheetTitle(stringResource(R.string.sheet_limits_title), stringResource(R.string.sheet_limits_subtitle))
+        LimitRow(stringResource(R.string.sheet_limits_time), stringResource(R.string.sheet_limits_time_value, (time / 100).roundToInt() * 100))
         Slider(time, { time = it }, valueRange = 500f..Limits.MAX_TIME_MS.toFloat(), colors = sliderColors)
-        LimitRow("Memory / run", "${memory.roundToInt()} MB")
+        LimitRow(stringResource(R.string.sheet_limits_memory), stringResource(R.string.sheet_limits_memory_value, memory.roundToInt()))
         Slider(memory, { memory = it }, valueRange = 32f..Limits.MAX_MEM_MB.toFloat(), colors = sliderColors)
         Text(
-            "Runtime default: ${runtimeDefaults.timeMs} ms · ${runtimeDefaults.memMb} MB. The judge may lower memory to what the runtime allows.",
+            stringResource(R.string.sheet_limits_defaults_note, runtimeDefaults.timeMs, runtimeDefaults.memMb),
             style = OmniTheme.typography.bodySmall,
             color = colors.textTertiary,
         )
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
-                Text("Skip result cache", style = OmniTheme.typography.bodyStrong, color = colors.textPrimary)
-                Text("Identical submissions normally reuse a recent result.", style = OmniTheme.typography.bodySmall, color = colors.textTertiary)
+                Text(stringResource(R.string.sheet_limits_skip_cache), style = OmniTheme.typography.bodyStrong, color = colors.textPrimary)
+                Text(stringResource(R.string.sheet_limits_skip_cache_note), style = OmniTheme.typography.bodySmall, color = colors.textTertiary)
             }
             OmniToggle(bypassCache, onBypassCache)
         }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            OmniButton("Use defaults", {
+            OmniButton(stringResource(R.string.sheet_limits_use_defaults), {
                 time = runtimeDefaults.timeMs.toFloat()
                 memory = runtimeDefaults.memMb.toFloat()
             }, Modifier.weight(1f), style = OmniButtonStyle.Secondary, trailingIcon = null)
-            OmniButton("Save", { onSave(Limits((time / 100).roundToInt() * 100, memory.roundToInt())) }, Modifier.weight(1f), trailingIcon = OmniIcons.Check)
+            OmniButton(stringResource(CommonR.string.common_save), { onSave(Limits((time / 100).roundToInt() * 100, memory.roundToInt())) }, Modifier.weight(1f), trailingIcon = OmniIcons.Check)
         }
     }
 }
@@ -172,13 +177,13 @@ internal fun RateLimitSheet(retryAfterSeconds: Long?, snapshot: RateLimitSnapsho
         }
     }
     OmniSheet(onDismiss) {
-        snapshot?.let { Text("${it.limit} runs / minute", style = OmniTheme.typography.overline, color = colors.textTertiary) }
-        SheetTitle("You're running too fast", "The judge limits how many runs you can start each minute.")
+        snapshot?.let { Text(pluralStringResource(R.plurals.sheet_rate_limit_per_minute, it.limit, it.limit).uppercase(), style = OmniTheme.typography.overline, color = colors.textTertiary) }
+        SheetTitle(stringResource(R.string.sheet_rate_limit_title), stringResource(R.string.sheet_rate_limit_subtitle))
         Row(Modifier.fillMaxWidth().background(colors.background).padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text("Runs are back in", style = OmniTheme.typography.body, color = colors.textSecondary, modifier = Modifier.weight(1f))
-            Text(if (remaining > 0) "${remaining}s" else "now", style = OmniTheme.typography.title, color = colors.accentText)
+            Text(stringResource(R.string.sheet_rate_limit_back_in), style = OmniTheme.typography.body, color = colors.textSecondary, modifier = Modifier.weight(1f))
+            Text(if (remaining > 0) stringResource(R.string.sheet_rate_limit_seconds, remaining.toInt()) else stringResource(R.string.sheet_rate_limit_now), style = OmniTheme.typography.title, color = colors.accentText)
         }
-        OmniButton("OK", onDismiss, trailingIcon = null)
+        OmniButton(stringResource(CommonR.string.common_ok), onDismiss, trailingIcon = null)
     }
 }
 
@@ -187,9 +192,9 @@ internal fun BenchmarkSheet(defaultCopies: Int, busy: Boolean, result: Benchmark
     val colors = OmniTheme.colors
     var copies by rememberSaveable { mutableFloatStateOf(defaultCopies.toFloat()) }
     OmniSheet(onDismiss) {
-        SheetTitle("Benchmark", "Runs all tests N times in parallel to measure timing variance.")
+        SheetTitle(stringResource(R.string.sheet_benchmark_title), stringResource(R.string.sheet_benchmark_subtitle))
         if (result == null) {
-            LimitRow("Copies", copies.roundToInt().toString())
+            LimitRow(stringResource(R.string.sheet_benchmark_copies), copies.roundToInt().toString())
             Slider(
                 copies, { copies = it }, valueRange = 1f..20f, steps = 18, enabled = !busy,
                 colors = SliderDefaults.colors(thumbColor = colors.accent, activeTrackColor = colors.accent, inactiveTrackColor = colors.surfaceMuted),
@@ -197,30 +202,31 @@ internal fun BenchmarkSheet(defaultCopies: Int, busy: Boolean, result: Benchmark
             if (busy) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     OmniSpinner()
-                    Text("Running ${copies.roundToInt()} copies…", style = OmniTheme.typography.body, color = colors.textSecondary)
+                    Text(copies.roundToInt().let { pluralStringResource(R.plurals.sheet_benchmark_running, it, it) }, style = OmniTheme.typography.body, color = colors.textSecondary)
                 }
             } else {
-                OmniButton("Start benchmark", { onStart(copies.roundToInt()) }, trailingIcon = OmniIcons.Zap)
+                OmniButton(stringResource(R.string.sheet_benchmark_start), { onStart(copies.roundToInt()) }, trailingIcon = OmniIcons.Zap)
             }
         } else {
             Row(Modifier.fillMaxWidth()) {
-                listOf("Min" to result.minMs, "Median" to result.medianMs, "Max" to result.maxMs).forEach { (label, value) ->
+                listOf(R.string.sheet_benchmark_min to result.minMs, R.string.sheet_benchmark_median to result.medianMs, R.string.sheet_benchmark_max to result.maxMs).forEach { (labelRes, value) ->
+                    val label = stringResource(labelRes)
                     Column(Modifier.weight(1f)) {
                         Text(label.uppercase(), style = OmniTheme.typography.overline, color = colors.textTertiary)
-                        Text(formatMillis(value), style = OmniTheme.typography.title, color = colors.textPrimary)
+                        Text(formatDuration(value), style = OmniTheme.typography.title, color = colors.textPrimary)
                     }
                 }
             }
             result.runs.forEachIndexed { i, run ->
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text("#${i + 1}", style = OmniTheme.typography.mono, color = colors.textTertiary)
+                    Text(stringResource(R.string.sheet_benchmark_index, i + 1), style = OmniTheme.typography.mono, color = colors.textTertiary)
                     run.verdict?.let { VerdictBadge(it) }
                     Text(shortJobId(run.jobId), style = OmniTheme.typography.mono, color = colors.textSecondary, modifier = Modifier.weight(1f))
-                    Text(formatMillis(run.totalTimeMs), style = OmniTheme.typography.mono, color = colors.textPrimary)
+                    Text(formatDuration(run.totalTimeMs), style = OmniTheme.typography.mono, color = colors.textPrimary)
                 }
             }
-            result.rejected.forEach { Text("#${it.index + 1} rejected: ${it.error}", style = OmniTheme.typography.bodySmall, color = colors.accentText) }
-            OmniButton("Done", onDismiss, trailingIcon = null)
+            result.rejected.forEach { Text(stringResource(R.string.sheet_benchmark_rejected, it.index + 1, it.error), style = OmniTheme.typography.bodySmall, color = colors.accentText) }
+            OmniButton(stringResource(CommonR.string.common_done), onDismiss, trailingIcon = null)
         }
     }
 }
@@ -231,30 +237,30 @@ internal fun ProofSheet(busy: Boolean, proof: ReplayProof?, onDismiss: () -> Uni
     val colors = OmniTheme.colors
     val clipboard = LocalClipboardManager.current
     OmniSheet(onDismiss) {
-        SheetTitle("Verified run", "A signed record tying this verdict to the exact runtime image, code and input.")
+        SheetTitle(stringResource(R.string.sheet_proof_title), stringResource(R.string.sheet_proof_subtitle))
         if (busy || proof == null) {
             OmniSpinner()
             return@OmniSheet
         }
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             proof.verdict?.let { VerdictBadge(it) }
-            Text(formatMillis(proof.totalTimeMs), style = OmniTheme.typography.mono, color = colors.textSecondary)
+            Text(formatDuration(proof.totalTimeMs), style = OmniTheme.typography.mono, color = colors.textSecondary)
             Text(proof.runtimeId, style = OmniTheme.typography.mono, color = colors.textSecondary)
         }
         listOf(
-            "Runtime image" to proof.imageHash,
-            "Code" to proof.codeHash,
-            "Input" to proof.inputHash,
-            "Signature" to proof.signature,
-            "Signed at" to proof.signedAt,
-            "Proof version" to proof.version,
+            stringResource(R.string.sheet_proof_image) to proof.imageHash,
+            stringResource(R.string.sheet_proof_code) to proof.codeHash,
+            stringResource(R.string.sheet_proof_input) to proof.inputHash,
+            stringResource(R.string.sheet_proof_signature) to proof.signature,
+            stringResource(R.string.sheet_proof_signed_at) to proof.signedAt,
+            stringResource(R.string.sheet_proof_version) to proof.version,
         ).forEach { (label, value) ->
             Column {
                 Text(label.uppercase(), style = OmniTheme.typography.overline, color = colors.textTertiary)
                 Text(value, style = OmniTheme.typography.mono, color = colors.textPrimary)
             }
         }
-        OmniButton("Copy proof", {
+        OmniButton(stringResource(R.string.sheet_proof_copy), {
             clipboard.setText(AnnotatedString(listOf(proof.version, proof.runtimeId, proof.imageHash, proof.codeHash, proof.inputHash, proof.verdict?.code, proof.totalTimeMs, proof.signature, proof.signedAt).joinToString("\n")))
         }, style = OmniButtonStyle.Secondary, leadingIcon = OmniIcons.Copy, trailingIcon = null)
     }
@@ -271,7 +277,7 @@ internal fun OfflineQueueCard(
     val colors = OmniTheme.colors
     Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         if (!state.online) {
-            InfoBanner(icon = OmniIcons.WifiOff, text = "You're offline. Edits save on this device. Runs need a connection.")
+            InfoBanner(icon = OmniIcons.WifiOff, text = stringResource(R.string.offline_banner))
         }
         state.pending.forEach { run ->
             Row(
@@ -280,20 +286,20 @@ internal fun OfflineQueueCard(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 Column(Modifier.weight(1f)) {
-                    Text("1 run waiting", style = OmniTheme.typography.bodyStrong, color = colors.textPrimary)
+                    Text(stringResource(R.string.offline_run_waiting), style = OmniTheme.typography.bodyStrong, color = colors.textPrimary)
                     Text(
-                        "${timeFormat.get()!!.format(Date(run.createdAt.toEpochMilliseconds()))} · ${run.request.tests.size} tests",
+                        stringResource(R.string.offline_run_meta, timeFormat.get()!!.format(Date(run.createdAt.toEpochMilliseconds())), testCount(run.request.tests.size)),
                         style = OmniTheme.typography.monoSmall,
                         color = colors.textTertiary,
                     )
                 }
-                if (state.online) OmniTextButton("Send now", onSendNow)
-                OmniTextButton("Cancel", { onCancel(run) }, color = colors.textSecondary)
+                if (state.online) OmniTextButton(stringResource(R.string.offline_send_now), onSendNow)
+                OmniTextButton(stringResource(CommonR.string.common_cancel), { onCancel(run) }, color = colors.textSecondary)
             }
         }
         if (state.pending.isNotEmpty()) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("Send when back online", style = OmniTheme.typography.bodyStrong, color = colors.textPrimary, modifier = Modifier.weight(1f))
+                Text(stringResource(R.string.offline_send_when_online), style = OmniTheme.typography.bodyStrong, color = colors.textPrimary, modifier = Modifier.weight(1f))
                 OmniToggle(state.runSettings.sendQueuedWhenOnline, onSendWhenOnline)
             }
         }

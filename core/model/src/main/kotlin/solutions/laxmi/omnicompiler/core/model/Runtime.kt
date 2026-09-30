@@ -32,13 +32,8 @@ enum class Lane {
     }
 }
 
-enum class LanguageCategory(val label: String) {
-    COMPILED("Compiled"),
-    SCRIPTING("Scripting"),
-    JVM("JVM"),
-    FUNCTIONAL("Functional"),
-    ESOTERIC("Esoteric"),
-}
+/** Picker filter groups; display names live in `core/ui`. */
+enum class LanguageCategory { COMPILED, SCRIPTING, JVM, FUNCTIONAL, ESOTERIC }
 
 /** Resource limits for a run. Values are clamped by the server; the app mirrors its bounds. */
 data class Limits(val timeMs: Int, val memMb: Int) {

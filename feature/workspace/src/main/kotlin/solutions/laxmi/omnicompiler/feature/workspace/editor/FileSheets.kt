@@ -1,5 +1,9 @@
 package solutions.laxmi.omnicompiler.feature.workspace.editor
 
+import solutions.laxmi.omnicompiler.core.ui.R as CommonR
+import androidx.annotation.StringRes
+import solutions.laxmi.omnicompiler.feature.workspace.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -34,7 +38,11 @@ import solutions.laxmi.omnicompiler.core.designsystem.icon.OmniIcons
 import solutions.laxmi.omnicompiler.core.designsystem.theme.OmniTheme
 import solutions.laxmi.omnicompiler.core.model.LanguageInfo
 
-private enum class NewFileKind(val label: String) { Empty("Empty"), HeaderPair("Header pair (.h + source)"), Data("Input data (.txt)") }
+private enum class NewFileKind(@StringRes val labelRes: Int) {
+    Empty(R.string.editor_new_file_kind_empty),
+    HeaderPair(R.string.editor_new_file_kind_header),
+    Data(R.string.editor_new_file_kind_data),
+}
 
 /** Design W2: name, how to import it from the entry file, start-from template, toolchain warning. */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -63,8 +71,8 @@ internal fun NewFileSheet(
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             Column {
-                Text("New file in $projectName", style = OmniTheme.typography.title, color = colors.textPrimary)
-                Text("/workspace", style = OmniTheme.typography.mono, color = colors.textTertiary)
+                Text(stringResource(R.string.editor_new_file_title, projectName), style = OmniTheme.typography.title, color = colors.textPrimary)
+                Text(stringResource(R.string.editor_workspace_path), style = OmniTheme.typography.mono, color = colors.textTertiary)
             }
             val placeholder = when (kind) {
                 NewFileKind.Empty -> "helper.$entryExtension"
@@ -74,7 +82,7 @@ internal fun NewFileSheet(
             OmniTextField(
                 value = name,
                 onValueChange = { name = it.trim() },
-                label = if (kind == NewFileKind.HeaderPair) "Base name" else "File name",
+                label = stringResource(if (kind == NewFileKind.HeaderPair) R.string.editor_new_file_base_name else R.string.editor_new_file_name),
                 placeholder = placeholder,
                 textStyle = OmniTheme.typography.code,
                 keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.None, autoCorrectEnabled = false),
@@ -84,26 +92,26 @@ internal fun NewFileSheet(
                     Modifier.fillMaxWidth().background(colors.background).padding(12.dp),
                     verticalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
-                    Text("HOW TO USE IT FROM THE ENTRY FILE", style = OmniTheme.typography.overline, color = colors.textTertiary)
+                    Text(stringResource(R.string.editor_new_file_import_hint).uppercase(), style = OmniTheme.typography.overline, color = colors.textTertiary)
                     Text(language.importHint, style = OmniTheme.typography.mono, color = colors.textPrimary)
                 }
             }
-            Text("START FROM", style = OmniTheme.typography.overline, color = colors.textTertiary)
+            Text(stringResource(R.string.editor_new_file_start_from).uppercase(), style = OmniTheme.typography.overline, color = colors.textTertiary)
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 NewFileKind.entries
                     .filter { it != NewFileKind.HeaderPair || supportsHeaders }
-                    .forEach { option -> OmniChip(option.label, selected = kind == option, onClick = { kind = option }) }
+                    .forEach { option -> OmniChip(stringResource(option.labelRes), selected = kind == option, onClick = { kind = option }) }
             }
             if (language != null && !language.multiFileSupported) {
                 InfoBanner(
                     icon = OmniIcons.Alert,
-                    text = "${language.name}'s toolchain only compiles the entry file. Extra files are copied to /workspace but not built.",
+                    text = stringResource(R.string.editor_new_file_single_entry, language.name),
                 )
             }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(bottom = 16.dp)) {
-                OmniButton("Cancel", onDismiss, Modifier.weight(1f), style = OmniButtonStyle.Secondary, trailingIcon = null)
+                OmniButton(stringResource(CommonR.string.common_cancel), onDismiss, Modifier.weight(1f), style = OmniButtonStyle.Secondary, trailingIcon = null)
                 OmniButton(
-                    text = "Create file",
+                    text = stringResource(R.string.editor_new_file_create),
                     enabled = name.isNotBlank(),
                     onClick = {
                         when (kind) {
@@ -137,8 +145,8 @@ internal fun RenameDialog(title: String, initial: String, onDismiss: () -> Unit,
                 keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.None, autoCorrectEnabled = false),
             )
         },
-        confirmButton = { OmniTextButton("Save", { onConfirm(value) }, enabled = value.isNotBlank()) },
-        dismissButton = { OmniTextButton("Cancel", onDismiss, color = OmniTheme.colors.textSecondary) },
+        confirmButton = { OmniTextButton(stringResource(CommonR.string.common_save), { onConfirm(value) }, enabled = value.isNotBlank()) },
+        dismissButton = { OmniTextButton(stringResource(CommonR.string.common_cancel), onDismiss, color = OmniTheme.colors.textSecondary) },
     )
 }
 
@@ -152,6 +160,6 @@ internal fun ConfirmDialog(title: String, message: String, confirmLabel: String,
         title = { Text(title, style = OmniTheme.typography.title, color = OmniTheme.colors.textPrimary) },
         text = { Text(message, style = OmniTheme.typography.body, color = OmniTheme.colors.textSecondary) },
         confirmButton = { OmniTextButton(confirmLabel, onConfirm) },
-        dismissButton = { OmniTextButton("Cancel", onDismiss, color = OmniTheme.colors.textSecondary) },
+        dismissButton = { OmniTextButton(stringResource(CommonR.string.common_cancel), onDismiss, color = OmniTheme.colors.textSecondary) },
     )
 }

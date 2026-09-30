@@ -1,5 +1,9 @@
 package solutions.laxmi.omnicompiler.feature.account
 
+import solutions.laxmi.omnicompiler.core.ui.asString
+import androidx.compose.ui.platform.LocalResources
+import solutions.laxmi.omnicompiler.core.ui.R as CommonR
+import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -55,12 +59,13 @@ fun ProfileScreen(navigator: Navigator) {
     val viewModel = hiltViewModel<ProfileViewModel>()
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
+    val resources = LocalResources.current
     var changingPassword by rememberSaveable { mutableStateOf(false) }
     var confirmingDelete by rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(viewModel) {
         viewModel.eventFlow.collect { event ->
             when (event) {
-                is ProfileEvent.Message -> snackbar.showSnackbar(event.text)
+                is ProfileEvent.Message -> snackbar.showSnackbar(event.text.asString(resources))
                 // The app's session gate returns to Welcome once the session is cleared.
                 ProfileEvent.SignedOut, ProfileEvent.PasswordChanged -> Unit
             }
@@ -69,12 +74,12 @@ fun ProfileScreen(navigator: Navigator) {
     val colors = OmniTheme.colors
     Box(Modifier.fillMaxSize().background(colors.background)) {
         Column(Modifier.fillMaxSize().navigationBarsPadding().imePadding()) {
-            OmniTopBar("Account", onBack = navigator::back)
+            OmniTopBar(stringResource(R.string.profile_title), onBack = navigator::back)
             val user = state.user
             if (user == null) {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text("You're not signed in.", style = OmniTheme.typography.title, color = colors.textPrimary)
-                    OmniButton("Sign in", { navigator.navigate(WelcomeRoute) })
+                    Text(stringResource(R.string.profile_not_signed_in), style = OmniTheme.typography.title, color = colors.textPrimary)
+                    OmniButton(stringResource(CommonR.string.common_sign_in), { navigator.navigate(WelcomeRoute) })
                 }
                 return@Column
             }
@@ -84,27 +89,27 @@ fun ProfileScreen(navigator: Navigator) {
                 else ProfileForm(user, busy = state.busy == ProfileAction.Save, onSave = viewModel::save)
                 if (!user.isGuest && !user.verified) {
                     InfoBanner(
-                        "Verify ${user.email} to sign in with a password on other devices.",
+                        stringResource(R.string.profile_verify_banner, user.email.orEmpty()),
                         Modifier.padding(16.dp),
                         icon = OmniIcons.Mail,
-                        action = { OmniTextButton("Resend link", viewModel::resendVerification, enabled = state.busy == null) },
+                        action = { OmniTextButton(stringResource(R.string.profile_resend_link), viewModel::resendVerification, enabled = state.busy == null) },
                     )
                 }
-                SectionLabel("Security")
+                SectionLabel(stringResource(R.string.profile_security))
                 if (user.hasPassword) {
-                    OmniButton("Change password", { changingPassword = true }, Modifier.padding(horizontal = 16.dp), style = OmniButtonStyle.Secondary, leadingIcon = OmniIcons.Lock)
+                    OmniButton(stringResource(R.string.profile_change_password), { changingPassword = true }, Modifier.padding(horizontal = 16.dp), style = OmniButtonStyle.Secondary, leadingIcon = OmniIcons.Lock)
                 } else if (!user.isGuest) {
-                    Text("You sign in with Google, so there's no password to change.", style = OmniTheme.typography.bodySmall, color = colors.textTertiary, modifier = Modifier.padding(horizontal = 16.dp))
+                    Text(stringResource(R.string.profile_google_no_password), style = OmniTheme.typography.bodySmall, color = colors.textTertiary, modifier = Modifier.padding(horizontal = 16.dp))
                 }
-                OmniButton("Sign out", viewModel::signOut, Modifier.padding(16.dp), style = OmniButtonStyle.Outline, leadingIcon = OmniIcons.LogOut, loading = state.busy == ProfileAction.SignOut)
-                SectionLabel("Danger zone")
+                OmniButton(stringResource(R.string.profile_sign_out), viewModel::signOut, Modifier.padding(16.dp), style = OmniButtonStyle.Outline, leadingIcon = OmniIcons.LogOut, loading = state.busy == ProfileAction.SignOut)
+                SectionLabel(stringResource(R.string.profile_danger_zone))
                 Text(
-                    "Deleting your account erases your run history, API key and webhooks on the judge, then your sign-in. Projects on this device are removed too.",
+                    stringResource(R.string.profile_delete_explainer),
                     style = OmniTheme.typography.bodySmall,
                     color = colors.textTertiary,
                     modifier = Modifier.padding(horizontal = 16.dp),
                 )
-                OmniTextButton("Delete account", { confirmingDelete = true }, Modifier.padding(horizontal = 16.dp, vertical = 12.dp))
+                OmniTextButton(stringResource(R.string.profile_delete_account), { confirmingDelete = true }, Modifier.padding(horizontal = 16.dp, vertical = 12.dp))
             }
         }
         SnackbarHost(snackbar, Modifier.align(Alignment.BottomCenter).navigationBarsPadding())
@@ -134,7 +139,7 @@ private fun Header(user: User) {
             Text(user.displayName, style = OmniTheme.typography.title, color = colors.textPrimary)
             Text(user.email ?: user.username.orEmpty(), style = OmniTheme.typography.bodySmall, color = colors.textTertiary)
         }
-        OmniBadge(if (user.isGuest) "GUEST" else user.provider.name)
+        OmniBadge(if (user.isGuest) stringResource(R.string.profile_badge_guest) else user.provider.name)
     }
 }
 
@@ -142,11 +147,11 @@ private fun Header(user: User) {
 private fun GuestSection(onCreateAccount: () -> Unit, onSignIn: () -> Unit) {
     Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         InfoBanner(
-            "Guest accounts expire after a week without use. Create an account to keep your run history; your projects stay on this device either way.",
+            stringResource(R.string.profile_guest_notice),
             icon = OmniIcons.Info,
         )
-        OmniButton("Create account", onCreateAccount)
-        OmniButton("I already have an account", onSignIn, style = OmniButtonStyle.Outline, trailingIcon = null)
+        OmniButton(stringResource(R.string.profile_create_account), onCreateAccount)
+        OmniButton(stringResource(R.string.profile_have_account), onSignIn, style = OmniButtonStyle.Outline, trailingIcon = null)
     }
 }
 
@@ -156,18 +161,18 @@ private fun ProfileForm(user: User, busy: Boolean, onSave: (String, String, Stri
     var last by rememberSaveable(user.id) { mutableStateOf(user.lastName.orEmpty()) }
     var picture by rememberSaveable(user.id) { mutableStateOf(user.profileUrl.orEmpty()) }
     val changed = first != user.firstName.orEmpty() || last != user.lastName.orEmpty() || picture != user.profileUrl.orEmpty()
-    SectionLabel("Profile")
+    SectionLabel(stringResource(R.string.profile_section))
     Column(Modifier.padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            OmniTextField(first, { first = it.take(100) }, Modifier.weight(1f), label = "First name")
-            OmniTextField(last, { last = it.take(100) }, Modifier.weight(1f), label = "Last name")
+            OmniTextField(first, { first = it.take(100) }, Modifier.weight(1f), label = stringResource(R.string.profile_first_name))
+            OmniTextField(last, { last = it.take(100) }, Modifier.weight(1f), label = stringResource(R.string.profile_last_name))
         }
         OmniTextField(
-            picture, { picture = it.take(512) }, label = "Profile image URL", placeholder = "https://…",
+            picture, { picture = it.take(512) }, label = stringResource(R.string.profile_image_url), placeholder = stringResource(R.string.profile_image_url_placeholder),
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
         )
-        user.username?.let { OmniTextField(it, {}, label = "Username", enabled = false) }
-        OmniButton("Save profile", { onSave(first, last, picture) }, enabled = changed, loading = busy, trailingIcon = OmniIcons.Check)
+        user.username?.let { OmniTextField(it, {}, label = stringResource(R.string.profile_username), enabled = false) }
+        OmniButton(stringResource(R.string.profile_save), { onSave(first, last, picture) }, enabled = changed, loading = busy, trailingIcon = OmniIcons.Check)
     }
 }
 
@@ -182,45 +187,46 @@ private fun ChangePasswordDialog(busy: Boolean, onDismiss: () -> Unit, onSubmit:
         onDismissRequest = onDismiss,
         shape = RectangleShape,
         containerColor = OmniTheme.colors.surfaceRaised,
-        title = { Text("Change password", style = OmniTheme.typography.title, color = OmniTheme.colors.textPrimary) },
+        title = { Text(stringResource(R.string.profile_change_password), style = OmniTheme.typography.title, color = OmniTheme.colors.textPrimary) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text("You'll be signed out on every device, including this one.", style = OmniTheme.typography.bodySmall, color = OmniTheme.colors.textSecondary)
-                OmniPasswordField(current, { current = it }, label = "Current password")
-                OmniPasswordField(next, { next = it }, label = "New password", error = if (tooShort) "Use 8–72 characters." else null)
-                OmniPasswordField(confirm, { confirm = it }, label = "Confirm", error = if (mismatch) "Doesn't match." else null)
+                Text(stringResource(R.string.profile_password_warning), style = OmniTheme.typography.bodySmall, color = OmniTheme.colors.textSecondary)
+                OmniPasswordField(current, { current = it }, label = stringResource(R.string.profile_current_password))
+                OmniPasswordField(next, { next = it }, label = stringResource(R.string.profile_new_password), error = if (tooShort) stringResource(R.string.profile_password_length) else null)
+                OmniPasswordField(confirm, { confirm = it }, label = stringResource(R.string.profile_confirm_password), error = if (mismatch) stringResource(R.string.profile_password_mismatch) else null)
             }
         },
         confirmButton = {
             OmniTextButton(
-                if (busy) "Saving…" else "Change",
+                stringResource(if (busy) R.string.profile_saving else R.string.profile_change),
                 { onSubmit(current, next) },
                 enabled = !busy && current.isNotEmpty() && next.length in 8..72 && next == confirm,
             )
         },
-        dismissButton = { OmniTextButton("Cancel", onDismiss, color = OmniTheme.colors.textSecondary) },
+        dismissButton = { OmniTextButton(stringResource(CommonR.string.common_cancel), onDismiss, color = OmniTheme.colors.textSecondary) },
     )
 }
 
 @Composable
 private fun DeleteAccountDialog(busy: Boolean, onDismiss: () -> Unit, onConfirm: () -> Unit) {
+    val confirmWord = stringResource(R.string.profile_delete_confirm_word)
     var typed by rememberSaveable { mutableStateOf("") }
     AlertDialog(
         onDismissRequest = onDismiss,
         shape = RectangleShape,
         containerColor = OmniTheme.colors.surfaceRaised,
-        title = { Text("Delete account?", style = OmniTheme.typography.title, color = OmniTheme.colors.textPrimary) },
+        title = { Text(stringResource(R.string.profile_delete_title), style = OmniTheme.typography.title, color = OmniTheme.colors.textPrimary) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text(
-                    "This can't be undone. If you have an active paid plan, cancel it first. Type DELETE to confirm.",
+                    stringResource(R.string.profile_delete_message, confirmWord),
                     style = OmniTheme.typography.body,
                     color = OmniTheme.colors.textSecondary,
                 )
-                OmniTextField(typed, { typed = it }, placeholder = "DELETE")
+                OmniTextField(typed, { typed = it }, placeholder = confirmWord)
             }
         },
-        confirmButton = { OmniTextButton(if (busy) "Deleting…" else "Delete", onConfirm, enabled = typed == "DELETE" && !busy) },
-        dismissButton = { OmniTextButton("Cancel", onDismiss, color = OmniTheme.colors.textSecondary) },
+        confirmButton = { OmniTextButton(stringResource(if (busy) R.string.profile_deleting else CommonR.string.common_delete), onConfirm, enabled = typed.trim() == confirmWord && !busy) },
+        dismissButton = { OmniTextButton(stringResource(CommonR.string.common_cancel), onDismiss, color = OmniTheme.colors.textSecondary) },
     )
 }

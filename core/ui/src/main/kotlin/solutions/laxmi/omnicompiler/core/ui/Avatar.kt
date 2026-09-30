@@ -8,6 +8,7 @@ import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.ColorMatrix
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import coil3.compose.SubcomposeAsyncImage
 
@@ -20,7 +21,7 @@ fun Avatar(imageUrl: String?, initials: String, modifier: Modifier = Modifier, s
     }
     SubcomposeAsyncImage(
         model = imageUrl,
-        contentDescription = "Profile picture",
+        contentDescription = stringResource(R.string.common_profile_picture),
         contentScale = ContentScale.Crop,
         colorFilter = ColorFilter.colorMatrix(ColorMatrix().apply { setToSaturation(0f) }),
         modifier = modifier.size(size),

@@ -1,5 +1,8 @@
 package solutions.laxmi.omnicompiler.feature.workspace.editor
 
+import androidx.annotation.StringRes
+import solutions.laxmi.omnicompiler.feature.workspace.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -40,13 +43,13 @@ import solutions.laxmi.omnicompiler.core.ui.VerdictBadge
 import solutions.laxmi.omnicompiler.core.ui.fileBadgeFor
 
 /** Where drawer rows lead; the screen maps them to routes. */
-enum class DrawerDestination(val label: String, val icon: ImageVector) {
-    Projects("All projects", OmniIcons.Folder),
-    Examples("Examples & problems", OmniIcons.Book),
-    History("Run history", OmniIcons.History),
-    Usage("Usage & plan", OmniIcons.Chart),
-    Developer("API key & webhooks", OmniIcons.Key),
-    Settings("Settings", OmniIcons.Settings),
+enum class DrawerDestination(@StringRes val labelRes: Int, val icon: ImageVector) {
+    Projects(R.string.drawer_all_projects, OmniIcons.Folder),
+    Examples(R.string.drawer_examples, OmniIcons.Book),
+    History(R.string.drawer_history, OmniIcons.History),
+    Usage(R.string.drawer_usage, OmniIcons.Chart),
+    Developer(R.string.drawer_developer, OmniIcons.Key),
+    Settings(R.string.drawer_settings, OmniIcons.Settings),
 }
 
 /** Design W1: account header, project switcher, current project's files, navigation. */
@@ -77,14 +80,14 @@ internal fun EditorDrawer(
         AccountHeader(user, onAccount)
         LazyColumn(Modifier.weight(1f)) {
             item {
-                SectionLabel("Projects") {
+                SectionLabel(stringResource(R.string.drawer_projects)) {
                     Row(
                         Modifier.clickable(role = Role.Button, onClick = onNewProject).padding(4.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(4.dp),
                     ) {
                         Icon(OmniIcons.Plus, null, tint = colors.accentText, modifier = Modifier.size(12.dp))
-                        Text("New", style = OmniTheme.typography.label, color = colors.accentText)
+                        Text(stringResource(R.string.drawer_new), style = OmniTheme.typography.label, color = colors.accentText)
                     }
                 }
             }
@@ -104,7 +107,7 @@ internal fun EditorDrawer(
                     summary.project.lastVerdict?.let { VerdictBadge(it) }
                 }
             }
-            item { SectionLabel("$currentProjectName · files") }
+            item { SectionLabel(stringResource(R.string.drawer_project_files, currentProjectName)) }
             items(files, key = { it.id }) { file ->
                 DrawerRow(selected = file.id == activeFileId, onClick = { onFile(file) }) {
                     Text(
@@ -114,14 +117,14 @@ internal fun EditorDrawer(
                         modifier = Modifier.width(20.dp),
                     )
                     Text(file.name, style = OmniTheme.typography.bodySmall, color = colors.textPrimary, maxLines = 1, modifier = Modifier.weight(1f))
-                    fileRole(file)?.let { Text(it, style = OmniTheme.typography.monoSmall, color = colors.textTertiary) }
+                    fileRole(file)?.let { Text(stringResource(it), style = OmniTheme.typography.monoSmall, color = colors.textTertiary) }
                 }
             }
             item { Box(Modifier.height(8.dp)) }
             items(DrawerDestination.entries) { destination ->
                 DrawerRow(selected = false, onClick = { onDestination(destination) }) {
                     Icon(destination.icon, null, tint = colors.textSecondary, modifier = Modifier.size(16.dp))
-                    Text(destination.label, style = OmniTheme.typography.bodyStrong, color = colors.textPrimary, modifier = Modifier.weight(1f))
+                    Text(stringResource(destination.labelRes), style = OmniTheme.typography.bodyStrong, color = colors.textPrimary, modifier = Modifier.weight(1f))
                     Icon(OmniIcons.ChevronRight, null, tint = colors.textTertiary, modifier = Modifier.size(14.dp))
                 }
             }
@@ -143,9 +146,9 @@ private fun AccountHeader(user: User?, onClick: () -> Unit) {
     ) {
         LanguageTile(code = user?.initials ?: "?", size = 36.dp, selected = true)
         Column(Modifier.weight(1f)) {
-            Text(user?.displayName ?: "Not signed in", style = OmniTheme.typography.titleSmall, color = colors.textPrimary, maxLines = 1)
+            Text(user?.displayName ?: stringResource(R.string.drawer_not_signed_in), style = OmniTheme.typography.titleSmall, color = colors.textPrimary, maxLines = 1)
             Text(
-                user?.email ?: if (user?.isGuest == true) "Guest · runs stay on this device" else "Sign in to sync history",
+                user?.email ?: stringResource(if (user?.isGuest == true) R.string.drawer_guest_subtitle else R.string.drawer_signed_out_subtitle),
                 style = OmniTheme.typography.bodySmall,
                 color = colors.textTertiary,
                 maxLines = 1,
@@ -153,7 +156,7 @@ private fun AccountHeader(user: User?, onClick: () -> Unit) {
             )
         }
         // The plan lives on Usage & plan; only the guest state is known locally.
-        if (user == null || user.isGuest) OmniBadge("GUEST")
+        if (user == null || user.isGuest) OmniBadge(stringResource(R.string.drawer_guest_badge))
     }
 }
 
@@ -174,10 +177,13 @@ private fun DrawerRow(selected: Boolean, onClick: () -> Unit, content: @Composab
     )
 }
 
-private fun fileRole(file: SourceFile): String? = when {
-    file.isEntry -> "entry"
-    file.name.substringAfterLast('.', "").lowercase() in setOf("txt", "in", "dat", "csv") -> "data"
+@StringRes
+private fun fileRole(file: SourceFile): Int? = when {
+    file.isEntry -> R.string.drawer_file_entry
+    file.name.substringAfterLast('.', "").lowercase() in DATA_EXTENSIONS -> R.string.drawer_file_data
     else -> null
 }
+
+private val DATA_EXTENSIONS = setOf("txt", "in", "dat", "csv")
 
 private const val MAX_DRAWER_PROJECTS = 6

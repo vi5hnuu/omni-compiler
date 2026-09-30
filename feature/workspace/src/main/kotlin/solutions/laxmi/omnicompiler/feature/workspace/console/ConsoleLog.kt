@@ -1,5 +1,10 @@
 package solutions.laxmi.omnicompiler.feature.workspace.console
 
+import solutions.laxmi.omnicompiler.core.ui.testCount
+import solutions.laxmi.omnicompiler.core.ui.formatDuration
+import solutions.laxmi.omnicompiler.feature.workspace.R
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -26,7 +31,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
-import solutions.laxmi.omnicompiler.core.common.formatMillis
 import solutions.laxmi.omnicompiler.core.common.shortJobId
 import solutions.laxmi.omnicompiler.core.designsystem.component.EmptyState
 import solutions.laxmi.omnicompiler.core.designsystem.component.OmniTextButton
@@ -45,7 +49,7 @@ import java.util.Locale
 @Composable
 internal fun ConsoleLog(runs: List<RunRecord>, onVerify: (String) -> Unit, modifier: Modifier = Modifier) {
     if (runs.isEmpty()) {
-        EmptyState("No runs yet", "Tap Run to execute your tests, or use the Input tab to run with custom stdin.", modifier, icon = OmniIcons.Terminal)
+        EmptyState(stringResource(R.string.console_no_runs_title), stringResource(R.string.console_no_runs_message), modifier, icon = OmniIcons.Terminal)
         return
     }
     LazyColumn(modifier) {
@@ -89,7 +93,8 @@ private fun RunLog(run: RunRecord, onVerify: (String) -> Unit) {
         Row(Modifier.padding(horizontal = 12.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
             Box(Modifier.size(6.dp).background(if (run.phase.isActive) colors.accent else colors.textTertiary))
             Text(
-                "  $ run ${run.runtimeId}${if (run.mode == RunMode.STDIN_ONLY) " < stdin" else " · ${run.testCount} tests"}",
+                "  " + if (run.mode == RunMode.STDIN_ONLY) stringResource(R.string.console_command_stdin, run.runtimeId)
+                else stringResource(R.string.console_command_tests, run.runtimeId, testCount(run.testCount)),
                 style = OmniTheme.typography.mono,
                 color = colors.textSecondary,
                 modifier = Modifier.weight(1f),
@@ -98,27 +103,30 @@ private fun RunLog(run: RunRecord, onVerify: (String) -> Unit) {
         }
         if (run.phase.isActive || run.phase == RunPhase.QUEUED_OFFLINE) StageTracker(run, Modifier.padding(horizontal = 12.dp, vertical = 6.dp))
 
-        run.jobId?.let { LogRow("queued", "job ${shortJobId(it)} · ${phaseLabel(run)}", time = if (run.fromCache) "cached" else null) }
+        run.jobId?.let { LogRow(stringResource(R.string.console_tag_queued), stringResource(R.string.console_job_line, shortJobId(it), phaseLabel(run)), time = if (run.fromCache) stringResource(R.string.console_cached) else null) }
         when {
-            run.verdict == Verdict.CE -> LogRow("compile", "error · ${run.problems.count { it.isError }.coerceAtLeast(1)} problem(s)", tagColor = colors.accentText, tint = true)
-            run.results.isNotEmpty() -> LogRow("compile", "ok")
+            run.verdict == Verdict.CE -> {
+                val errors = run.problems.count { it.isError }.coerceAtLeast(1)
+                LogRow(stringResource(R.string.console_tag_compile), pluralStringResource(R.plurals.console_compile_errors, errors, errors), tagColor = colors.accentText, tint = true)
+            }
+            run.results.isNotEmpty() -> LogRow(stringResource(R.string.console_tag_compile), stringResource(R.string.console_compile_ok))
         }
-        run.problems.filter { !it.isError }.take(3).forEach { LogRow("warn", "${it.fileName}:${it.line}:${it.column} ${it.message}", tagColor = colors.accentText) }
+        run.problems.filter { !it.isError }.take(3).forEach { LogRow(stringResource(R.string.console_tag_warn), "${it.fileName}:${it.line}:${it.column} ${it.message}", tagColor = colors.accentText) }
         if (run.verdict != Verdict.CE) TestLines(run)
         if (run.mode == RunMode.STDIN_ONLY) {
             run.results.firstOrNull()?.let { result ->
-                result.stdout?.takeIf { it.isNotEmpty() }?.let { LogRow("stdout", it.trimEnd()) }
-                result.stderr?.takeIf { it.isNotEmpty() }?.let { LogRow("stderr", it.trimEnd(), tagColor = colors.accentText) }
+                result.stdout?.takeIf { it.isNotEmpty() }?.let { LogRow(stringResource(R.string.console_tag_stdout), it.trimEnd()) }
+                result.stderr?.takeIf { it.isNotEmpty() }?.let { LogRow(stringResource(R.string.console_tag_stderr), it.trimEnd(), tagColor = colors.accentText) }
             }
         } else {
-            run.firstFailure?.stderr?.takeIf { it.isNotBlank() && run.verdict != Verdict.CE }?.let { LogRow("stderr", it.trimEnd(), tagColor = colors.accentText) }
+            run.firstFailure?.stderr?.takeIf { it.isNotBlank() && run.verdict != Verdict.CE }?.let { LogRow(stringResource(R.string.console_tag_stderr), it.trimEnd(), tagColor = colors.accentText) }
         }
-        if (run.verdict == Verdict.CE) run.compileOutput?.let { LogRow("stderr", it.trimEnd().lines().take(12).joinToString("\n"), tagColor = colors.accentText) }
-        run.errorMessage?.let { LogRow("error", it, tagColor = colors.accentText, tint = true) }
+        if (run.verdict == Verdict.CE) run.compileOutput?.let { LogRow(stringResource(R.string.console_tag_stderr), it.trimEnd().lines().take(12).joinToString("\n"), tagColor = colors.accentText) }
+        run.errorMessage?.let { LogRow(stringResource(R.string.console_tag_error), it, tagColor = colors.accentText, tint = true) }
         if (!run.phase.isActive && run.phase != RunPhase.QUEUED_OFFLINE) {
-            LogRow("exit", run.exitLine())
+            LogRow(stringResource(R.string.console_tag_exit), run.exitLine())
             if (run.jobId != null && run.phase == RunPhase.DONE) {
-                OmniTextButton("Verify run", { onVerify(run.jobId!!) }, Modifier.padding(horizontal = 12.dp))
+                OmniTextButton(stringResource(R.string.console_verify), { onVerify(run.jobId!!) }, Modifier.padding(horizontal = 12.dp))
             }
         }
     }
@@ -133,12 +141,12 @@ private fun TestLines(run: RunRecord) {
     results.filter { it.verdict != Verdict.SK }.forEach { result ->
         val failing = result.verdict.isFailure
         val message = if (result.isOutputMismatch()) {
-            "WA  expected \"${result.expected!!.firstLine()}\"\n    got      \"${result.stdout!!.firstLine()}\""
+            stringResource(R.string.console_mismatch, result.expected!!.firstLine(), result.stdout!!.firstLine())
         } else result.verdict.code
         LogRow(
-            tag = "test ${result.index}",
+            tag = stringResource(R.string.console_tag_test, result.index.toString()),
             message = message,
-            time = result.timeMs?.let(::formatMillis),
+            time = result.timeMs?.let { formatDuration(it) },
             tagColor = if (failing) colors.accentText else colors.textSecondary,
             messageColor = if (failing) colors.accentText else colors.textPrimary,
             tint = failing,
@@ -146,7 +154,7 @@ private fun TestLines(run: RunRecord) {
     }
     if (skipped.isNotEmpty()) {
         val range = if (skipped.size == 1) "${skipped.first().index}" else "${skipped.first().index}–${skipped.last().index}"
-        LogRow("test $range", "SK skipped after failure", messageColor = colors.textTertiary)
+        LogRow(stringResource(R.string.console_tag_test, range), stringResource(R.string.console_skipped), messageColor = colors.textTertiary)
     }
 }
 
@@ -174,17 +182,22 @@ private fun LogRow(
     }
 }
 
-private fun phaseLabel(run: RunRecord) = when (run.phase) {
-    RunPhase.PENDING -> "pending"
-    RunPhase.RUNNING -> "pending → running"
-    else -> "done"
-}
+@Composable
+private fun phaseLabel(run: RunRecord) = stringResource(
+    when (run.phase) {
+        RunPhase.PENDING -> R.string.console_job_pending
+        RunPhase.RUNNING -> R.string.console_job_running
+        else -> R.string.console_job_done
+    },
+)
 
+@Composable
 private fun RunRecord.exitLine(): String = when (phase) {
-    RunPhase.DONE -> "done in ${formatMillis(totalTimeMs)}"
-    RunPhase.CANCELLED -> "cancelled before a worker started it"
-    RunPhase.DETACHED -> "stopped listening · result will appear in run history"
-    RunPhase.FAILED -> "failed"
+    RunPhase.DONE -> stringResource(R.string.console_exit_done, formatDuration(totalTimeMs))
+    RunPhase.CANCELLED -> stringResource(R.string.console_exit_cancelled)
+    RunPhase.DETACHED -> stringResource(R.string.console_exit_detached)
+    RunPhase.FAILED -> stringResource(R.string.console_exit_failed)
+    RunPhase.LOST -> stringResource(R.string.console_exit_lost)
     else -> ""
 }
 

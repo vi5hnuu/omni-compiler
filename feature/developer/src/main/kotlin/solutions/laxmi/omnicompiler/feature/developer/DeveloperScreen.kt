@@ -1,5 +1,9 @@
 package solutions.laxmi.omnicompiler.feature.developer
 
+import solutions.laxmi.omnicompiler.core.ui.asString
+import androidx.compose.ui.platform.LocalResources
+import solutions.laxmi.omnicompiler.core.ui.R as CommonR
+import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -57,23 +61,24 @@ fun DeveloperScreen(navigator: Navigator) {
     val viewModel = hiltViewModel<DeveloperViewModel>()
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
+    val resources = LocalResources.current
     val clipboard = LocalClipboardManager.current
     var confirmRotate by rememberSaveable { mutableStateOf(false) }
     var addingWebhook by rememberSaveable { mutableStateOf(false) }
     var deleting by remember { mutableStateOf<Webhook?>(null) }
-    LaunchedEffect(viewModel) { viewModel.messages.collect { snackbar.showSnackbar(it) } }
+    LaunchedEffect(viewModel) { viewModel.messages.collect { snackbar.showSnackbar(it.asString(resources)) } }
     val colors = OmniTheme.colors
     Box(Modifier.fillMaxSize().background(colors.background)) {
         Column(Modifier.fillMaxSize().navigationBarsPadding().imePadding()) {
-            OmniTopBar("API key & webhooks", onBack = navigator::back)
+            OmniTopBar(stringResource(R.string.developer_title), onBack = navigator::back)
             if (!state.signedIn) {
-                EmptyState("Sign in first", "API keys and webhooks belong to your account.", icon = OmniIcons.Key, action = { OmniButton("Sign in", { navigator.navigate(WelcomeRoute) }) })
+                EmptyState(stringResource(R.string.developer_signed_out_title), stringResource(R.string.developer_signed_out_message), icon = OmniIcons.Key, action = { OmniButton(stringResource(CommonR.string.common_sign_in), { navigator.navigate(WelcomeRoute) }) })
                 return@Column
             }
             Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
-                SectionLabel("API key")
+                SectionLabel(stringResource(R.string.developer_api_key))
                 Text(
-                    "Call the judge from scripts, CI or your own apps with an X-API-Key header. Generating a key replaces the previous one immediately.",
+                    stringResource(R.string.developer_api_key_explainer),
                     style = OmniTheme.typography.bodySmall,
                     color = colors.textSecondary,
                     modifier = Modifier.padding(horizontal = 16.dp),
@@ -81,62 +86,62 @@ fun DeveloperScreen(navigator: Navigator) {
                 state.revealedKey?.let { key ->
                     Column(Modifier.fillMaxWidth().padding(16.dp).background(colors.surfaceRaised).padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            OmniBadge("NEW KEY", container = colors.accent, content = colors.onAccent)
-                            Text("  Copy it now: it won't be shown again.", style = OmniTheme.typography.bodySmall, color = colors.textSecondary)
+                            OmniBadge(stringResource(R.string.developer_new_key), container = colors.accent, content = colors.onAccent)
+                            Text("  " + stringResource(R.string.developer_copy_now), style = OmniTheme.typography.bodySmall, color = colors.textSecondary)
                         }
                         Text(key, style = OmniTheme.typography.mono, color = colors.textPrimary)
                         Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                            OmniTextButton("Copy key", { clipboard.setText(AnnotatedString(key)) })
-                            OmniTextButton("Hide", viewModel::hideKey, color = colors.textSecondary)
+                            OmniTextButton(stringResource(R.string.developer_copy_key), { clipboard.setText(AnnotatedString(key)) })
+                            OmniTextButton(stringResource(R.string.developer_hide), viewModel::hideKey, color = colors.textSecondary)
                         }
                     }
                 }
                 OmniButton(
-                    if (state.revealedKey == null) "Generate API key" else "Generate another",
+                    stringResource(if (state.revealedKey == null) R.string.developer_generate else R.string.developer_generate_another),
                     { confirmRotate = true },
                     Modifier.padding(16.dp),
                     style = OmniButtonStyle.Secondary,
                     leadingIcon = OmniIcons.Key,
                     loading = state.rotating,
                 )
-                SectionLabel("Quick start")
+                SectionLabel(stringResource(R.string.developer_quick_start))
                 val snippet = quickStart(state.apiBaseUrl)
                 Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp).background(colors.surfaceRaised).padding(12.dp)) {
                     Text(snippet, style = OmniTheme.typography.mono, color = colors.textPrimary, modifier = Modifier.horizontalScroll(rememberScrollState()))
-                    OmniTextButton("Copy", { clipboard.setText(AnnotatedString(snippet)) })
+                    OmniTextButton(stringResource(CommonR.string.common_copy), { clipboard.setText(AnnotatedString(snippet)) })
                 }
 
-                SectionLabel("Webhooks") { OmniTextButton("Add", { addingWebhook = true }) }
+                SectionLabel(stringResource(R.string.developer_webhooks)) { OmniTextButton(stringResource(R.string.developer_add), { addingWebhook = true }) }
                 Text(
-                    "The judge POSTs job results to these URLs, signed with X-LS-Signature: sha256=<hmac of body with your secret>.",
+                    stringResource(R.string.developer_webhooks_explainer),
                     style = OmniTheme.typography.bodySmall,
                     color = colors.textSecondary,
                     modifier = Modifier.padding(horizontal = 16.dp),
                 )
                 state.createdSecret?.let { secret ->
                     InfoBanner(
-                        "Signing secret (shown once): $secret",
+                        stringResource(R.string.developer_secret_once, secret),
                         Modifier.padding(16.dp),
                         icon = OmniIcons.Lock,
                         action = {
                             Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                                OmniTextButton("Copy", { clipboard.setText(AnnotatedString(secret)) })
-                                OmniTextButton("Done", viewModel::dismissCreatedSecret, color = colors.textSecondary)
+                                OmniTextButton(stringResource(CommonR.string.common_copy), { clipboard.setText(AnnotatedString(secret)) })
+                                OmniTextButton(stringResource(CommonR.string.common_done), viewModel::dismissCreatedSecret, color = colors.textSecondary)
                             }
                         },
                     )
                 }
                 when {
                     state.webhooksLoading -> Box(Modifier.fillMaxWidth().padding(16.dp)) { OmniSpinner() }
-                    state.webhooksError != null -> InfoBanner(state.webhooksError!!, Modifier.padding(16.dp), icon = OmniIcons.WifiOff, action = { OmniTextButton("Retry", viewModel::loadWebhooks) })
-                    state.webhooks.isEmpty() -> Text("No webhooks yet.", style = OmniTheme.typography.bodySmall, color = colors.textTertiary, modifier = Modifier.padding(16.dp))
+                    state.webhooksError != null -> InfoBanner(state.webhooksError!!.asString(), Modifier.padding(16.dp), icon = OmniIcons.WifiOff, action = { OmniTextButton(stringResource(CommonR.string.common_retry), viewModel::loadWebhooks) })
+                    state.webhooks.isEmpty() -> Text(stringResource(R.string.developer_no_webhooks), style = OmniTheme.typography.bodySmall, color = colors.textTertiary, modifier = Modifier.padding(16.dp))
                     else -> state.webhooks.forEach { hook ->
                         Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
                             Column(Modifier.weight(1f)) {
                                 Text(hook.url, style = OmniTheme.typography.mono, color = colors.textPrimary, maxLines = 1)
-                                Text(listOfNotNull(if (hook.enabled) "enabled" else "disabled", hook.createdAt?.take(10)).joinToString(" · "), style = OmniTheme.typography.monoSmall, color = colors.textTertiary)
+                                Text(listOfNotNull(stringResource(if (hook.enabled) R.string.developer_enabled else R.string.developer_disabled), hook.createdAt?.take(10)).joinToString(" · "), style = OmniTheme.typography.monoSmall, color = colors.textTertiary)
                             }
-                            OmniIconButton(OmniIcons.Trash, "Delete webhook", { deleting = hook })
+                            OmniIconButton(OmniIcons.Trash, stringResource(R.string.developer_delete_webhook), { deleting = hook })
                         }
                     }
                 }
@@ -149,15 +154,15 @@ fun DeveloperScreen(navigator: Navigator) {
             onDismissRequest = { confirmRotate = false },
             shape = RectangleShape,
             containerColor = colors.surfaceRaised,
-            title = { Text("Generate a new key?", style = OmniTheme.typography.title, color = colors.textPrimary) },
-            text = { Text("Any key you issued before stops working right away.", style = OmniTheme.typography.body, color = colors.textSecondary) },
+            title = { Text(stringResource(R.string.developer_rotate_title), style = OmniTheme.typography.title, color = colors.textPrimary) },
+            text = { Text(stringResource(R.string.developer_rotate_message), style = OmniTheme.typography.body, color = colors.textSecondary) },
             confirmButton = {
-                OmniTextButton("Generate", {
+                OmniTextButton(stringResource(R.string.developer_generate_confirm), {
                     confirmRotate = false
                     viewModel.rotateKey()
                 })
             },
-            dismissButton = { OmniTextButton("Cancel", { confirmRotate = false }, color = colors.textSecondary) },
+            dismissButton = { OmniTextButton(stringResource(CommonR.string.common_cancel), { confirmRotate = false }, color = colors.textSecondary) },
         )
     }
     if (addingWebhook) {
@@ -167,19 +172,19 @@ fun DeveloperScreen(navigator: Navigator) {
             onDismissRequest = { addingWebhook = false },
             shape = RectangleShape,
             containerColor = colors.surfaceRaised,
-            title = { Text("Add webhook", style = OmniTheme.typography.title, color = colors.textPrimary) },
+            title = { Text(stringResource(R.string.developer_add_webhook), style = OmniTheme.typography.title, color = colors.textPrimary) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    OmniTextField(url, { url = it }, label = "URL", placeholder = "https://example.com/hooks/omni", keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri))
-                    OmniTextField(secret, { secret = it }, label = "Signing secret", textStyle = OmniTheme.typography.mono)
+                    OmniTextField(url, { url = it }, label = stringResource(R.string.developer_url), placeholder = stringResource(R.string.developer_url_placeholder), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri))
+                    OmniTextField(secret, { secret = it }, label = stringResource(R.string.developer_signing_secret), textStyle = OmniTheme.typography.mono)
                 }
             },
             confirmButton = {
-                OmniTextButton(if (state.savingWebhook) "Adding…" else "Add", {
+                OmniTextButton(stringResource(if (state.savingWebhook) R.string.developer_adding else R.string.developer_add), {
                     viewModel.createWebhook(url, secret) { addingWebhook = false }
                 }, enabled = url.isNotBlank() && secret.isNotBlank() && !state.savingWebhook)
             },
-            dismissButton = { OmniTextButton("Cancel", { addingWebhook = false }, color = colors.textSecondary) },
+            dismissButton = { OmniTextButton(stringResource(CommonR.string.common_cancel), { addingWebhook = false }, color = colors.textSecondary) },
         )
     }
     deleting?.let { hook ->
@@ -187,15 +192,15 @@ fun DeveloperScreen(navigator: Navigator) {
             onDismissRequest = { deleting = null },
             shape = RectangleShape,
             containerColor = colors.surfaceRaised,
-            title = { Text("Delete webhook?", style = OmniTheme.typography.title, color = colors.textPrimary) },
+            title = { Text(stringResource(R.string.developer_delete_webhook_title), style = OmniTheme.typography.title, color = colors.textPrimary) },
             text = { Text(hook.url, style = OmniTheme.typography.mono, color = colors.textSecondary) },
             confirmButton = {
-                OmniTextButton("Delete", {
+                OmniTextButton(stringResource(CommonR.string.common_delete), {
                     deleting = null
                     viewModel.deleteWebhook(hook)
                 })
             },
-            dismissButton = { OmniTextButton("Cancel", { deleting = null }, color = colors.textSecondary) },
+            dismissButton = { OmniTextButton(stringResource(CommonR.string.common_cancel), { deleting = null }, color = colors.textSecondary) },
         )
     }
 }
