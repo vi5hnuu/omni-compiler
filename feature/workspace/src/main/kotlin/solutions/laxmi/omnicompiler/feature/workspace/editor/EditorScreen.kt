@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.material3.DrawerState
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.ModalNavigationDrawer
@@ -55,6 +56,7 @@ import solutions.laxmi.omnicompiler.core.editor.CodeEditor
 import solutions.laxmi.omnicompiler.core.editor.EditorDocument
 import solutions.laxmi.omnicompiler.core.editor.SymbolRow
 import solutions.laxmi.omnicompiler.core.editor.rememberCodeEditorState
+import solutions.laxmi.omnicompiler.core.model.ProjectSummary
 import solutions.laxmi.omnicompiler.core.model.SourceFile
 import solutions.laxmi.omnicompiler.core.navigation.AppearanceRoute
 import solutions.laxmi.omnicompiler.core.navigation.DeveloperRoute
@@ -66,6 +68,7 @@ import solutions.laxmi.omnicompiler.core.navigation.Navigator
 import solutions.laxmi.omnicompiler.core.navigation.ProfileRoute
 import solutions.laxmi.omnicompiler.core.navigation.ProjectsRoute
 import solutions.laxmi.omnicompiler.core.navigation.SettingsRoute
+import solutions.laxmi.omnicompiler.core.navigation.SignUpRoute
 import solutions.laxmi.omnicompiler.core.navigation.UsageRoute
 
 @Composable
@@ -75,6 +78,12 @@ fun EditorScreen(route: EditorRoute, navigator: Navigator) {
     val snackbar = remember { SnackbarHostState() }
     val resources = LocalResources.current
     val context = LocalContext.current
+    val drawerState = rememberDrawerState(DrawerValue.Closed)
+    // Opening or open: subscribe to drawer data only then, so editing never pays for it.
+    val drawerVisible = drawerState.currentValue == DrawerValue.Open || drawerState.targetValue == DrawerValue.Open
+    val drawerProjects = if (drawerVisible) viewModel.drawerProjects.collectAsStateWithLifecycle().value else emptyList()
+    val drawerUsage by viewModel.drawerUsage.collectAsStateWithLifecycle()
+    LaunchedEffect(drawerVisible) { if (drawerVisible) viewModel.onDrawerOpened() }
 
     LaunchedEffect(viewModel) {
         viewModel.eventFlow.collect { event ->
@@ -88,6 +97,7 @@ fun EditorScreen(route: EditorRoute, navigator: Navigator) {
 
     EditorContent(
         state = state,
+        drawer = DrawerContent(drawerState, drawerProjects, drawerUsage),
         snackbar = snackbar,
         actions = EditorActions(
             onRetry = viewModel::retry,
@@ -107,6 +117,7 @@ fun EditorScreen(route: EditorRoute, navigator: Navigator) {
             onOpenProject = { id -> navigator.replace(EditorRoute(id)) },
             onPickRuntime = { state.workspace?.project?.id?.let { navigator.navigate(LanguagePickerRoute(it)) } },
             onAccount = { navigator.navigate(ProfileRoute) },
+            onConvertGuest = { navigator.navigate(SignUpRoute(convertGuest = true)) },
             onDestination = { destination ->
                 navigator.navigate(
                     when (destination) {
@@ -123,6 +134,9 @@ fun EditorScreen(route: EditorRoute, navigator: Navigator) {
         ),
     )
 }
+
+/** What the navigation drawer shows; kept apart from [EditorUiState] (see [EditorViewModel.drawerProjects]). */
+internal class DrawerContent(val state: DrawerState, val projects: List<ProjectSummary>, val usage: DrawerUsage?)
 
 /** Callbacks from the editor UI; grouped so the content composable stays previewable. */
 internal class EditorActions(
@@ -143,15 +157,16 @@ internal class EditorActions(
     val onOpenProject: (String) -> Unit,
     val onPickRuntime: () -> Unit,
     val onAccount: () -> Unit,
+    val onConvertGuest: () -> Unit,
     val onDestination: (DrawerDestination) -> Unit,
     val onAppearance: () -> Unit,
 )
 
 @OptIn(ExperimentalLayoutApi::class, ExperimentalFoundationApi::class)
 @Composable
-private fun EditorContent(state: EditorUiState, snackbar: SnackbarHostState, actions: EditorActions) {
+private fun EditorContent(state: EditorUiState, drawer: DrawerContent, snackbar: SnackbarHostState, actions: EditorActions) {
     val colors = OmniTheme.colors
-    val drawerState = rememberDrawerState(DrawerValue.Closed)
+    val drawerState = drawer.state
     val scope = rememberCoroutineScope()
     val editorState = rememberCodeEditorState()
     val typing = WindowInsets.isImeVisible
@@ -173,7 +188,8 @@ private fun EditorContent(state: EditorUiState, snackbar: SnackbarHostState, act
             ModalDrawerSheet(drawerShape = RectangleShape, drawerContainerColor = colors.surface, windowInsets = WindowInsets(0.dp)) {
                 EditorDrawer(
                     user = state.user,
-                    projects = state.projects,
+                    projects = drawer.projects,
+                    usage = drawer.usage,
                     currentProjectId = workspace?.project?.id,
                     currentProjectName = workspace?.project?.name.orEmpty(),
                     files = workspace?.files.orEmpty(),

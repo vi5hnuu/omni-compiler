@@ -85,6 +85,8 @@
     <string name="drawer_guest_badge">GUEST</string>
     <string name="drawer_file_entry">entry</string>
     <string name="drawer_file_data">data</string>
+    <string name="drawer_usage_period">Runs this period</string>
+    <string name="drawer_usage_fraction">%1$d / %2$d</string>
 
     <!-- Console -->
     <string name="console_title">Console</string>
@@ -264,4 +266,18 @@
     <string name="offline_run_meta">%1$s · %2$s</string>
     <string name="offline_send_now">Send now</string>
     <string name="offline_send_when_online">Send when back online</string>
+    <string name="sheet_keep_work_title">Keep your work?</string>
+    <string name="sheet_keep_work_subtitle">You\'re coding as a guest. Create an account to keep the run history of %1$s if you reinstall or switch devices. Your projects stay on this device either way.</string>
+    <string name="sheet_keep_work_files">Files</string>
+    <string name="sheet_keep_work_tests">Tests</string>
+    <string name="sheet_keep_work_runs">Runs</string>
+    <string name="sheet_keep_work_create">Create account with e-mail</string>
+    <string name="sheet_keep_work_not_now">Not now</string>
+    <string name="editor_run_hint">▶ Run</string>
+    <plurals name="editor_run_hint_tests">
+        <item quantity="one">%1$d test</item>
+        <item quantity="other">%1$d tests</item>
+    </plurals>
+    <string name="editor_run_hint_last">last %1$s</string>
+    <string name="editor_run_hint_last_failed">last %1$s #%2$d</string>
 </resources>

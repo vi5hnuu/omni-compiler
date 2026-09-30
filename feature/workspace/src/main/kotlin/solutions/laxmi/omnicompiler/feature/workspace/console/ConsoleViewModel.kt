@@ -1,5 +1,9 @@
 package solutions.laxmi.omnicompiler.feature.workspace.console
 
+import solutions.laxmi.omnicompiler.core.model.Verdict
+import solutions.laxmi.omnicompiler.core.model.RunPhase
+import solutions.laxmi.omnicompiler.core.data.auth.KeepWorkOffer
+import solutions.laxmi.omnicompiler.core.data.auth.GuestPromptRepository
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -64,6 +68,7 @@ sealed interface ConsoleOverlay {
     data class Benchmark(val result: BenchmarkResult) : ConsoleOverlay
     data object Verifying : ConsoleOverlay
     data class Proof(val proof: ReplayProof) : ConsoleOverlay
+    data class KeepWork(val offer: KeepWorkOffer) : ConsoleOverlay
 }
 
 sealed interface ConsoleEvent {
@@ -81,6 +86,7 @@ class ConsoleViewModel @AssistedInject constructor(
     private val runtimes: RuntimeRepository,
     private val settings: SettingsRepository,
     private val documents: TextDocumentReader,
+    private val guestPrompt: GuestPromptRepository,
     connectivity: ConnectivityObserver,
 ) : ViewModel() {
 
@@ -123,6 +129,20 @@ class ConsoleViewModel @AssistedInject constructor(
         viewModelScope.launch {
             projects.observeWorkspace(projectId).map { it?.project?.runtimeId }.collect { runtimeId ->
                 if (runtimeId != null) runtimeDefaults.value = runtimes.defaultLimits(runtimeId)
+            }
+        }
+        viewModelScope.launch { offerKeepWorkAfterFirstAccept() }
+    }
+
+    /** Guests are invited to keep their work (design X3) when a run they watched here finishes Accepted. */
+    private suspend fun offerKeepWorkAfterFirstAccept() {
+        val watched = mutableSetOf<String>()
+        executions.observeConsole(projectId).collect { runs ->
+            val latest = runs.firstOrNull() ?: return@collect
+            if (latest.phase.isActive) watched += latest.id
+            val accepted = latest.phase == RunPhase.DONE && latest.verdict == Verdict.AC && watched.remove(latest.id)
+            if (accepted && overlayState.value == null) {
+                guestPrompt.claimOffer(projectId)?.let { overlayState.value = ConsoleOverlay.KeepWork(it) }
             }
         }
     }

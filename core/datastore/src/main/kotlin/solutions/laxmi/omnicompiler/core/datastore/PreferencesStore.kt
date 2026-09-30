@@ -6,8 +6,10 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.core.stringSetPreferencesKey
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import solutions.laxmi.omnicompiler.core.model.CodeFont
 import solutions.laxmi.omnicompiler.core.model.EditorSettings
@@ -29,6 +31,11 @@ interface PreferencesStore {
     suspend fun updateRun(transform: (RunSettings) -> RunSettings)
     suspend fun markRuntimeUsed(runtimeId: String)
     suspend fun setLastProjectId(id: String?)
+
+    /** Projects whose guest "keep your work" prompt was already shown. */
+    suspend fun guestPromptedProjects(): Set<String>
+    suspend fun markGuestPrompted(projectId: String)
+
     suspend fun clearUserScoped()
 }
 
@@ -64,10 +71,17 @@ internal class DataStorePreferencesStore @Inject constructor(
         dataStore.edit { prefs -> if (id == null) prefs.remove(Keys.LAST_PROJECT) else prefs[Keys.LAST_PROJECT] = id }
     }
 
+    override suspend fun guestPromptedProjects(): Set<String> = dataStore.data.first()[Keys.GUEST_PROMPTED].orEmpty()
+
+    override suspend fun markGuestPrompted(projectId: String) {
+        dataStore.edit { prefs -> prefs[Keys.GUEST_PROMPTED] = prefs[Keys.GUEST_PROMPTED].orEmpty() + projectId }
+    }
+
     override suspend fun clearUserScoped() {
         dataStore.edit { prefs ->
             prefs.remove(Keys.LAST_PROJECT)
             prefs.remove(Keys.RECENT_RUNTIMES)
+            prefs.remove(Keys.GUEST_PROMPTED)
         }
     }
 
@@ -152,6 +166,7 @@ internal class DataStorePreferencesStore @Inject constructor(
         val BENCHMARK_COPIES = intPreferencesKey("run_benchmark_copies")
         val RECENT_RUNTIMES = stringPreferencesKey("recent_runtimes")
         val LAST_PROJECT = stringPreferencesKey("last_project")
+        val GUEST_PROMPTED = stringSetPreferencesKey("guest_prompted_projects")
     }
 
     private companion object {

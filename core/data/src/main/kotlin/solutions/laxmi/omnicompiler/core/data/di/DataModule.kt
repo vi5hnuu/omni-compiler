@@ -13,6 +13,8 @@ import solutions.laxmi.omnicompiler.core.data.account.DeveloperRepository
 import solutions.laxmi.omnicompiler.core.data.auth.AuthRepository
 import solutions.laxmi.omnicompiler.core.data.auth.CredentialManagerGoogleIdTokenProvider
 import solutions.laxmi.omnicompiler.core.data.auth.DefaultAuthRepository
+import solutions.laxmi.omnicompiler.core.data.auth.DefaultGuestPromptRepository
+import solutions.laxmi.omnicompiler.core.data.auth.GuestPromptRepository
 import solutions.laxmi.omnicompiler.core.data.auth.GoogleIdTokenProvider
 import solutions.laxmi.omnicompiler.core.data.connectivity.AndroidConnectivityObserver
 import solutions.laxmi.omnicompiler.core.data.connectivity.ConnectivityObserver
@@ -37,6 +39,7 @@ import solutions.laxmi.omnicompiler.core.data.settings.SettingsRepository
 @InstallIn(SingletonComponent::class)
 internal interface DataModule {
     @Binds fun bindsAuthRepository(impl: DefaultAuthRepository): AuthRepository
+    @Binds fun bindsGuestPromptRepository(impl: DefaultGuestPromptRepository): GuestPromptRepository
     @Binds fun bindsGoogleIdTokenProvider(impl: CredentialManagerGoogleIdTokenProvider): GoogleIdTokenProvider
     @Binds fun bindsRuntimeRepository(impl: DefaultRuntimeRepository): RuntimeRepository
     @Binds fun bindsProjectRepository(impl: LocalProjectRepository): ProjectRepository

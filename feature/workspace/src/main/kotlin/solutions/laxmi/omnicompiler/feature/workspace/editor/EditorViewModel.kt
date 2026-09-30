@@ -8,6 +8,7 @@ import dagger.assisted.Assisted
 import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -20,6 +21,7 @@ import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import solutions.laxmi.omnicompiler.core.data.account.AccountRepository
 import solutions.laxmi.omnicompiler.core.data.auth.AuthRepository
 import solutions.laxmi.omnicompiler.core.data.project.ProjectRepository
 import solutions.laxmi.omnicompiler.core.data.runtime.RuntimeRepository
@@ -27,6 +29,7 @@ import solutions.laxmi.omnicompiler.core.data.settings.SettingsRepository
 import solutions.laxmi.omnicompiler.core.model.EditorSettings
 import solutions.laxmi.omnicompiler.core.model.LanguageInfo
 import solutions.laxmi.omnicompiler.core.model.Outcome
+import solutions.laxmi.omnicompiler.core.model.onSuccess
 import solutions.laxmi.omnicompiler.core.model.ProjectFilter
 import solutions.laxmi.omnicompiler.core.model.ProjectSummary
 import solutions.laxmi.omnicompiler.core.model.ProjectWorkspace
@@ -50,10 +53,12 @@ data class EditorUiState(
     val revisions: Map<String, Int> = emptyMap(),
     val settings: EditorSettings = EditorSettings(),
     val user: User? = null,
-    val projects: List<ProjectSummary> = emptyList(),
 ) {
     val activeFile: SourceFile? get() = workspace?.files?.firstOrNull { it.id == activeFileId } ?: workspace?.entry
 }
+
+/** "Runs this period" for the drawer footer; only shown when the plan has a quota. */
+data class DrawerUsage(val used: Long, val limit: Long)
 
 sealed interface EditorEvent {
     data class Message(val text: UiText) : EditorEvent
@@ -68,7 +73,8 @@ class EditorViewModel @AssistedInject constructor(
     private val exporter: ProjectExporter,
     private val runtimes: RuntimeRepository,
     private val settingsRepository: SettingsRepository,
-    auth: AuthRepository,
+    private val account: AccountRepository,
+    private val auth: AuthRepository,
 ) : ViewModel() {
 
     @AssistedFactory
@@ -115,8 +121,7 @@ class EditorViewModel @AssistedInject constructor(
         combine(activeFileId, revisions, startupError, ::Triple),
         settingsRepository.editorSettings,
         auth.session,
-        projects.observeSummaries("", ProjectFilter.ALL),
-    ) { (loaded, rt, lang), (activeId, revs, error), settings, session, summaries ->
+    ) { (loaded, rt, lang), (activeId, revs, error), settings, session ->
         val (loadedId, ws) = loaded
         ws?.files?.forEach(::trackExternalChanges)
         // A resolved project that reads back as null was deleted while open (e.g. from Projects).
@@ -131,9 +136,29 @@ class EditorViewModel @AssistedInject constructor(
             revisions = revs,
             settings = settings,
             user = (session as? Session.Active)?.user,
-            projects = summaries,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), EditorUiState())
+
+    /**
+     * Drawer-only data lives outside [uiState]: autosave touches the project list, and folding it into the
+     * editor state would recompose the whole screen on every save. Collected only while the drawer shows.
+     */
+    val drawerProjects: StateFlow<List<ProjectSummary>> = projects.observeSummaries("", ProjectFilter.ALL)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    private val usage = MutableStateFlow<DrawerUsage?>(null)
+    val drawerUsage: StateFlow<DrawerUsage?> = usage
+    private var usageRequest: Job? = null
+
+    /** Refreshes the quota footer each time the drawer opens; a failure just keeps the last value. */
+    fun onDrawerOpened() {
+        if (auth.session.value !is Session.Active || usageRequest?.isActive == true) return
+        usageRequest = viewModelScope.launch {
+            account.billing().onSuccess { billing ->
+                usage.value = DrawerUsage(billing.executionsUsed, billing.quotaLimit).takeIf { it.limit > 0 }
+            }
+        }
+    }
 
     init {
         viewModelScope.launch { runtimes.refresh() }

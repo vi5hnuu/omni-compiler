@@ -31,6 +31,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.platform.LocalResources
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import solutions.laxmi.omnicompiler.core.ui.asString
@@ -45,9 +46,12 @@ import solutions.laxmi.omnicompiler.core.editor.CodeEditor
 import solutions.laxmi.omnicompiler.core.editor.CodeEditorState
 import solutions.laxmi.omnicompiler.core.editor.EditorDiagnostic
 import solutions.laxmi.omnicompiler.core.editor.EditorDocument
+import solutions.laxmi.omnicompiler.core.editor.EditorLineHint
 import solutions.laxmi.omnicompiler.core.editor.SymbolRow
 import solutions.laxmi.omnicompiler.core.model.RunMode
 import solutions.laxmi.omnicompiler.core.model.RunPhase
+import solutions.laxmi.omnicompiler.core.model.RunRecord
+import solutions.laxmi.omnicompiler.core.model.Verdict
 import solutions.laxmi.omnicompiler.core.model.SourceFile
 import solutions.laxmi.omnicompiler.core.model.TestCase
 import solutions.laxmi.omnicompiler.feature.workspace.console.BenchmarkSheet
@@ -58,6 +62,7 @@ import solutions.laxmi.omnicompiler.feature.workspace.console.ConsoleSheet
 import solutions.laxmi.omnicompiler.feature.workspace.console.ConsoleSheetActions
 import solutions.laxmi.omnicompiler.feature.workspace.console.ConsoleTab
 import solutions.laxmi.omnicompiler.feature.workspace.console.ConsoleViewModel
+import solutions.laxmi.omnicompiler.feature.workspace.console.KeepWorkSheet
 import solutions.laxmi.omnicompiler.feature.workspace.console.LimitsSheet
 import solutions.laxmi.omnicompiler.feature.workspace.console.ProofSheet
 import solutions.laxmi.omnicompiler.feature.workspace.console.RateLimitSheet
@@ -217,6 +222,8 @@ internal fun ColumnScope.WorkspaceBody(
             onTextChange = actions.onContentChanged,
             diagnostics = remember(problems) { problems.map { EditorDiagnostic(it.line!!, it.column, it.message, it.isError) } },
             onRunShortcut = if (consoleState.runSettings.runOnCtrlEnter) runTests else null,
+            lineHint = runHint(activeFile, state.runtime?.language, consoleState.tests.size, latest, running),
+            onLineHintClick = runTests,
             modifier = Modifier.fillMaxSize(),
         )
         if (sheetVisible) {
@@ -313,6 +320,14 @@ internal fun ColumnScope.WorkspaceBody(
         is ConsoleOverlay.RateLimited -> RateLimitSheet(current.retryAfterSeconds, current.snapshot, console::dismissOverlay)
         is ConsoleOverlay.Verifying -> ProofSheet(busy = true, proof = null, onDismiss = console::dismissOverlay)
         is ConsoleOverlay.Proof -> ProofSheet(busy = false, proof = current.proof, onDismiss = console::dismissOverlay)
+        is ConsoleOverlay.KeepWork -> KeepWorkSheet(
+            offer = current.offer,
+            onCreateAccount = {
+                console.dismissOverlay()
+                actions.onConvertGuest()
+            },
+            onDismiss = console::dismissOverlay,
+        )
         is ConsoleOverlay.Benchmarking, is ConsoleOverlay.Benchmark, null -> Unit
     }
     if (showBenchmark || overlay is ConsoleOverlay.Benchmarking || overlay is ConsoleOverlay.Benchmark) {
@@ -330,6 +345,21 @@ internal fun ColumnScope.WorkspaceBody(
             },
         )
     }
+}
+
+/** Design E1 code lens: "▶ Run · 7 tests · last WA #3" after the entry file's `main` line. */
+@Composable
+private fun runHint(file: SourceFile, languageBase: String?, testCount: Int, latest: RunRecord?, running: Boolean): EditorLineHint? {
+    if (!file.isEntry || running) return null
+    val line = remember(file.content, languageBase) { EntryPoint.line(languageBase, file.content) } ?: return null
+    val parts = mutableListOf(stringResource(R.string.editor_run_hint))
+    if (testCount > 0) parts += pluralStringResource(R.plurals.editor_run_hint_tests, testCount, testCount)
+    latest?.takeIf { it.mode == RunMode.TESTS }?.verdict?.let { verdict ->
+        val failed = latest.firstFailure?.takeIf { verdict != Verdict.CE }
+        parts += if (failed != null) stringResource(R.string.editor_run_hint_last_failed, verdict.code, failed.index)
+        else stringResource(R.string.editor_run_hint_last, verdict.code)
+    }
+    return EditorLineHint(line, parts.joinToString(" · "))
 }
 
 /** Kept outside any Row/Column scope so the unscoped AnimatedVisibility overload is used. */

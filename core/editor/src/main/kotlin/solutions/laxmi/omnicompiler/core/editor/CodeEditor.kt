@@ -30,6 +30,10 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import io.github.rosemoe.sora.event.ContentChangeEvent
+import io.github.rosemoe.sora.event.InlayHintClickEvent
+import io.github.rosemoe.sora.graphics.inlayHint.TextInlayHintRenderer
+import io.github.rosemoe.sora.lang.styling.inlayHint.InlayHintsContainer
+import io.github.rosemoe.sora.lang.styling.inlayHint.TextInlayHint
 import io.github.rosemoe.sora.event.EditorKeyEvent
 import io.github.rosemoe.sora.event.PublishSearchResultEvent
 import io.github.rosemoe.sora.event.ScrollEvent
@@ -52,6 +56,9 @@ import solutions.laxmi.omnicompiler.core.model.EditorSettings
 
 /** A diagnostic to underline, with 1-based position (column optional: whole line when absent). */
 data class EditorDiagnostic(val line: Int, val column: Int?, val message: String, val isError: Boolean = true)
+
+/** A tappable label drawn after the end of 1-based [line] (the design's code lens, e.g. "▶ Run"). */
+data class EditorLineHint(val line: Int, val text: String)
 
 /**
  * The buffer to show. [id] names the document (a file); bumping [revision] forces the view to reload
@@ -82,11 +89,14 @@ fun CodeEditor(
     diagnostics: List<EditorDiagnostic> = emptyList(),
     readOnly: Boolean = false,
     onRunShortcut: (() -> Unit)? = null,
+    lineHint: EditorLineHint? = null,
+    onLineHintClick: () -> Unit = {},
 ) {
     val context = LocalContext.current
     val palette = remember(settings.theme) { settings.theme.palette() }
     val currentOnTextChange by rememberUpdatedState(onTextChange)
     val currentRunShortcut by rememberUpdatedState(onRunShortcut)
+    val currentLineHintClick by rememberUpdatedState(onLineHintClick)
     val grammar = remember(document.fileName, document.languageBase, document.isEntry) {
         EditorLanguages.grammarFor(document.fileName, document.languageBase, document.isEntry)
     }
@@ -104,13 +114,16 @@ fun CodeEditor(
             if (loaded != null) {
                 AndroidView(
                     modifier = Modifier.fillMaxSize(),
-                    factory = { ctx -> createEditor(ctx, state) { currentRunShortcut?.invoke() } },
+                    factory = { ctx ->
+                        createEditor(ctx, state, onRunShortcut = { currentRunShortcut?.invoke() }, onLineHintClick = { currentLineHintClick() })
+                    },
                     update = { editor ->
                         editor.applySettings(context, settings, palette)
                         editor.isEditable = !readOnly
                         if (loaded?.grammar == grammar) {
                             editor.bindDocument(state, document, grammar)
                             editor.setDiagnostics(diagnostics)
+                            editor.setLineHint(lineHint)
                         }
                     },
                     onRelease = { editor ->
@@ -150,7 +163,7 @@ private fun ActiveLineBar(state: CodeEditorState, palette: EditorPalette) {
     }
 }
 
-private fun createEditor(context: Context, state: CodeEditorState, onRunShortcut: () -> Unit): CodeEditor =
+private fun createEditor(context: Context, state: CodeEditorState, onRunShortcut: () -> Unit, onLineHintClick: () -> Unit): CodeEditor =
     CodeEditor(context).apply {
         state.editor = this
         isLineNumberEnabled = true
@@ -170,6 +183,7 @@ private fun createEditor(context: Context, state: CodeEditorState, onRunShortcut
         props.stickyScroll = false
         props.overScrollEnabled = false
         getComponent(EditorAutoCompletion::class.java).setEnabledAnimation(false)
+        registerInlayHintRenderer(TextInlayHintRenderer.DefaultInstance)
 
         subscribeEvent(ContentChangeEvent::class.java) { event, _ ->
             if (event.action != ContentChangeEvent.ACTION_SET_NEW_TEXT) state.onContentChanged()
@@ -199,6 +213,10 @@ private fun createEditor(context: Context, state: CodeEditorState, onRunShortcut
                 onRunShortcut()
                 event.markAsConsumed()
             }
+        }
+        subscribeEvent(InlayHintClickEvent::class.java) { event, _ ->
+            onLineHintClick()
+            event.intercept()
         }
         addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ ->
             updateViewport(state)
@@ -282,6 +300,8 @@ private fun EditorColorScheme.applyChrome(p: EditorPalette) {
     set(EditorColorScheme.DIAGNOSTIC_TOOLTIP_ACTION, p.matched)
     set(EditorColorScheme.TEXT_ACTION_WINDOW_BACKGROUND, p.popup)
     set(EditorColorScheme.TEXT_ACTION_WINDOW_ICON_COLOR, p.text)
+    set(EditorColorScheme.TEXT_INLAY_HINT_BACKGROUND, p.popup)
+    set(EditorColorScheme.TEXT_INLAY_HINT_FOREGROUND, p.lineNumberActive)
 }
 
 private fun CodeFont.typeface(context: Context): Typeface {
@@ -310,7 +330,20 @@ private fun CodeEditor.bindDocument(state: CodeEditorState, document: EditorDocu
     state.cursor = CursorPosition(1, 1)
     state.refreshMinimap()
     setTag(R.id.omni_editor_settings, null)
+    // setText/setEditorLanguage drop inlay hints; force the next setLineHint to re-add it.
+    setTag(R.id.omni_editor_line_hint, null)
 }
+
+private fun CodeEditor.setLineHint(hint: EditorLineHint?) {
+    if (getTag(R.id.omni_editor_line_hint) == (hint ?: NoHint)) return
+    setTag(R.id.omni_editor_line_hint, hint ?: NoHint)
+    // The hint comes from saved text, which can trail the live buffer by a debounce; clamp to what's shown.
+    val line = hint?.let { (it.line - 1).takeIf { l -> l in 0 until text.lineCount } }
+    inlayHints = line?.let { l -> InlayHintsContainer().apply { add(TextInlayHint(l, text.getColumnCount(l), hint.text)) } }
+}
+
+/** Tag value for "no hint applied", distinct from the null "unknown, re-apply" state. */
+private object NoHint
 
 private fun CodeEditor.setDiagnostics(items: List<EditorDiagnostic>) {
     if (getTag(R.id.omni_editor_diagnostics) == items) return

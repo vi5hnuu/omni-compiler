@@ -1,5 +1,6 @@
 package solutions.laxmi.omnicompiler.feature.workspace.console
 
+import solutions.laxmi.omnicompiler.core.data.auth.KeepWorkOffer
 import solutions.laxmi.omnicompiler.core.ui.testCount
 import solutions.laxmi.omnicompiler.core.ui.formatDuration
 import solutions.laxmi.omnicompiler.core.ui.R as CommonR
@@ -184,6 +185,33 @@ internal fun RateLimitSheet(retryAfterSeconds: Long?, snapshot: RateLimitSnapsho
             Text(if (remaining > 0) stringResource(R.string.sheet_rate_limit_seconds, remaining.toInt()) else stringResource(R.string.sheet_rate_limit_now), style = OmniTheme.typography.title, color = colors.accentText)
         }
         OmniButton(stringResource(CommonR.string.common_ok), onDismiss, trailingIcon = null)
+    }
+}
+
+/**
+ * Design X3, adapted: projects are device-local either way, so the pitch is what an account keeps —
+ * run history that survives a reinstall and works on other devices. Converting keeps the same user id,
+ * which is why only e-mail sign-up is offered (Google would create a separate account).
+ */
+@Composable
+internal fun KeepWorkSheet(offer: KeepWorkOffer, onCreateAccount: () -> Unit, onDismiss: () -> Unit) {
+    val colors = OmniTheme.colors
+    OmniSheet(onDismiss) {
+        SheetTitle(stringResource(R.string.sheet_keep_work_title), stringResource(R.string.sheet_keep_work_subtitle, offer.projectName))
+        Row(Modifier.fillMaxWidth().background(colors.background)) {
+            listOf(
+                R.string.sheet_keep_work_files to offer.files,
+                R.string.sheet_keep_work_tests to offer.tests,
+                R.string.sheet_keep_work_runs to offer.runs,
+            ).forEach { (label, value) ->
+                Column(Modifier.weight(1f).padding(14.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text(stringResource(label).uppercase(), style = OmniTheme.typography.overline, color = colors.textTertiary)
+                    Text(value.toString(), style = OmniTheme.typography.title, color = colors.textPrimary)
+                }
+            }
+        }
+        OmniButton(stringResource(R.string.sheet_keep_work_create), onCreateAccount, leadingIcon = OmniIcons.Mail)
+        OmniTextButton(stringResource(R.string.sheet_keep_work_not_now), onDismiss, color = colors.textSecondary)
     }
 }
 

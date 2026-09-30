@@ -57,6 +57,7 @@ enum class DrawerDestination(@StringRes val labelRes: Int, val icon: ImageVector
 internal fun EditorDrawer(
     user: User?,
     projects: List<ProjectSummary>,
+    usage: DrawerUsage?,
     currentProjectId: String?,
     currentProjectName: String,
     files: List<SourceFile>,
@@ -128,6 +129,29 @@ internal fun EditorDrawer(
                     Icon(OmniIcons.ChevronRight, null, tint = colors.textTertiary, modifier = Modifier.size(14.dp))
                 }
             }
+        }
+        usage?.let { UsageFooter(it) { onDestination(DrawerDestination.Usage) } }
+    }
+}
+
+@Composable
+private fun UsageFooter(usage: DrawerUsage, onClick: () -> Unit) {
+    val colors = OmniTheme.colors
+    val fraction = (usage.used.toFloat() / usage.limit).coerceIn(0f, 1f)
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .clickable(role = Role.Button, onClick = onClick)
+            .drawBehind { drawLine(colors.divider, Offset(0f, 0.5f), Offset(size.width, 0.5f), 1f) }
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(stringResource(R.string.drawer_usage_period), style = OmniTheme.typography.bodySmall, color = colors.textSecondary, modifier = Modifier.weight(1f))
+            Text(stringResource(R.string.drawer_usage_fraction, usage.used, usage.limit), style = OmniTheme.typography.monoSmall, color = colors.textPrimary)
+        }
+        Box(Modifier.fillMaxWidth().height(3.dp).background(colors.surfaceMuted)) {
+            Box(Modifier.fillMaxWidth(fraction).height(3.dp).background(if (fraction >= 0.9f) colors.accent else colors.textPrimary))
         }
     }
 }

@@ -18,6 +18,9 @@ import solutions.laxmi.omnicompiler.core.database.entity.VerdictCount
 
 @Dao
 interface RunDao {
+    @Query("SELECT COUNT(*) FROM runs WHERE project_id = :projectId")
+    suspend fun countForProject(projectId: String): Int
+
     @Query("SELECT * FROM runs WHERE project_id = :projectId ORDER BY started_at DESC LIMIT :limit")
     fun observeRecent(projectId: String, limit: Int): Flow<List<RunEntity>>
 
