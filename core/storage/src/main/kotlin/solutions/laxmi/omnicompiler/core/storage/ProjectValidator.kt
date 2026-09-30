@@ -43,9 +43,11 @@ class ProjectValidator(
 
     /**
      * Checks [folder]. [takenIds] are ids already claimed by folders checked earlier in the same scan; the
-     * caller adds the result's id so later duplicates get a new one.
+     * caller adds the result's id so later duplicates get a new one. [known] is the index's last manifest for this
+     * folder: when the folder's own manifest is missing or unreadable it is restored from it, so the project keeps
+     * its id, tests and limits instead of coming back as a new import.
      */
-    fun validate(folder: ScannedFolder, takenIds: Set<String>): ValidatedProject? {
+    fun validate(folder: ScannedFolder, takenIds: Set<String>, known: ProjectManifest? = null): ValidatedProject? {
         val issues = mutableListOf<ProjectIssue>()
         val files = acceptedFiles(folder.entries, issues)
         val parsed = folder.manifestText?.let(ManifestCodec::decode)
@@ -53,6 +55,10 @@ class ProjectValidator(
 
         var manifest = when {
             parsed != null -> parsed
+            known != null -> {
+                if (corrupt) issues += ProjectIssue.ManifestRebuilt
+                known
+            }
             else -> {
                 // No readable manifest: a folder with no source files isn't a project, just an unrelated folder.
                 if (files.isEmpty()) return null

@@ -70,8 +70,9 @@ internal class ProjectSync @Inject constructor(
             val validator = validator()
             val taken = mutableSetOf<String>()
             val seen = mutableSetOf<String>()
+            val indexed = projects.all().filter { it.folderDocId != null }.associateBy { it.folderDocId }
             store.scan(root).forEach { folder ->
-                val checked = validator.validate(folder, taken) ?: return@forEach
+                val checked = validator.validate(folder, taken, knownManifest(folder, indexed[folder.folder.docId])) ?: return@forEach
                 taken += checked.manifest.id
                 seen += checked.manifest.id
                 apply(root, folder, checked)
@@ -93,7 +94,13 @@ internal class ProjectSync @Inject constructor(
         }
         val others = projects.all().filter { it.id != projectId }.map { it.id }.toSet()
         val scanned = store.scanFolder(root, folder)
-        validator().validate(scanned, others)?.let { apply(root, scanned, it) }
+        validator().validate(scanned, others, knownManifest(scanned, projects.get(projectId)))?.let { apply(root, scanned, it) }
+    }
+
+    /** The index's manifest for [project], needed only when the folder's own manifest can't be read. */
+    private suspend fun knownManifest(folder: ScannedFolder, project: ProjectEntity?): ProjectManifest? {
+        if (project == null || folder.manifestText?.let(ManifestCodec::decode) != null) return null
+        return manifestOf(project)
     }
 
     /** Writes the project's manifest from the index. Caller holds [ProjectDiskLock]. */
@@ -200,17 +207,27 @@ internal class ProjectSync @Inject constructor(
         return runtimes.languages.first().firstNotNullOfOrNull { language -> language.defaultRuntime?.takeIf { it.extension == ext } }
     }
 
+    /**
+     * The manifest is written before the files, so an export cut short (process death) is resumed into the same
+     * folder on the next sync instead of leaving a manifest-less copy that would be adopted as a second project.
+     */
     private suspend fun exportIndexOnly(root: ProjectRoot) {
-        projects.all().filter { it.folderDocId == null }.forEach { project ->
-            val folder = store.createFolder(root, project.name)
+        val pending = projects.all().filter { it.folderDocId == null }
+        if (pending.isEmpty()) return
+        val started = store.scan(root)
+            .mapNotNull { scanned -> scanned.manifestText?.let(ManifestCodec::decode)?.let { it.id to scanned.folder } }
+            .toMap()
+        pending.forEach { exported ->
+            val folder = started[exported.id] ?: store.createFolder(root, exported.name)
+            // The folder name wins on clashes (it may have been suffixed); keep the index in step.
+            val project = exported.copy(name = folder.name)
+            if (project.name != exported.name) projects.upsert(project)
+            store.writeManifest(root, folder.docId, manifestOf(project))
             files.list(project.id).forEach { file ->
                 val written = store.writeFile(root, folder.docId, file.name, file.content)
                 files.setDiskState(file.id, written.docId, written.lastModified, written.size)
             }
             projects.setFolder(project.id, folder.docId)
-            // The folder name wins on clashes (it may have been suffixed); keep the index in step.
-            if (folder.name != project.name) projects.upsert(project.copy(name = folder.name, folderDocId = folder.docId))
-            writeManifestLocked(root, project.id)
         }
     }
 

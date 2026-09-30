@@ -1,6 +1,7 @@
 package solutions.laxmi.omnicompiler.core.data.project
 
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -55,7 +56,7 @@ internal class DefaultProjectFolderRepository @Inject constructor(
     private val preferences: PreferencesStore,
     private val store: ProjectFolderStore,
     private val sync: ProjectSync,
-    @ApplicationScope scope: CoroutineScope,
+    @ApplicationScope private val scope: CoroutineScope,
 ) : ProjectFolderRepository {
 
     private val state = MutableStateFlow(FolderStatus.Checking)
@@ -73,14 +74,24 @@ internal class DefaultProjectFolderRepository @Inject constructor(
     override suspend fun root(): ProjectRoot? =
         if (state.value == FolderStatus.Ready) storedRoot() else null
 
-    override suspend fun choose(treeUri: String): Outcome<Unit> = try {
-        val root = store.adopt(treeUri)
-        preferences.setProjectsRoot(root.treeUri, root.docId)
-        state.value = FolderStatus.Ready
-        sync.syncAll(root)
-    } catch (e: IOException) {
-        Outcome.Failure(AppError.Unknown(reason = ErrorReason.ProjectsFolderUnavailable))
-    }
+    /**
+     * Runs in the application scope: the first sync exports every existing project, and must not be cut short
+     * when the picker screen goes away. The folder only becomes [FolderStatus.Ready] once it is indexed, so the
+     * editor never opens on a half-exported index.
+     */
+    override suspend fun choose(treeUri: String): Outcome<Unit> = scope.async {
+        try {
+            val root = store.adopt(treeUri)
+            sync.syncAll(root).also { result ->
+                if (result is Outcome.Success) {
+                    preferences.setProjectsRoot(root.treeUri, root.docId)
+                    state.value = FolderStatus.Ready
+                }
+            }
+        } catch (e: IOException) {
+            Outcome.Failure(AppError.Unknown(reason = ErrorReason.ProjectsFolderUnavailable))
+        }
+    }.await()
 
     override suspend fun recheck() = checkLock.withLock {
         val root = storedRoot()
