@@ -27,6 +27,8 @@ import solutions.laxmi.omnicompiler.core.data.auth.AuthRepository
 import solutions.laxmi.omnicompiler.core.data.project.ProjectRepository
 import solutions.laxmi.omnicompiler.core.data.runtime.RuntimeRepository
 import solutions.laxmi.omnicompiler.core.data.settings.SettingsRepository
+import solutions.laxmi.omnicompiler.core.data.project.ProjectTemplate
+import solutions.laxmi.omnicompiler.core.model.Language
 import solutions.laxmi.omnicompiler.core.model.EditorSettings
 import solutions.laxmi.omnicompiler.core.model.LanguageInfo
 import solutions.laxmi.omnicompiler.core.model.Outcome
@@ -39,7 +41,6 @@ import solutions.laxmi.omnicompiler.core.model.Session
 import solutions.laxmi.omnicompiler.core.model.SourceFile
 import solutions.laxmi.omnicompiler.core.model.User
 import solutions.laxmi.omnicompiler.core.navigation.EditorRoute
-import solutions.laxmi.omnicompiler.core.model.ErrorReason
 import solutions.laxmi.omnicompiler.core.ui.UiText
 import solutions.laxmi.omnicompiler.core.ui.toUiText
 import solutions.laxmi.omnicompiler.feature.workspace.R
@@ -259,14 +260,15 @@ class EditorViewModel @AssistedInject constructor(
         }
     }
 
-    fun newProject() {
+    /** Languages for the "New project" sheet; only collected while the sheet is open. */
+    val languages: StateFlow<List<Language>> = runtimes.languages
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    fun newProject(name: String, language: Language) {
+        val runtime = language.defaultRuntime ?: return
         viewModelScope.launch {
-            val runtime = uiState.value.runtime ?: runtimes.defaultRuntime()
-            if (runtime == null) {
-                events.send(EditorEvent.Message(ErrorReason.LanguagesUnavailable.toUiText()))
-                return@launch
-            }
-            when (val result = projects.create(runtime)) {
+            val template = ProjectTemplate(name.ifBlank { "${language.base}-scratch" }, code = null, tests = null)
+            when (val result = projects.create(runtime, template)) {
                 is Outcome.Success -> events.send(EditorEvent.OpenProject(result.value))
                 is Outcome.Failure -> events.send(EditorEvent.Message(result.error.toUiText()))
             }

@@ -5,6 +5,7 @@ import solutions.laxmi.omnicompiler.core.ads.LocalAds
 import solutions.laxmi.omnicompiler.core.navigation.SourceControlRoute
 import solutions.laxmi.omnicompiler.core.navigation.PreviewRoute
 import solutions.laxmi.omnicompiler.core.ui.R as CommonR
+import solutions.laxmi.omnicompiler.core.ui.NewProjectSheet
 import solutions.laxmi.omnicompiler.core.ui.shareFile
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -90,6 +91,7 @@ fun EditorScreen(route: EditorRoute, navigator: Navigator) {
     val drawerProjects = if (drawerVisible) viewModel.drawerProjects.collectAsStateWithLifecycle().value else emptyList()
     val drawerUsage by viewModel.drawerUsage.collectAsStateWithLifecycle()
     LaunchedEffect(drawerVisible) { if (drawerVisible) viewModel.onDrawerOpened() }
+    var creatingProject by rememberSaveable { mutableStateOf(false) }
 
     LaunchedEffect(viewModel) {
         viewModel.eventFlow.collect { event ->
@@ -124,7 +126,7 @@ fun EditorScreen(route: EditorRoute, navigator: Navigator) {
             },
             onRenameProject = viewModel::renameProject,
             onResetToStarter = viewModel::resetToStarter,
-            onNewProject = viewModel::newProject,
+            onNewProject = { creatingProject = true },
             onOpenProject = { id ->
                 // Switching projects from the drawer is a natural break (never mid-run: runs belong to the old project).
                 activity?.let { ads.onNaturalBreak(it) }
@@ -148,6 +150,13 @@ fun EditorScreen(route: EditorRoute, navigator: Navigator) {
             onAppearance = { navigator.navigate(AppearanceRoute) },
         ),
     )
+    if (creatingProject) {
+        val languages by viewModel.languages.collectAsStateWithLifecycle()
+        NewProjectSheet(languages, onDismiss = { creatingProject = false }, initialBase = state.runtime?.language) { name, language ->
+            creatingProject = false
+            viewModel.newProject(name, language)
+        }
+    }
 }
 
 /** What the navigation drawer shows; kept apart from [EditorUiState] (see [EditorViewModel.drawerProjects]). */

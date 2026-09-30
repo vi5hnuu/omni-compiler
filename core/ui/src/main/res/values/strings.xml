@@ -130,4 +130,8 @@
         <item quantity="other">A run can have at most %1$d test cases.</item>
     </plurals>
     <string name="common_error_runtime_unavailable">This runtime is no longer available.</string>
+    <string name="new_project_title">New project</string>
+    <string name="new_project_name">Name</string>
+    <string name="new_project_search_languages">Search languages</string>
+    <string name="new_project_create">Create project</string>
 </resources>

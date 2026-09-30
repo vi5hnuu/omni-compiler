@@ -19,9 +19,6 @@
     <string name="projects_share_zip">Share as .zip</string>
     <string name="projects_share_title">Share %1$s</string>
     <string name="projects_duplicated">Duplicated.</string>
-    <string name="projects_name">Name</string>
-    <string name="projects_search_languages">Search languages</string>
-    <string name="projects_create">Create project</string>
 
     <string name="practice_title">Examples &amp; problems</string>
     <string name="practice_tab_examples">Examples</string>
