@@ -1,5 +1,9 @@
 package solutions.laxmi.omnicompiler.core.network.di
 
+import solutions.laxmi.omnicompiler.core.network.source.RetrofitGitNetworkDataSource
+import solutions.laxmi.omnicompiler.core.network.source.GitNetworkDataSource
+import solutions.laxmi.omnicompiler.core.network.api.GitLabApi
+import solutions.laxmi.omnicompiler.core.network.api.GitHubApi
 import dagger.Binds
 import dagger.Module
 import dagger.Provides
@@ -63,6 +67,7 @@ internal object NetworkModule {
                     level = HttpLoggingInterceptor.Level.BASIC
                     redactHeader("Authorization")
                     redactHeader("X-API-Key")
+                    redactHeader("PRIVATE-TOKEN")
                 })
             }
         }
@@ -102,6 +107,30 @@ internal object NetworkModule {
     fun providesJudgeApi(@Authenticated client: OkHttpClient, json: Json): JudgeApi =
         retrofit(BuildConfig.API_BASE_URL, client, json).create(JudgeApi::class.java)
 
+    /** Code hosts get the plain client plus the headers GitHub asks every API client to send. */
+    @Provides
+    @Singleton
+    fun providesGitHubApi(base: OkHttpClient, json: Json): GitHubApi = retrofit(
+        GITHUB_API,
+        base.newBuilder().addInterceptor { chain ->
+            chain.proceed(
+                chain.request().newBuilder()
+                    .header("Accept", "application/vnd.github+json")
+                    .header("X-GitHub-Api-Version", GITHUB_API_VERSION)
+                    .build(),
+            )
+        }.build(),
+        json,
+    ).create(GitHubApi::class.java)
+
+    @Provides
+    @Singleton
+    fun providesGitLabApi(base: OkHttpClient, json: Json): GitLabApi = retrofit(GITLAB_API, base, json).create(GitLabApi::class.java)
+
+    private const val GITHUB_API = "https://api.github.com/"
+    private const val GITHUB_API_VERSION = "2022-11-28"
+    private const val GITLAB_API = "https://gitlab.com/api/v4/"
+
     private fun retrofit(baseUrl: String, client: OkHttpClient, json: Json): Retrofit = Retrofit.Builder()
         .baseUrl(baseUrl)
         .client(client)
@@ -117,4 +146,7 @@ internal interface NetworkBindings {
 
     @Binds
     fun bindsJudgeNetworkDataSource(impl: RetrofitJudgeNetworkDataSource): JudgeNetworkDataSource
+
+    @Binds
+    fun bindsGitNetworkDataSource(impl: RetrofitGitNetworkDataSource): GitNetworkDataSource
 }

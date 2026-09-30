@@ -72,4 +72,6 @@
     <string name="settings_invisibles_note">Mark leading and trailing whitespace</string>
     <string name="settings_hardware_keyboard">Hide on-screen keyboard</string>
     <string name="settings_hardware_keyboard_note">When a hardware keyboard is connected</string>
+    <string name="settings_git_accounts">Git accounts</string>
+    <string name="settings_git_accounts_note">GitHub and GitLab</string>
 </resources>

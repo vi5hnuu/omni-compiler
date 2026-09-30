@@ -22,6 +22,8 @@ data class ProjectManifest(
     val lastVerdict: String? = null,
     /** Document the project was imported from as a single file; "Save to original" writes the entry back there. */
     val origin: String? = null,
+    /** GitHub/GitLab folder the project tracks (see ProjectRemote). */
+    val remote: ManifestRemote? = null,
 ) {
     companion object {
         const val SCHEMA = 1
@@ -30,6 +32,18 @@ data class ProjectManifest(
 
 @Serializable
 data class ManifestLimits(val timeMs: Int, val memMb: Int)
+
+@Serializable
+data class ManifestRemote(
+    val host: String,
+    val repoId: String,
+    val repoName: String,
+    val branch: String,
+    val path: String = "",
+    val baseCommit: String,
+    val baseBlobs: Map<String, String> = emptyMap(),
+    val conflicts: List<String> = emptyList(),
+)
 
 @Serializable
 data class ManifestTest(
@@ -48,6 +62,19 @@ object ManifestCodec {
     }
 
     fun encode(manifest: ProjectManifest): String = json.encodeToString(ProjectManifest.serializer(), manifest)
+
+    /** Compact form of a remote, as the index stores it. */
+    fun encodeRemote(remote: ManifestRemote): String = compact.encodeToString(ManifestRemote.serializer(), remote)
+
+    fun decodeRemote(text: String): ManifestRemote? = try {
+        compact.decodeFromString(ManifestRemote.serializer(), text)
+    } catch (e: SerializationException) {
+        null
+    } catch (e: IllegalArgumentException) {
+        null
+    }
+
+    private val compact = Json { ignoreUnknownKeys = true }
 
     /** Null when the text isn't a manifest this app can read (corrupt JSON, missing fields, wrong types). */
     fun decode(text: String): ProjectManifest? = try {

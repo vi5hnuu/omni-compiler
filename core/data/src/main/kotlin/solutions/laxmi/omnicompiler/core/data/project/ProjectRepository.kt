@@ -1,5 +1,8 @@
 package solutions.laxmi.omnicompiler.core.data.project
 
+import solutions.laxmi.omnicompiler.core.storage.ManifestCodec
+import solutions.laxmi.omnicompiler.core.data.mapper.toManifest
+import solutions.laxmi.omnicompiler.core.model.ProjectRemote
 import solutions.laxmi.omnicompiler.core.storage.ProjectRoot
 import solutions.laxmi.omnicompiler.core.storage.ProjectFolderStore
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -87,6 +90,17 @@ interface ProjectRepository {
 
     /** Writes a project's entry file back to the document it was imported from. */
     suspend fun saveToOrigin(projectId: String): Outcome<Unit>
+
+    /** New project from files fetched from GitHub/GitLab, tracking [remote]. */
+    suspend fun importRemote(name: String, files: Map<String, String>, remote: ProjectRemote): Outcome<String>
+
+    /**
+     * Applies files from the remote (content, or null to delete) as outside edits (an open editor reloads),
+     * then records the new [remote] state. The entry file is never deleted this way.
+     */
+    suspend fun applyRemote(projectId: String, changes: Map<String, String?>, remote: ProjectRemote): Outcome<Unit>
+
+    suspend fun setRemote(projectId: String, remote: ProjectRemote): Outcome<Unit>
 }
 
 @Singleton
@@ -384,6 +398,48 @@ internal class LocalProjectRepository @Inject constructor(
         val origin = projects.get(projectId)?.originUri ?: return Outcome.Failure(AppError.NotFound(reason = ErrorReason.FileNotFound))
         val entry = files.list(projectId).firstOrNull { it.isEntry } ?: return Outcome.Failure(AppError.NotFound(reason = ErrorReason.EntryFileMissing))
         return onDisk { store.writeDocument(origin, entry.content) }
+    }
+
+    override suspend fun importRemote(name: String, files: Map<String, String>, remote: ProjectRemote): Outcome<String> =
+        imported(onDisk { root -> sync.createFromFilesLocked(root, slugify(name).ifEmpty { "repo" }, files, remote.toManifest()) })
+
+    override suspend fun applyRemote(projectId: String, changes: Map<String, String?>, remote: ProjectRemote): Outcome<Unit> {
+        val project = projects.get(projectId) ?: return Outcome.Failure(AppError.NotFound(reason = ErrorReason.ProjectNotFound))
+        val folder = project.folderDocId ?: return Outcome.Failure(AppError.Unknown(reason = ErrorReason.ProjectsFolderUnavailable))
+        return onDisk { root ->
+            val existing = files.list(projectId).associateBy { it.name }
+            changes.forEach { (name, content) ->
+                val row = existing[name]
+                when {
+                    content == null && row != null && !row.isEntry -> {
+                        row.docId?.let { store.delete(root, it) }
+                        files.deleteNonEntry(row.id)
+                    }
+                    content != null && row != null -> {
+                        val written = row.docId?.let { store.updateFile(root, it, content) } ?: store.writeFile(root, folder, name, content)
+                        db.withTransaction {
+                            files.replaceContent(row.id, content)
+                            files.setDiskState(row.id, written.docId, written.lastModified, written.size)
+                        }
+                    }
+                    content != null -> {
+                        val written = store.writeFile(root, folder, name, content)
+                        files.insert(
+                            FileEntity(ids.newId(), projectId, name, content, isEntry = false, position = files.nextPosition(projectId),
+                                docId = written.docId, lastModified = written.lastModified, size = written.size),
+                        )
+                    }
+                }
+            }
+            projects.upsert(project.copy(remoteJson = ManifestCodec.encodeRemote(remote.toManifest()), updatedAt = time.now().toEpochMilliseconds()))
+            sync.writeManifestLocked(root, projectId)
+        }
+    }
+
+    override suspend fun setRemote(projectId: String, remote: ProjectRemote): Outcome<Unit> {
+        val project = projects.get(projectId) ?: return Outcome.Failure(AppError.NotFound(reason = ErrorReason.ProjectNotFound))
+        projects.upsert(project.copy(remoteJson = ManifestCodec.encodeRemote(remote.toManifest())))
+        return onDisk { root -> sync.writeManifestLocked(root, projectId) }
     }
 
     private suspend fun imported(result: Outcome<String?>): Outcome<String> = when (result) {

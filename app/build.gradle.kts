@@ -56,6 +56,7 @@ dependencies {
     implementation(projects.feature.account)
     implementation(projects.feature.developer)
     implementation(projects.feature.settings)
+    implementation(projects.feature.vcs)
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.core.splashscreen)

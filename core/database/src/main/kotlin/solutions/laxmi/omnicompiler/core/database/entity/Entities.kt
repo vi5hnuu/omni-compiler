@@ -24,6 +24,8 @@ data class ProjectEntity(
     @ColumnInfo(name = "issues", defaultValue = "") val issues: String = "",
     /** Document a single-file import came from (see ProjectManifest.origin). */
     @ColumnInfo(name = "origin_uri") val originUri: String? = null,
+    /** JSON of the tracked GitHub/GitLab folder (ManifestRemote); null for local-only projects. */
+    @ColumnInfo(name = "remote_json") val remoteJson: String? = null,
 )
 
 @Entity(
@@ -171,6 +173,7 @@ data class ProjectSummaryRow(
     @ColumnInfo(name = "folder_doc_id") val folderDocId: String?,
     @ColumnInfo(name = "issues") val issues: String,
     @ColumnInfo(name = "origin_uri") val originUri: String?,
+    @ColumnInfo(name = "remote_json") val remoteJson: String?,
     @ColumnInfo(name = "file_names") val fileNames: String?,
     @ColumnInfo(name = "test_count") val testCount: Int,
 )

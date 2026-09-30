@@ -1,5 +1,6 @@
 package solutions.laxmi.omnicompiler.feature.projects
 
+import solutions.laxmi.omnicompiler.core.navigation.RepoImportRoute
 import solutions.laxmi.omnicompiler.core.model.ProjectIssue
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
@@ -103,6 +104,7 @@ fun ProjectsScreen(navigator: Navigator) {
                     DropdownMenu(menu, { menu = false }, containerColor = colors.surfaceRaised, shape = RectangleShape) {
                         DropdownMenuItem(text = { Text(stringResource(R.string.projects_import_folder)) }, onClick = { menu = false; pickFolder.launch(null) })
                         DropdownMenuItem(text = { Text(stringResource(R.string.projects_open_file)) }, onClick = { menu = false; pickFile.launch(arrayOf("*/*")) })
+                        DropdownMenuItem(text = { Text(stringResource(R.string.projects_import_git)) }, onClick = { menu = false; navigator.navigate(RepoImportRoute) })
                     }
                 }
             }

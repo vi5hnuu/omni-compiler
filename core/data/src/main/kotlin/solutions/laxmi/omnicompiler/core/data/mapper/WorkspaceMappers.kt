@@ -1,5 +1,9 @@
 package solutions.laxmi.omnicompiler.core.data.mapper
 
+import solutions.laxmi.omnicompiler.core.model.ProjectRemote
+import solutions.laxmi.omnicompiler.core.model.GitHost
+import solutions.laxmi.omnicompiler.core.storage.ManifestRemote
+import solutions.laxmi.omnicompiler.core.storage.ManifestCodec
 import solutions.laxmi.omnicompiler.core.model.ProjectIssue
 import solutions.laxmi.omnicompiler.core.database.entity.FileEntity
 import solutions.laxmi.omnicompiler.core.database.entity.ProjectEntity
@@ -27,6 +31,7 @@ internal fun ProjectEntity.toModel() = Project(
     updatedAt = Instant.fromEpochMilliseconds(updatedAt),
     issues = parseIssues(issues),
     hasOrigin = originUri != null,
+    remote = remoteJson?.let(ManifestCodec::decodeRemote)?.toModel(),
 )
 
 internal fun ProjectSummaryRow.toModel() = ProjectSummary(
@@ -40,6 +45,7 @@ internal fun ProjectSummaryRow.toModel() = ProjectSummary(
         updatedAt = Instant.fromEpochMilliseconds(updatedAt),
         issues = parseIssues(issues),
         hasOrigin = originUri != null,
+        remote = remoteJson?.let(ManifestCodec::decodeRemote)?.toModel(),
     ),
     fileNames = fileNames?.split('\n')?.filter { it.isNotEmpty() }.orEmpty(),
     testCount = testCount,
@@ -72,3 +78,9 @@ internal fun Runtime.toEntity() = RuntimeEntity(
 internal fun parseIssues(stored: String): List<ProjectIssue> = stored.lines().filter { it.isNotBlank() }.mapNotNull(ProjectIssue::parse)
 
 internal fun List<ProjectIssue>.toStored(): String = joinToString("\n", transform = ProjectIssue::format)
+
+internal fun ManifestRemote.toModel(): ProjectRemote? = GitHost.entries.firstOrNull { it.name == host }?.let { gitHost ->
+    ProjectRemote(gitHost, repoId, repoName, branch, path, baseCommit, baseBlobs, conflicts.toSet())
+}
+
+internal fun ProjectRemote.toManifest() = ManifestRemote(host.name, repoId, repoName, branch, path, baseCommit, baseBlobs, conflicts.sorted())

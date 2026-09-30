@@ -233,6 +233,7 @@ internal fun ColumnScope.WorkspaceBody(
                 OverflowMenu(
                     listOfNotNull(
                         (stringResource(R.string.editor_menu_save_to_origin) to actions.onSaveToOrigin).takeIf { state.workspace?.project?.hasOrigin == true },
+                        (stringResource(R.string.editor_menu_source_control) to actions.onSourceControl).takeIf { state.workspace?.project?.remote != null },
                         // Web files open in the preview; browser JavaScript runs in a page with a console.
                         previewLabel(activeFile)?.let { label -> stringResource(label) to { actions.onPreview(activeFile.id) } },
                         stringResource(R.string.editor_menu_run_with_input) to { openConsole(ConsoleTab.Input) },

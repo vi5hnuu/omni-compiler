@@ -1,5 +1,6 @@
 package solutions.laxmi.omnicompiler.feature.workspace.editor
 
+import solutions.laxmi.omnicompiler.core.navigation.SourceControlRoute
 import solutions.laxmi.omnicompiler.core.navigation.PreviewRoute
 import solutions.laxmi.omnicompiler.core.ui.R as CommonR
 import solutions.laxmi.omnicompiler.core.ui.shareFile
@@ -113,6 +114,7 @@ fun EditorScreen(route: EditorRoute, navigator: Navigator) {
             onShareFile = viewModel::shareFile,
             onShareProject = viewModel::shareProject,
             onSaveToOrigin = viewModel::saveToOrigin,
+            onSourceControl = { state.workspace?.project?.id?.let { navigator.navigate(SourceControlRoute(it)) } },
             onPreview = { fileId ->
                 state.workspace?.project?.id?.let { navigator.navigate(PreviewRoute(it, fileId)) }
             },
@@ -157,6 +159,7 @@ internal class EditorActions(
     val onShareFile: (String) -> Unit,
     val onShareProject: () -> Unit,
     val onSaveToOrigin: () -> Unit,
+    val onSourceControl: () -> Unit,
     val onPreview: (fileId: String) -> Unit,
     val onRenameProject: (String) -> Unit,
     val onResetToStarter: () -> Unit,

@@ -29,6 +29,15 @@ sealed interface ErrorReason {
     data object ProjectsFolderUnavailable : ErrorReason
     /** An imported folder or file had nothing that can be edited as source (empty, binary, too large). */
     data object NothingToImport : ErrorReason
+
+    // Git hosts
+    data object GitTokenRejected : ErrorReason
+    data object GitNotConnected : ErrorReason
+    /** The remote branch moved since the last pull; pushing would overwrite someone else's commits. */
+    data object GitPullFirst : ErrorReason
+    data object GitNothingToCommit : ErrorReason
+    data object GitResolveConflictsFirst : ErrorReason
+    data object GitRequestFailed : ErrorReason
     /** No runtime matches the imported file's extension. */
     data class UnknownFileLanguage(val fileName: String) : ErrorReason
     data object FileNotFound : ErrorReason

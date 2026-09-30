@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="git_accounts_title">Git accounts</string>
+    <string name="git_accounts_intro">Connect GitHub or GitLab with a personal access token to import repository folders as projects, and to commit, push and pull. Tokens are stored encrypted on this device only.</string>
+    <string name="git_connected_as">Connected as %1$s</string>
+    <string name="git_disconnect">Disconnect</string>
+    <string name="git_token_label">Personal access token</string>
+    <string name="git_create_token">Create a token</string>
+    <string name="git_connect">Connect</string>
+    <string name="git_scope_github">Needs the \"repo\" scope (or a fine-grained token with Contents: read and write).</string>
+    <string name="git_scope_gitlab">Needs the \"api\" scope.</string>
+    <string name="git_import_title">Import from Git</string>
+    <string name="git_no_accounts_title">No Git account connected</string>
+    <string name="git_no_accounts_message">Connect GitHub or GitLab first, then pick a repository folder to import.</string>
+    <string name="git_search_repos">Search repositories</string>
+    <string name="git_private">PRIVATE</string>
+    <string name="git_load_more">Load more</string>
+    <string name="git_branch">Branch</string>
+    <string name="git_import_note">Only this folder\'s own files are imported (projects are flat, like the judge\'s workspace).</string>
+    <plurals name="git_import_folder">
+        <item quantity="one">Import this folder (%1$d file)</item>
+        <item quantity="other">Import this folder (%1$d files)</item>
+    </plurals>
+    <string name="git_import_empty">No files in this folder</string>
+    <string name="git_source_control">Source control</string>
+    <string name="git_pull">Pull</string>
+    <string name="git_not_tracked_title">Not linked to a repository</string>
+    <string name="git_not_tracked_message">Import a folder from GitHub or GitLab to commit, push and pull.</string>
+    <string name="git_conflicts">Conflicts</string>
+    <string name="git_conflict_note">Changed here and on the server. Your version is kept until you choose.</string>
+    <string name="git_keep_mine">Keep mine</string>
+    <string name="git_take_theirs">Take theirs</string>
+    <string name="git_changes">Changes</string>
+    <string name="git_no_changes">No changes since the last pull or push.</string>
+    <string name="git_commit_message">Commit message</string>
+    <string name="git_commit_push">Commit and push</string>
+    <string name="git_pushed">Pushed</string>
+    <string name="git_up_to_date">Already up to date</string>
+    <plurals name="git_pulled">
+        <item quantity="one">Pulled: %1$d file updated</item>
+        <item quantity="other">Pulled: %1$d files updated</item>
+    </plurals>
+    <plurals name="git_pulled_conflicts">
+        <item quantity="one">Pulled with %1$d conflict to resolve</item>
+        <item quantity="other">Pulled with %1$d conflicts to resolve</item>
+    </plurals>
+</resources>

@@ -1,5 +1,6 @@
 package solutions.laxmi.omnicompiler.feature.settings
 
+import solutions.laxmi.omnicompiler.core.navigation.GitAccountsRoute
 import solutions.laxmi.omnicompiler.core.navigation.ProjectFolderRoute
 import solutions.laxmi.omnicompiler.core.ui.labelRes
 import solutions.laxmi.omnicompiler.core.ui.displayName
@@ -89,6 +90,7 @@ fun SettingsScreen(navigator: Navigator, appVersion: String) {
                 trailing = { Chevron() },
                 onClick = { navigator.navigate(ProjectFolderRoute(change = true)) },
             )
+            OmniListRow(stringResource(R.string.settings_git_accounts), subtitle = stringResource(R.string.settings_git_accounts_note), trailing = { Chevron() }, onClick = { navigator.navigate(GitAccountsRoute) })
             SectionLabel(stringResource(R.string.settings_run))
             OmniListRow(
                 stringResource(R.string.settings_default_language),

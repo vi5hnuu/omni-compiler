@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Credentials are device-bound (Keystore key), so the encrypted session and its keyset never leave the device. -->
+<!-- Credentials are device-bound (Keystore key), so the encrypted session, git tokens and keyset never leave the device. -->
 <full-backup-content>
     <exclude domain="file" path="datastore/session.enc" />
+    <exclude domain="file" path="datastore/git.enc" />
     <exclude domain="sharedpref" path="omni_keyset_prefs.xml" />
 </full-backup-content>

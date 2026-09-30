@@ -109,6 +109,12 @@
     <string name="common_error_projects_folder">Can\'t reach your projects folder. Check that it still exists, or choose it again in Settings.</string>
     <string name="common_error_nothing_to_import">Nothing to import: no readable source files (binary or very large files are skipped).</string>
     <string name="common_error_unknown_file_language">No language runs %1$s. Rename it with the right extension, or add it to a project.</string>
+    <string name="common_error_git_token">The token was rejected. Check that it hasn\'t expired and has repository access.</string>
+    <string name="common_error_git_not_connected">Connect your account in Settings first.</string>
+    <string name="common_error_git_pull_first">The branch changed on the server. Pull first, then push again.</string>
+    <string name="common_error_git_nothing">No changes to commit.</string>
+    <string name="common_error_git_conflicts">Resolve the conflicting files first.</string>
+    <string name="common_error_git_failed">The code host didn\'t accept the request. Try again later.</string>
     <string name="common_error_export_failed">Couldn\'t prepare the export.</string>
     <string name="common_error_document_open_failed">Couldn\'t open that file.</string>
     <string name="common_error_document_too_large">File is larger than %1$d KB.</string>

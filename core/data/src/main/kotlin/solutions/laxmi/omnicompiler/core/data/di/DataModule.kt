@@ -1,5 +1,7 @@
 package solutions.laxmi.omnicompiler.core.data.di
 
+import solutions.laxmi.omnicompiler.core.data.git.GitRepository
+import solutions.laxmi.omnicompiler.core.data.git.DefaultGitRepository
 import solutions.laxmi.omnicompiler.core.data.project.ProjectFolderRepository
 import solutions.laxmi.omnicompiler.core.data.project.DefaultProjectFolderRepository
 import dagger.Binds
@@ -46,6 +48,7 @@ internal interface DataModule {
     @Binds fun bindsRuntimeRepository(impl: DefaultRuntimeRepository): RuntimeRepository
     @Binds fun bindsProjectRepository(impl: LocalProjectRepository): ProjectRepository
     @Binds fun bindsProjectFolderRepository(impl: DefaultProjectFolderRepository): ProjectFolderRepository
+    @Binds fun bindsGitRepository(impl: DefaultGitRepository): GitRepository
     @Binds fun bindsSettingsRepository(impl: DefaultSettingsRepository): SettingsRepository
     @Binds fun bindsExecutionRepository(impl: DefaultExecutionRepository): ExecutionRepository
     @Binds fun bindsConnectivityObserver(impl: AndroidConnectivityObserver): ConnectivityObserver

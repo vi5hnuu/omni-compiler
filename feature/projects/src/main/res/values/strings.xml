@@ -70,4 +70,5 @@
     <string name="projects_issue_skipped_binary">Skipped %1$s: not a text file.</string>
     <string name="projects_issue_skipped_name">Skipped %1$s: unsupported file name.</string>
     <string name="projects_issue_skipped_folder">Skipped folder %1$s: projects are flat, files in subfolders aren\'t run.</string>
+    <string name="projects_import_git">Import from GitHub or GitLab</string>
 </resources>

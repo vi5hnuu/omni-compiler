@@ -317,4 +317,5 @@
     <string name="editor_split_divider">Resize panes</string>
     <string name="editor_menu_split">Split view</string>
     <string name="editor_menu_unsplit">Close split view</string>
+    <string name="editor_menu_source_control">Source control</string>
 </resources>

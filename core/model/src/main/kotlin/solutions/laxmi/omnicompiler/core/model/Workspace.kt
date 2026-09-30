@@ -14,6 +14,8 @@ data class Project(
     val issues: List<ProjectIssue> = emptyList(),
     /** Imported from a single file that can be written back ("Save to original"). */
     val hasOrigin: Boolean = false,
+    /** Set when the project was imported from GitHub or GitLab. */
+    val remote: ProjectRemote? = null,
 )
 
 /**

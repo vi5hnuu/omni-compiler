@@ -1,5 +1,6 @@
 package solutions.laxmi.omnicompiler.navigation
 
+import solutions.laxmi.omnicompiler.feature.vcs.vcsEntries
 import solutions.laxmi.omnicompiler.core.navigation.ProjectFolderRoute
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.fillMaxSize
@@ -75,6 +76,7 @@ fun OmniNavHost(gate: AppGate, appVersion: String) {
             accountEntries(navigator)
             developerEntries(navigator)
             settingsEntries(navigator, appVersion, R.raw.aboutlibraries)
+            vcsEntries(navigator)
         },
     )
 }

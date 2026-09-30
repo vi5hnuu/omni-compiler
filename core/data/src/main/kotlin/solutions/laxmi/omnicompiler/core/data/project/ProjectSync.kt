@@ -23,6 +23,7 @@ import solutions.laxmi.omnicompiler.core.model.ProjectIssue
 import solutions.laxmi.omnicompiler.core.storage.DocEntry
 import solutions.laxmi.omnicompiler.core.storage.ManifestCodec
 import solutions.laxmi.omnicompiler.core.storage.ManifestLimits
+import solutions.laxmi.omnicompiler.core.storage.ManifestRemote
 import solutions.laxmi.omnicompiler.core.storage.ManifestTest
 import solutions.laxmi.omnicompiler.core.storage.ProjectFolderStore
 import solutions.laxmi.omnicompiler.core.storage.ProjectManifest
@@ -114,6 +115,7 @@ internal class ProjectSync @Inject constructor(
             createdAt = project.createdAt,
             lastVerdict = project.lastVerdict,
             origin = project.originUri,
+            remote = project.remoteJson?.let(ManifestCodec::decodeRemote),
         )
     }
 
@@ -168,6 +170,20 @@ internal class ProjectSync @Inject constructor(
                 origin = documentUri,
             ),
         )
+        return indexFolderLocked(root, folder)
+    }
+
+    /**
+     * Creates a project from files fetched elsewhere (a GitHub/GitLab folder): writes them, lets the validator
+     * pick the runtime and entry file, then records the remote in the manifest.
+     */
+    suspend fun createFromFilesLocked(root: ProjectRoot, name: String, files: Map<String, String>, remote: ManifestRemote): String? {
+        if (files.isEmpty()) return null
+        val folder = store.createFolder(root, name)
+        files.forEach { (fileName, content) -> store.writeFile(root, folder.docId, fileName, content) }
+        val scanned = store.scanFolder(root, folder)
+        val checked = validator().validate(scanned, projects.all().map { it.id }.toSet()) ?: return null
+        store.writeManifest(root, folder.docId, checked.manifest.copy(remote = remote, createdAt = time.now().toEpochMilliseconds()))
         return indexFolderLocked(root, folder)
     }
 
@@ -255,6 +271,7 @@ internal class ProjectSync @Inject constructor(
                     folderDocId = checked.folder.docId,
                     issues = issues.toStored(),
                     originUri = manifest.origin,
+                    remoteJson = manifest.remote?.let(ManifestCodec::encodeRemote),
                 ),
             )
             val gone = existing.values.filter { row -> rows.none { it.id == row.id } }.map { it.id }

@@ -33,34 +33,50 @@ internal object DataStoreModule {
 
     /** File names referenced by the app's backup exclusion rules — keep them in sync. */
     private const val SESSION_FILE = "datastore/session.enc"
+    private const val GIT_FILE = "datastore/git.enc"
     private const val KEYSET_PREFS = "omni_keyset_prefs"
     private const val KEYSET_NAME = "omni_session_keyset"
     private const val MASTER_KEY_URI = "android-keystore://omni_session_master_key"
+
+    /** One Keystore-backed key for every encrypted store; Keystore access is slow, so it's built on first use (IO). */
+    @Provides
+    @Singleton
+    fun providesKeystoreAead(@ApplicationContext context: Context): @JvmSuppressWildcards Lazy<Aead> = lazy {
+        AeadConfig.register()
+        AndroidKeysetManager.Builder()
+            .withSharedPref(context, KEYSET_NAME, KEYSET_PREFS)
+            .withKeyTemplate(KeyTemplates.get("AES256_GCM"))
+            .withMasterKeyUri(MASTER_KEY_URI)
+            .build()
+            .keysetHandle
+            .getPrimitive(RegistryConfiguration.get(), Aead::class.java)
+    }
 
     @Provides
     @Singleton
     fun providesSessionDataStore(
         @ApplicationContext context: Context,
         @Dispatcher(OmniDispatcher.IO) io: CoroutineDispatcher,
-    ): DataStore<StoredSession?> {
-        // Keystore access is slow; build the AEAD lazily on the IO thread the first time it is needed.
-        val aead = lazy {
-            AeadConfig.register()
-            AndroidKeysetManager.Builder()
-                .withSharedPref(context, KEYSET_NAME, KEYSET_PREFS)
-                .withKeyTemplate(KeyTemplates.get("AES256_GCM"))
-                .withMasterKeyUri(MASTER_KEY_URI)
-                .build()
-                .keysetHandle
-                .getPrimitive(RegistryConfiguration.get(), Aead::class.java)
-        }
-        return DataStoreFactory.create(
-            serializer = SessionSerializer(aead, Json { ignoreUnknownKeys = true }),
-            corruptionHandler = ReplaceFileCorruptionHandler { null },
-            scope = CoroutineScope(io + SupervisorJob()),
-            produceFile = { File(context.filesDir, SESSION_FILE) },
-        )
-    }
+        aead: @JvmSuppressWildcards Lazy<Aead>,
+    ): DataStore<StoredSession?> = DataStoreFactory.create(
+        serializer = EncryptedJsonSerializer(aead, Json { ignoreUnknownKeys = true }, StoredSession.serializer(), "omni.session.v1".encodeToByteArray()),
+        corruptionHandler = ReplaceFileCorruptionHandler { null },
+        scope = CoroutineScope(io + SupervisorJob()),
+        produceFile = { File(context.filesDir, SESSION_FILE) },
+    )
+
+    @Provides
+    @Singleton
+    fun providesGitCredentialsDataStore(
+        @ApplicationContext context: Context,
+        @Dispatcher(OmniDispatcher.IO) io: CoroutineDispatcher,
+        aead: @JvmSuppressWildcards Lazy<Aead>,
+    ): DataStore<StoredGitCredentials?> = DataStoreFactory.create(
+        serializer = EncryptedJsonSerializer(aead, Json { ignoreUnknownKeys = true }, StoredGitCredentials.serializer(), "omni.git.v1".encodeToByteArray()),
+        corruptionHandler = ReplaceFileCorruptionHandler { null },
+        scope = CoroutineScope(io + SupervisorJob()),
+        produceFile = { File(context.filesDir, GIT_FILE) },
+    )
 
     @Provides
     @Singleton
@@ -81,4 +97,7 @@ internal interface DataStoreBindings {
 
     @Binds
     fun bindsPreferencesStore(impl: DataStorePreferencesStore): PreferencesStore
+
+    @Binds
+    fun bindsGitCredentialStore(impl: EncryptedGitCredentialStore): GitCredentialStore
 }

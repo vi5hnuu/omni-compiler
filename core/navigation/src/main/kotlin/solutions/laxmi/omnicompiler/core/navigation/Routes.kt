@@ -39,3 +39,8 @@ import kotlinx.serialization.Serializable
 @Serializable data object SettingsRoute : Route
 @Serializable data object AppearanceRoute : Route
 @Serializable data object OpenSourceRoute : Route
+
+// GitHub / GitLab
+@Serializable data object GitAccountsRoute : Route
+@Serializable data object RepoImportRoute : Route
+@Serializable data class SourceControlRoute(val projectId: String) : Route

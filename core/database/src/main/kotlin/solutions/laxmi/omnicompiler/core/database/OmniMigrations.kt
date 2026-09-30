@@ -34,6 +34,7 @@ object OmniMigrations {
             connection.execSQL("ALTER TABLE projects ADD COLUMN folder_doc_id TEXT")
             connection.execSQL("ALTER TABLE projects ADD COLUMN issues TEXT NOT NULL DEFAULT ''")
             connection.execSQL("ALTER TABLE projects ADD COLUMN origin_uri TEXT")
+            connection.execSQL("ALTER TABLE projects ADD COLUMN remote_json TEXT")
             connection.execSQL("ALTER TABLE files ADD COLUMN doc_id TEXT")
             connection.execSQL("ALTER TABLE files ADD COLUMN last_modified INTEGER NOT NULL DEFAULT 0")
             connection.execSQL("ALTER TABLE files ADD COLUMN size INTEGER NOT NULL DEFAULT 0")

@@ -2,11 +2,11 @@
   "formatVersion": 1,
   "database": {
     "version": 5,
-    "identityHash": "5ea1453fbf85a153e791097547b20000",
+    "identityHash": "ca40cc964c30c0bad47e30203c3695ca",
     "entities": [
       {
         "tableName": "projects",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `name` TEXT NOT NULL, `runtime_id` TEXT NOT NULL, `time_limit_ms` INTEGER NOT NULL, `mem_limit_mb` INTEGER NOT NULL, `last_verdict` TEXT, `created_at` INTEGER NOT NULL, `updated_at` INTEGER NOT NULL, `folder_doc_id` TEXT, `issues` TEXT NOT NULL DEFAULT '', `origin_uri` TEXT, PRIMARY KEY(`id`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `name` TEXT NOT NULL, `runtime_id` TEXT NOT NULL, `time_limit_ms` INTEGER NOT NULL, `mem_limit_mb` INTEGER NOT NULL, `last_verdict` TEXT, `created_at` INTEGER NOT NULL, `updated_at` INTEGER NOT NULL, `folder_doc_id` TEXT, `issues` TEXT NOT NULL DEFAULT '', `origin_uri` TEXT, `remote_json` TEXT, PRIMARY KEY(`id`))",
         "fields": [
           {
             "fieldPath": "id",
@@ -70,6 +70,11 @@
           {
             "fieldPath": "originUri",
             "columnName": "origin_uri",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "remoteJson",
+            "columnName": "remote_json",
             "affinity": "TEXT"
           }
         ],
@@ -688,7 +693,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '5ea1453fbf85a153e791097547b20000')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'ca40cc964c30c0bad47e30203c3695ca')"
     ]
   }
 }
