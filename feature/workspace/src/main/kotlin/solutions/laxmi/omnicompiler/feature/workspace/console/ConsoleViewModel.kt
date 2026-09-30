@@ -19,6 +19,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import solutions.laxmi.omnicompiler.core.data.connectivity.ConnectivityObserver
 import solutions.laxmi.omnicompiler.core.data.execution.ExecutionRepository
+import solutions.laxmi.omnicompiler.core.data.files.TextDocumentReader
 import solutions.laxmi.omnicompiler.core.data.execution.RunOptions
 import solutions.laxmi.omnicompiler.core.data.project.ProjectRepository
 import solutions.laxmi.omnicompiler.core.data.runtime.RuntimeRepository
@@ -76,6 +77,7 @@ class ConsoleViewModel @AssistedInject constructor(
     private val projects: ProjectRepository,
     private val runtimes: RuntimeRepository,
     private val settings: SettingsRepository,
+    private val documents: TextDocumentReader,
     connectivity: ConnectivityObserver,
 ) : ViewModel() {
 
@@ -136,6 +138,35 @@ class ConsoleViewModel @AssistedInject constructor(
 
     fun setStdin(value: String) {
         savedState[KEY_STDIN] = value
+    }
+
+    private val loadedTestStdinState = MutableStateFlow<String?>(null)
+
+    /** Stdin read from a file for the open test editor; consumed once applied. */
+    val loadedTestStdin: StateFlow<String?> = loadedTestStdinState
+
+    fun loadStdinFromFile(uri: String, intoTestEditor: Boolean) {
+        viewModelScope.launch {
+            when (val result = documents.read(uri)) {
+                is Outcome.Success -> if (intoTestEditor) loadedTestStdinState.value = result.value else setStdin(result.value)
+                is Outcome.Failure -> events.send(ConsoleEvent.Message(result.error.userMessage()))
+            }
+        }
+    }
+
+    fun consumeLoadedTestStdin() {
+        loadedTestStdinState.value = null
+    }
+
+    /** Turns the current custom stdin into a test case (expected left empty to fill in). */
+    fun saveStdinAsTest() {
+        addTest(TestCaseDraft(stdin.value, ""))
+        viewModelScope.launch { events.send(ConsoleEvent.Message("Saved as a test. Add its expected output in Tests.")) }
+    }
+
+    fun saveTest(existing: TestCase?, name: String, stdin: String, expected: String) {
+        if (existing == null) addTest(TestCaseDraft(stdin, expected, name))
+        else updateTest(existing.copy(name = name, stdin = stdin, expected = expected))
     }
 
     fun addTest(draft: TestCaseDraft = TestCaseDraft("", "")) {

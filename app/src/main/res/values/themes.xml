@@ -1,5 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!-- Launch theme: dark splash with the brand mark, then hands over to the app theme. -->
+    <style name="Theme.OmniCompiler.Splash" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/omni_black</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_splash_mark</item>
+        <item name="postSplashScreenTheme">@style/Theme.OmniCompiler</item>
+    </style>
+
     <!-- Dark window so there is no white flash before Compose draws. -->
     <style name="Theme.OmniCompiler" parent="android:Theme.Material.NoActionBar">
         <item name="android:windowBackground">@color/omni_black</item>

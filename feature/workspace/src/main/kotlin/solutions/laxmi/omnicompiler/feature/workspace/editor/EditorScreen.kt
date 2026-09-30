@@ -188,64 +188,22 @@ private fun EditorContent(state: EditorUiState, snackbar: SnackbarHostState, act
                 when {
                     state.error != null && workspace == null -> StartupError(state.error, actions.onRetry)
                     workspace == null || activeFile == null -> Loading()
-                    else -> {
-                        if (typing) {
-                            TypingTopBar(activeFile.name, editorState.isDirty, editorState, runEnabled = false, onMenu = openDrawer, onRun = {})
-                        } else {
-                            ReadingTopBar(
-                                projectName = workspace.project.name,
-                                runtimeLabel = state.runtimeLabel,
-                                minimapOn = state.settings.minimap,
-                                runEnabled = false,
-                                onMenu = openDrawer,
-                                onRuntimeClick = actions.onPickRuntime,
-                                onSearch = { searching = true },
-                                onToggleMinimap = actions.onToggleMinimap,
-                                onRun = {},
-                                overflow = {
-                                    OverflowMenu(
-                                        listOf(
-                                            "Rename project" to { renamingProject = true },
-                                            "New file" to { showNewFile = true },
-                                            "Change language" to actions.onPickRuntime,
-                                            (if (state.settings.wordWrap) "Turn off word wrap" else "Turn on word wrap") to actions.onToggleWordWrap,
-                                            "Reset to starter code" to { confirmReset = true },
-                                            "Editor appearance" to actions.onAppearance,
-                                        ),
-                                    )
-                                },
-                            )
-                            FileTabs(
-                                files = workspace.files,
-                                activeFileId = activeFile.id,
-                                entryShortCode = state.language?.shortCode,
-                                dirtyFileId = activeFile.id.takeIf { editorState.isDirty },
-                                onSelect = { actions.onSelectFile(it.id) },
-                                onFileMenu = { if (!it.isEntry) fileMenuFor = it },
-                                onAdd = { showNewFile = true },
-                            )
-                        }
-                        if (searching) FindBar(editorState, onClose = { searching = false }) else if (!typing) Breadcrumb(activeFile.name)
-                        CodeEditor(
-                            state = editorState,
-                            document = EditorDocument(
-                                id = activeFile.id,
-                                revision = state.revisions[activeFile.id] ?: 0,
-                                text = activeFile.content,
-                                fileName = activeFile.name,
-                                languageBase = state.runtime?.language,
-                                isEntry = activeFile.isEntry,
-                            ),
-                            settings = state.settings,
-                            onTextChange = actions.onContentChanged,
-                            modifier = Modifier.weight(1f).fillMaxWidth(),
-                        )
-                        if (typing && state.settings.symbolRow) SymbolRow(editorState)
-                        if (!typing) {
-                            ConsolePeek()
-                            EditorStatusBar(editorState, state.settings.tabSize, problems = 0)
-                        }
-                    }
+                    else -> WorkspaceBody(
+                        state = state,
+                        projectId = workspace.project.id,
+                        activeFile = activeFile,
+                        editorState = editorState,
+                        typing = typing,
+                        searching = searching,
+                        onSearchChange = { searching = it },
+                        onOpenDrawer = openDrawer,
+                        onShowNewFile = { showNewFile = true },
+                        onRenameProject = { renamingProject = true },
+                        onConfirmReset = { confirmReset = true },
+                        onFileMenu = { fileMenuFor = it },
+                        snackbar = snackbar,
+                        actions = actions,
+                    )
                 }
             }
             SnackbarHost(snackbar, Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(bottom = 64.dp))
@@ -296,19 +254,6 @@ private fun EditorContent(state: EditorUiState, snackbar: SnackbarHostState, act
         RenameDialog("Rename file", file.name, onDismiss = { renamingFile = null }) {
             actions.onRenameFile(file.id, it)
             renamingFile = null
-        }
-    }
-}
-
-/** Collapsed console handle under the editor (design E1). Filled in once runs exist. */
-@Composable
-private fun ConsolePeek() {
-    val colors = OmniTheme.colors
-    Column(Modifier.fillMaxWidth().background(colors.surface)) {
-        SheetHandle(Modifier.height(10.dp))
-        Row(Modifier.fillMaxWidth().height(38.dp).padding(horizontal = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text("Console", style = OmniTheme.typography.bodyStrong, color = colors.textPrimary)
-            Text("  ·  run to see results", style = OmniTheme.typography.mono, color = colors.textTertiary)
         }
     }
 }

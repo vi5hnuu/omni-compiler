@@ -1,0 +1,145 @@
+package solutions.laxmi.omnicompiler.feature.projects
+
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.receiveAsFlow
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
+import solutions.laxmi.omnicompiler.core.common.TimeSource
+import solutions.laxmi.omnicompiler.core.data.project.ProjectExporter
+import solutions.laxmi.omnicompiler.core.data.project.ProjectRepository
+import solutions.laxmi.omnicompiler.core.data.project.ProjectTemplate
+import solutions.laxmi.omnicompiler.core.data.project.SharedFile
+import solutions.laxmi.omnicompiler.core.data.runtime.RuntimeRepository
+import solutions.laxmi.omnicompiler.core.model.Language
+import solutions.laxmi.omnicompiler.core.model.Outcome
+import solutions.laxmi.omnicompiler.core.model.ProjectFilter
+import solutions.laxmi.omnicompiler.core.model.ProjectSummary
+import solutions.laxmi.omnicompiler.core.ui.userMessage
+import javax.inject.Inject
+import kotlin.time.Instant
+
+data class ProjectRowUi(val summary: ProjectSummary, val shortCode: String)
+
+data class ProjectsUiState(
+    val query: String = "",
+    val filter: ProjectFilter = ProjectFilter.ALL,
+    val projects: List<ProjectRowUi> = emptyList(),
+    val counts: Map<ProjectFilter, Int> = emptyMap(),
+    val languages: List<Language> = emptyList(),
+    val currentProjectId: String? = null,
+    val now: Instant = Instant.fromEpochMilliseconds(0),
+)
+
+sealed interface ProjectsEvent {
+    data class Open(val projectId: String) : ProjectsEvent
+    data class Share(val file: SharedFile) : ProjectsEvent
+    data class Message(val text: String) : ProjectsEvent
+}
+
+@HiltViewModel
+class ProjectsViewModel @Inject constructor(
+    private val projects: ProjectRepository,
+    private val runtimes: RuntimeRepository,
+    private val exporter: ProjectExporter,
+    private val time: TimeSource,
+) : ViewModel() {
+
+    private val query = MutableStateFlow("")
+    private val filter = MutableStateFlow(ProjectFilter.ALL)
+    private val events = Channel<ProjectsEvent>(Channel.BUFFERED)
+    val eventFlow = events.receiveAsFlow()
+
+    private val shortCodes = MutableStateFlow<Map<String, String>>(emptyMap())
+
+    val uiState: StateFlow<ProjectsUiState> = combine(
+        query.flatMapLatest { q -> projects.observeSummaries(q, ProjectFilter.ALL) },
+        query,
+        filter,
+        combine(runtimes.languages, shortCodes, ::Pair),
+        projects.lastProjectId,
+    ) { all, q, f, (languages, codes), lastId ->
+        val visible = all.filter { summary ->
+            when (f) {
+                ProjectFilter.ALL -> true
+                ProjectFilter.MULTI_FILE -> summary.fileNames.size > 1
+                ProjectFilter.SCRATCH -> summary.fileNames.size <= 1
+            }
+        }
+        ProjectsUiState(
+            query = q,
+            filter = f,
+            projects = visible.map { ProjectRowUi(it, codes[it.project.runtimeId.substringBefore('-')] ?: it.project.runtimeId.take(2)) },
+            counts = mapOf(
+                ProjectFilter.ALL to all.size,
+                ProjectFilter.MULTI_FILE to all.count { it.fileNames.size > 1 },
+                ProjectFilter.SCRATCH to all.count { it.fileNames.size <= 1 },
+            ),
+            languages = languages,
+            currentProjectId = lastId,
+            now = time.now(),
+        )
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ProjectsUiState())
+
+    init {
+        viewModelScope.launch {
+            shortCodes.value = runtimes.allLanguageInfo().associate { it.base to it.shortCode }
+        }
+    }
+
+    fun setQuery(value: String) {
+        query.value = value
+    }
+
+    fun setFilter(value: ProjectFilter) {
+        filter.value = value
+    }
+
+    fun create(name: String, language: Language) {
+        val runtime = language.defaultRuntime ?: return
+        viewModelScope.launch {
+            when (val result = projects.create(runtime, ProjectTemplate(name.ifBlank { "${language.base}-scratch" }, code = null, tests = null))) {
+                is Outcome.Success -> events.send(ProjectsEvent.Open(result.value))
+                is Outcome.Failure -> events.send(ProjectsEvent.Message(result.error.userMessage()))
+            }
+        }
+    }
+
+    fun rename(projectId: String, name: String) = launchReporting { projects.rename(projectId, name) }
+
+    fun duplicate(projectId: String) {
+        viewModelScope.launch {
+            when (val result = projects.duplicate(projectId)) {
+                is Outcome.Success -> events.send(ProjectsEvent.Message("Duplicated."))
+                is Outcome.Failure -> events.send(ProjectsEvent.Message(result.error.userMessage()))
+            }
+        }
+    }
+
+    fun delete(projectId: String) {
+        viewModelScope.launch { projects.delete(projectId) }
+    }
+
+    fun export(projectId: String) {
+        viewModelScope.launch {
+            when (val result = exporter.exportZip(projectId)) {
+                is Outcome.Success -> events.send(ProjectsEvent.Share(result.value))
+                is Outcome.Failure -> events.send(ProjectsEvent.Message(result.error.userMessage()))
+            }
+        }
+    }
+
+    private fun launchReporting(block: suspend () -> Outcome<Unit>) {
+        viewModelScope.launch {
+            val result = block()
+            if (result is Outcome.Failure) events.send(ProjectsEvent.Message(result.error.userMessage()))
+        }
+    }
+}

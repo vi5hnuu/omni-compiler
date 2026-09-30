@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 1,
-    "identityHash": "5225082cd7f03538c6a7c6da709f9589",
+    "identityHash": "a750088f5314d8b923ca10c32b855877",
     "entities": [
       {
         "tableName": "projects",
@@ -221,7 +221,7 @@
       },
       {
         "tableName": "runs",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `project_id` TEXT NOT NULL, `job_id` TEXT, `runtime_id` TEXT NOT NULL, `mode` TEXT NOT NULL, `status` TEXT NOT NULL, `verdict` TEXT, `total_time_ms` INTEGER, `test_count` INTEGER NOT NULL, `test_names` TEXT NOT NULL, `compile_output` TEXT, `diag_line` INTEGER, `diag_column` INTEGER, `diag_message` TEXT, `error_message` TEXT, `from_cache` INTEGER NOT NULL, `started_at` INTEGER NOT NULL, PRIMARY KEY(`id`), FOREIGN KEY(`project_id`) REFERENCES `projects`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `project_id` TEXT NOT NULL, `job_id` TEXT, `runtime_id` TEXT NOT NULL, `mode` TEXT NOT NULL, `status` TEXT NOT NULL, `verdict` TEXT, `total_time_ms` INTEGER, `test_count` INTEGER NOT NULL, `compile_output` TEXT, `diag_line` INTEGER, `diag_column` INTEGER, `diag_message` TEXT, `error_message` TEXT, `from_cache` INTEGER NOT NULL, `started_at` INTEGER NOT NULL, PRIMARY KEY(`id`), FOREIGN KEY(`project_id`) REFERENCES `projects`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
         "fields": [
           {
             "fieldPath": "id",
@@ -272,12 +272,6 @@
             "fieldPath": "testCount",
             "columnName": "test_count",
             "affinity": "INTEGER",
-            "notNull": true
-          },
-          {
-            "fieldPath": "testNames",
-            "columnName": "test_names",
-            "affinity": "TEXT",
             "notNull": true
           },
           {
@@ -637,7 +631,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '5225082cd7f03538c6a7c6da709f9589')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'a750088f5314d8b923ca10c32b855877')"
     ]
   }
 }

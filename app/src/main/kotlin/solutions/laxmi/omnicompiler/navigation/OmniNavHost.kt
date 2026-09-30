@@ -1,31 +1,52 @@
 package solutions.laxmi.omnicompiler.navigation
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.NavBackStack
-import androidx.navigation3.runtime.NavEntry
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
-import solutions.laxmi.omnicompiler.core.designsystem.component.EmptyState
-import solutions.laxmi.omnicompiler.core.designsystem.component.OmniTopBar
+import solutions.laxmi.omnicompiler.AuthGate
 import solutions.laxmi.omnicompiler.core.designsystem.theme.OmniTheme
+import solutions.laxmi.omnicompiler.core.navigation.CheckInboxRoute
 import solutions.laxmi.omnicompiler.core.navigation.EditorRoute
+import solutions.laxmi.omnicompiler.core.navigation.ForgotPasswordRoute
 import solutions.laxmi.omnicompiler.core.navigation.Navigator
 import solutions.laxmi.omnicompiler.core.navigation.Route
+import solutions.laxmi.omnicompiler.core.navigation.SignInRoute
+import solutions.laxmi.omnicompiler.core.navigation.SignUpRoute
+import solutions.laxmi.omnicompiler.core.navigation.WelcomeRoute
+import solutions.laxmi.omnicompiler.feature.account.accountEntries
+import solutions.laxmi.omnicompiler.feature.auth.authEntries
+import solutions.laxmi.omnicompiler.feature.developer.developerEntries
+import solutions.laxmi.omnicompiler.feature.history.historyEntries
+import solutions.laxmi.omnicompiler.feature.languages.languagesEntries
+import solutions.laxmi.omnicompiler.feature.projects.projectsEntries
+import solutions.laxmi.omnicompiler.feature.settings.settingsEntries
 import solutions.laxmi.omnicompiler.feature.workspace.workspaceEntries
 
 @Composable
-fun OmniNavHost() {
-    val backStack = rememberNavBackStack(EditorRoute())
+fun OmniNavHost(gate: AuthGate, appVersion: String) {
+    val backStack = rememberNavBackStack(if (gate == AuthGate.SignedIn) EditorRoute() else WelcomeRoute)
     val navigator = remember(backStack) { BackStackNavigator(backStack) }
+
+    // Session gate: signing out anywhere (or a dead refresh token) returns to Welcome; signing in
+    // from an auth screen lands in the editor. Screens never route on session changes themselves.
+    LaunchedEffect(gate) {
+        val onAuthScreen = backStack.lastOrNull().isAuthRoute()
+        when {
+            gate == AuthGate.SignedOut && !onAuthScreen -> navigator.resetTo(WelcomeRoute)
+            gate == AuthGate.SignedIn && backStack.lastOrNull() == WelcomeRoute -> navigator.resetTo(EditorRoute())
+        }
+    }
+
     NavDisplay(
         backStack = backStack,
         modifier = Modifier.fillMaxSize().background(OmniTheme.colors.background),
@@ -34,23 +55,21 @@ fun OmniNavHost() {
             rememberSaveableStateHolderNavEntryDecorator(),
             rememberViewModelStoreNavEntryDecorator(),
         ),
-        entryProvider = entryProvider(fallback = { key -> unavailableEntry(key, navigator) }) {
+        entryProvider = entryProvider {
+            authEntries(navigator, appVersion)
             workspaceEntries(navigator)
+            languagesEntries(navigator)
+            projectsEntries(navigator)
+            historyEntries(navigator)
+            accountEntries(navigator)
+            developerEntries(navigator)
+            settingsEntries(navigator, appVersion)
         },
     )
 }
 
-/** Destination whose feature module has not registered an entry yet; keeps navigation from crashing. */
-private fun unavailableEntry(key: NavKey, navigator: Navigator) = NavEntry(key) {
-    Box(Modifier.fillMaxSize().background(OmniTheme.colors.background)) {
-        OmniTopBar(title = "", onBack = navigator::back)
-        EmptyState(
-            title = "Not available yet",
-            message = "This screen is part of a later build step.",
-            modifier = Modifier.align(androidx.compose.ui.Alignment.Center),
-        )
-    }
-}
+private fun NavKey?.isAuthRoute() =
+    this is WelcomeRoute || this is SignInRoute || this is SignUpRoute || this is CheckInboxRoute || this is ForgotPasswordRoute
 
 private class BackStackNavigator(private val backStack: NavBackStack<NavKey>) : Navigator {
     override fun navigate(route: Route) {

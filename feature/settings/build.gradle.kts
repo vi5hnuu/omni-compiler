@@ -4,4 +4,9 @@ plugins {
 
 android {
     namespace = "solutions.laxmi.omnicompiler.feature.settings"
+    buildFeatures.buildConfig = false
+}
+
+dependencies {
+    implementation(projects.core.editor)
 }

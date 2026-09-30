@@ -119,7 +119,8 @@ internal class LocalProjectRepository @Inject constructor(
         val info = runtimes.languageInfo(runtime.language)
         val now = time.now().toEpochMilliseconds()
         val projectId = ids.newId()
-        val limits = Limits.Default.raisedTo(runtimes.defaultLimits(runtime.id))
+        // User defaults, raised when the runtime needs more to run its own sample (JVM/CLR cold starts).
+        val limits = preferences.runSettings.first().defaultLimits.raisedTo(runtimes.defaultLimits(runtime.id))
         val name = uniqueName(template?.name?.let(::slugify) ?: "${info.base}-scratch")
         val code = template?.code ?: info.placeholderCode()
         val drafts = template?.tests ?: info.starter?.tests ?: listOf(TestCaseDraft("", ""))

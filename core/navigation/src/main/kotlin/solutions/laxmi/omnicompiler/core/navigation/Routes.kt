@@ -25,7 +25,7 @@ import kotlinx.serialization.Serializable
 
 // History
 @Serializable data object HistoryRoute : Route
-@Serializable data class JobDetailRoute(val jobId: String) : Route
+@Serializable data class JobDetailRoute(val jobId: String, val runtimeId: String? = null) : Route
 
 // Account + developer + settings
 @Serializable data object UsageRoute : Route

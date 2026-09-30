@@ -5,3 +5,7 @@ plugins {
 android {
     namespace = "solutions.laxmi.omnicompiler.feature.auth"
 }
+
+dependencies {
+    implementation(projects.core.editor)
+}

@@ -43,7 +43,7 @@ import javax.inject.Singleton
         SubmissionCursorEntity::class,
         PendingRunEntity::class,
     ],
-    version = 1,
+    version = 2,
     exportSchema = true,
 )
 abstract class OmniDatabase : RoomDatabase() {
@@ -62,7 +62,9 @@ internal object DatabaseModule {
     @Provides
     @Singleton
     fun providesDatabase(@ApplicationContext context: Context): OmniDatabase =
-        Room.databaseBuilder(context, OmniDatabase::class.java, "omni.db").build()
+        Room.databaseBuilder(context, OmniDatabase::class.java, "omni.db")
+            .addMigrations(*OmniMigrations.ALL)
+            .build()
 
     @Provides fun projectDao(db: OmniDatabase) = db.projectDao()
     @Provides fun fileDao(db: OmniDatabase) = db.fileDao()

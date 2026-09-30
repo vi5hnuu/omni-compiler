@@ -62,6 +62,7 @@ internal fun ReadingTopBar(
     onToggleMinimap: () -> Unit,
     onRun: () -> Unit,
     overflow: @Composable () -> Unit,
+    runLabel: String = "Run",
 ) {
     val colors = OmniTheme.colors
     Row(
@@ -88,7 +89,7 @@ internal fun ReadingTopBar(
         OmniIconButton(OmniIcons.Search, "Find", onSearch)
         OmniIconButton(OmniIcons.Minimap, if (minimapOn) "Hide minimap" else "Show minimap", onToggleMinimap, selected = minimapOn)
         overflow()
-        OmniCompactButton("Run", OmniIcons.Play, onRun, modifier = Modifier.padding(start = 4.dp), enabled = runEnabled)
+        OmniCompactButton(runLabel, if (runLabel == "Run") OmniIcons.Play else OmniIcons.Stop, onRun, modifier = Modifier.padding(start = 4.dp), enabled = runEnabled)
     }
 }
 

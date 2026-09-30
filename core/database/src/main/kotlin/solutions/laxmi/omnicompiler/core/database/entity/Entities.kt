@@ -63,7 +63,7 @@ data class RunEntity(
     @ColumnInfo(name = "total_time_ms") val totalTimeMs: Int?,
     @ColumnInfo(name = "test_count") val testCount: Int,
     /** Test labels at run time, newline-separated (tests may be renamed or deleted later). */
-    @ColumnInfo(name = "test_names") val testNames: String,
+    @ColumnInfo(name = "test_names", defaultValue = "") val testNames: String,
     @ColumnInfo(name = "compile_output") val compileOutput: String?,
     @ColumnInfo(name = "diag_line") val diagnosticLine: Int?,
     @ColumnInfo(name = "diag_column") val diagnosticColumn: Int?,

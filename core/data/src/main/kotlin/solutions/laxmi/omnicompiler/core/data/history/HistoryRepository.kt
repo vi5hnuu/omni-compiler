@@ -1,0 +1,97 @@
+package solutions.laxmi.omnicompiler.core.data.history
+
+import androidx.paging.ExperimentalPagingApi
+import androidx.paging.Pager
+import androidx.paging.PagingConfig
+import androidx.paging.PagingData
+import androidx.paging.map
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
+import solutions.laxmi.omnicompiler.core.common.TimeSource
+import solutions.laxmi.omnicompiler.core.database.dao.SubmissionDao
+import solutions.laxmi.omnicompiler.core.database.entity.SubmissionEntity
+import solutions.laxmi.omnicompiler.core.model.JobStatus
+import solutions.laxmi.omnicompiler.core.model.Outcome
+import solutions.laxmi.omnicompiler.core.model.Submission
+import solutions.laxmi.omnicompiler.core.model.UsageStats
+import solutions.laxmi.omnicompiler.core.model.Verdict
+import solutions.laxmi.omnicompiler.core.network.source.JudgeNetworkDataSource
+import java.util.Calendar
+import javax.inject.Inject
+import javax.inject.Singleton
+import kotlin.time.Duration.Companion.days
+import kotlin.time.Instant
+
+/** Runs started on one local calendar day. */
+data class DayActivity(val dayStartEpochMs: Long, val runs: Int, val accepted: Int)
+
+/** Summary derived from submissions cached on this device (the API has no aggregate endpoint). */
+data class CachedHistorySummary(
+    val verdictCounts: Map<Verdict, Int>,
+    val total: Int,
+    val medianTimeMs: Int?,
+)
+
+/** Server-side run history (`/me/submissions`), cached for offline viewing and local filtering. */
+interface HistoryRepository {
+    fun submissions(verdict: Verdict?): Flow<PagingData<Submission>>
+    val summary: Flow<CachedHistorySummary>
+
+    /** Last 7 local days, oldest first, from cached submissions. */
+    val lastWeek: Flow<List<DayActivity>>
+
+    suspend fun stats(): Outcome<UsageStats>
+}
+
+@Singleton
+internal class DefaultHistoryRepository @Inject constructor(
+    private val network: JudgeNetworkDataSource,
+    private val dao: SubmissionDao,
+    private val time: TimeSource,
+) : HistoryRepository {
+
+    @OptIn(ExperimentalPagingApi::class)
+    override fun submissions(verdict: Verdict?): Flow<PagingData<Submission>> = Pager(
+        config = PagingConfig(pageSize = SubmissionsRemoteMediator.PAGE_SIZE, enablePlaceholders = false),
+        remoteMediator = SubmissionsRemoteMediator(network, dao),
+        pagingSourceFactory = { dao.pagingSource(verdict?.code) },
+    ).flow.map { data -> data.map { it.toModel() } }
+
+    override val summary: Flow<CachedHistorySummary> = dao.observeSince(0).map { rows ->
+        val times = rows.mapNotNull { it.totalTimeMs }.sorted()
+        CachedHistorySummary(
+            verdictCounts = rows.mapNotNull { Verdict.fromCode(it.verdict) }.groupingBy { it }.eachCount(),
+            total = rows.size,
+            medianTimeMs = times.takeIf { it.isNotEmpty() }?.let { it[it.size / 2] },
+        )
+    }
+
+    override val lastWeek: Flow<List<DayActivity>> = dao.observeSince((time.now() - 8.days).toEpochMilliseconds()).map { rows ->
+        val days = (6 downTo 0).map { startOfDay(time.now().toEpochMilliseconds(), daysAgo = it) }
+        days.map { start ->
+            val end = start + 1.days.inWholeMilliseconds
+            val inDay = rows.filter { it.createdAt in start until end }
+            DayActivity(start, inDay.size, inDay.count { it.verdict == Verdict.AC.code })
+        }
+    }
+
+    override suspend fun stats() = network.stats()
+
+    private fun startOfDay(nowMs: Long, daysAgo: Int): Long = Calendar.getInstance().apply {
+        timeInMillis = nowMs
+        add(Calendar.DAY_OF_YEAR, -daysAgo)
+        set(Calendar.HOUR_OF_DAY, 0)
+        set(Calendar.MINUTE, 0)
+        set(Calendar.SECOND, 0)
+        set(Calendar.MILLISECOND, 0)
+    }.timeInMillis
+
+    private fun SubmissionEntity.toModel() = Submission(
+        id = id,
+        runtimeId = runtimeId,
+        status = JobStatus.fromWire(status),
+        verdict = Verdict.fromCode(verdict),
+        createdAt = Instant.fromEpochMilliseconds(createdAt),
+        totalTimeMs = totalTimeMs,
+    )
+}
