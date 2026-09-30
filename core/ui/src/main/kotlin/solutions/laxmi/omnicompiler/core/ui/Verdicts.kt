@@ -1,5 +1,6 @@
 package solutions.laxmi.omnicompiler.core.ui
 
+import solutions.laxmi.omnicompiler.core.designsystem.theme.StatusTone
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -29,19 +30,28 @@ sealed interface VerdictState {
     data object Running : VerdictState
 }
 
+/**
+ * The one place a verdict becomes a colour family: AC green, WA/RE/IE red, TLE/MLE amber, CE violet.
+ * SK has no family (it's drawn neutral).
+ */
+fun Verdict.tone(colors: OmniColors): StatusTone? = when (this) {
+    Verdict.AC -> colors.status.accepted
+    Verdict.WA, Verdict.RE, Verdict.IE -> colors.status.rejected
+    Verdict.TLE, Verdict.MLE -> colors.status.limit
+    Verdict.CE -> colors.status.compile
+    Verdict.SK -> null
+}
+
 private data class BadgeColors(val container: Color, val content: Color, val ring: Color?)
 
 private fun OmniColors.badgeColors(state: VerdictState): BadgeColors = when (state) {
-    is VerdictState.Done -> when (state.verdict) {
-        Verdict.AC -> BadgeColors(textPrimary, background, null)
-        Verdict.SK -> BadgeColors(Color.Transparent, textTertiary, border)
-        else -> BadgeColors(accent, onAccent, null)
-    }
+    is VerdictState.Done -> state.verdict.tone(this)?.let { BadgeColors(it.fill, it.onFill, null) }
+        ?: BadgeColors(Color.Transparent, textTertiary, border)
     VerdictState.Pending -> BadgeColors(Color.Transparent, textTertiary, border)
     VerdictState.Running -> BadgeColors(Color.Transparent, accentText, accent)
 }
 
-/** Square mono verdict badge: AC inverted white, failures red, SK/pending outlined. */
+/** Square mono verdict badge filled with its status colour; SK/pending outlined, running ringed in accent. */
 @Composable
 fun VerdictBadge(state: VerdictState, modifier: Modifier = Modifier) {
     val colors = OmniTheme.colors.badgeColors(state)
@@ -80,11 +90,7 @@ fun VerdictStrip(states: List<VerdictState>, modifier: Modifier = Modifier) {
     Row(modifier.clearAndSetSemantics { contentDescription = summary }, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
         states.forEach { state ->
             val fill = when (state) {
-                is VerdictState.Done -> when (state.verdict) {
-                    Verdict.AC -> colors.textPrimary
-                    Verdict.SK -> colors.surfaceMuted
-                    else -> colors.accent
-                }
+                is VerdictState.Done -> state.verdict.tone(colors)?.fill ?: colors.surfaceMuted
                 VerdictState.Pending -> colors.surfaceMuted
                 VerdictState.Running -> colors.accentText
             }

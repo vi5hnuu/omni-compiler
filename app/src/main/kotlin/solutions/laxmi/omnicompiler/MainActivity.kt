@@ -1,5 +1,8 @@
 package solutions.laxmi.omnicompiler
 
+import solutions.laxmi.omnicompiler.core.model.AppTheme
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.foundation.isSystemInDarkTheme
 import android.graphics.Color
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -22,14 +25,21 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         // Keep the splash until the stored session is read, so the first frame is the right root.
         installSplashScreen().setKeepOnScreenCondition { viewModel.gate.value == AuthGate.Loading }
-        // The UI is dark-only, so system bars always use light icons on the black ground.
-        enableEdgeToEdge(
-            statusBarStyle = SystemBarStyle.dark(Color.TRANSPARENT),
-            navigationBarStyle = SystemBarStyle.dark(Color.TRANSPARENT),
-        )
         super.onCreate(savedInstanceState)
         setContent {
-            OmniTheme {
+            val appTheme by viewModel.appTheme.collectAsStateWithLifecycle()
+            val dark = when (appTheme) {
+                AppTheme.SYSTEM -> isSystemInDarkTheme()
+                AppTheme.LIGHT -> false
+                AppTheme.DARK -> true
+            }
+            // System bar icons follow the app theme, not the device's, so they stay readable on our ground.
+            DisposableEffect(dark) {
+                val style = if (dark) SystemBarStyle.dark(Color.TRANSPARENT) else SystemBarStyle.light(Color.TRANSPARENT, Color.TRANSPARENT)
+                enableEdgeToEdge(statusBarStyle = style, navigationBarStyle = style)
+                onDispose { }
+            }
+            OmniTheme(darkTheme = dark) {
                 val gate by viewModel.gate.collectAsStateWithLifecycle()
                 if (gate != AuthGate.Loading) OmniNavHost(gate, BuildConfig.VERSION_NAME)
             }

@@ -46,7 +46,7 @@ fun OmniDivider(modifier: Modifier = Modifier, color: Color = OmniTheme.colors.d
 /** Grab handle on bottom sheets and the console peek. */
 @Composable
 fun SheetHandle(modifier: Modifier = Modifier) {
-    Box(modifier.fillMaxWidth().height(14.dp), contentAlignment = Alignment.Center) {
+    Box(modifier.fillMaxWidth().height(OmniDimens.sheetHandle), contentAlignment = Alignment.Center) {
         Box(Modifier.size(width = 28.dp, height = 3.dp).background(OmniTheme.colors.dragHandle))
     }
 }

@@ -1,5 +1,6 @@
 package solutions.laxmi.omnicompiler.feature.workspace.console
 
+import solutions.laxmi.omnicompiler.core.ui.tone
 import solutions.laxmi.omnicompiler.core.ui.testCount
 import solutions.laxmi.omnicompiler.core.ui.formatDuration
 import solutions.laxmi.omnicompiler.feature.workspace.R
@@ -109,7 +110,7 @@ private fun RunLog(run: RunRecord, onVerify: (String) -> Unit) {
         when {
             run.verdict == Verdict.CE -> {
                 val errors = run.problems.count { it.isError }.coerceAtLeast(1)
-                LogRow(stringResource(R.string.console_tag_compile), pluralStringResource(R.plurals.console_compile_errors, errors, errors), tagColor = colors.accentText, tint = true)
+                LogRow(stringResource(R.string.console_tag_compile), pluralStringResource(R.plurals.console_compile_errors, errors, errors), tagColor = colors.status.compile.text, background = colors.status.compile.tint)
             }
             run.results.isNotEmpty() -> LogRow(stringResource(R.string.console_tag_compile), stringResource(R.string.console_compile_ok))
         }
@@ -123,8 +124,8 @@ private fun RunLog(run: RunRecord, onVerify: (String) -> Unit) {
         } else {
             run.firstFailure?.stderr?.takeIf { it.isNotBlank() && run.verdict != Verdict.CE }?.let { LogRow(stringResource(R.string.console_tag_stderr), it.trimEnd(), tagColor = colors.accentText) }
         }
-        if (run.verdict == Verdict.CE) run.compileOutput?.let { LogRow(stringResource(R.string.console_tag_stderr), it.trimEnd().lines().take(12).joinToString("\n"), tagColor = colors.accentText) }
-        run.errorMessage?.let { LogRow(stringResource(R.string.console_tag_error), it, tagColor = colors.accentText, tint = true) }
+        if (run.verdict == Verdict.CE) run.compileOutput?.let { LogRow(stringResource(R.string.console_tag_stderr), it.trimEnd().lines().take(12).joinToString("\n"), tagColor = colors.status.compile.text) }
+        run.errorMessage?.let { LogRow(stringResource(R.string.console_tag_error), it, tagColor = colors.status.rejected.text, background = colors.status.rejected.tint) }
         if (!run.phase.isActive && run.phase != RunPhase.QUEUED_OFFLINE) {
             LogRow(stringResource(R.string.console_tag_exit), run.exitLine())
             if (run.jobId != null && run.phase == RunPhase.DONE) {
@@ -143,6 +144,7 @@ private fun TestLines(run: RunRecord) {
     val results = run.results
     val skipped = results.filter { it.verdict == Verdict.SK }
     results.filter { it.verdict != Verdict.SK }.forEach { result ->
+        val tone = result.verdict.tone(colors)
         val failing = result.verdict.isFailure
         val message = if (result.isOutputMismatch()) {
             stringResource(R.string.console_mismatch, result.expected!!.firstLine(), result.stdout!!.firstLine())
@@ -151,9 +153,9 @@ private fun TestLines(run: RunRecord) {
             tag = stringResource(R.string.console_tag_test, result.index.toString()),
             message = message,
             time = result.timeMs?.let { formatDuration(it) },
-            tagColor = if (failing) colors.accentText else colors.textSecondary,
-            messageColor = if (failing) colors.accentText else colors.textPrimary,
-            tint = failing,
+            tagColor = if (failing) tone?.text ?: colors.textSecondary else colors.textSecondary,
+            messageColor = tone?.text ?: colors.textPrimary,
+            background = if (failing) tone?.tint ?: Color.Transparent else Color.Transparent,
         )
     }
     if (skipped.isNotEmpty()) {
@@ -162,7 +164,7 @@ private fun TestLines(run: RunRecord) {
     }
 }
 
-/** tag | message | meta row; failing rows get the design's red tint. */
+/** tag | message | meta row; failing rows get their verdict's tint. */
 @Composable
 private fun LogRow(
     tag: String,
@@ -170,13 +172,13 @@ private fun LogRow(
     time: String? = null,
     tagColor: Color = OmniTheme.colors.textSecondary,
     messageColor: Color = OmniTheme.colors.textPrimary,
-    tint: Boolean = false,
+    background: Color = Color.Transparent,
 ) {
     val colors = OmniTheme.colors
     Row(
         Modifier
             .fillMaxWidth()
-            .background(if (tint) colors.errorTint else Color.Transparent)
+            .background(background)
             .padding(horizontal = 12.dp, vertical = 3.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {

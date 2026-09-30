@@ -1,5 +1,6 @@
 package solutions.laxmi.omnicompiler.core.editor
 
+import solutions.laxmi.omnicompiler.core.designsystem.theme.OmniTheme
 import androidx.compose.runtime.SideEffect
 import android.content.Context
 import android.graphics.Typeface
@@ -93,7 +94,10 @@ fun CodeEditor(
     onLineHintClick: () -> Unit = {},
 ) {
     val context = LocalContext.current
-    val palette = remember(settings.theme) { settings.theme.palette() }
+    // AUTO follows the app theme, so the editor switches with it (Paper in light, Signal in dark).
+    val darkApp = OmniTheme.colors.isDark
+    val effective = remember(settings, darkApp) { settings.copy(theme = settings.theme.resolved(darkApp)) }
+    val palette = remember(effective.theme) { effective.theme.palette() }
     val currentOnTextChange by rememberUpdatedState(onTextChange)
     val currentRunShortcut by rememberUpdatedState(onRunShortcut)
     val currentLineHintClick by rememberUpdatedState(onLineHintClick)
@@ -118,7 +122,7 @@ fun CodeEditor(
                         createEditor(ctx, state, onRunShortcut = { currentRunShortcut?.invoke() }, onLineHintClick = { currentLineHintClick() })
                     },
                     update = { editor ->
-                        editor.applySettings(context, settings, palette)
+                        editor.applySettings(context, effective, palette)
                         editor.isEditable = !readOnly
                         if (loaded?.grammar == grammar) {
                             editor.bindDocument(state, document, grammar)
@@ -135,7 +139,7 @@ fun CodeEditor(
                 ActiveLineBar(state, palette)
             }
         }
-        if (settings.minimap) {
+        if (effective.minimap) {
             Minimap(state, palette, errorLines = remember(diagnostics) { diagnostics.filter { it.isError }.map { it.line }.toSet() })
         }
     }

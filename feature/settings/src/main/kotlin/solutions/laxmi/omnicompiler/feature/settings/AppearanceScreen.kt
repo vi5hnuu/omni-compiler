@@ -1,5 +1,6 @@
 package solutions.laxmi.omnicompiler.feature.settings
 
+import solutions.laxmi.omnicompiler.core.model.AppTheme
 import solutions.laxmi.omnicompiler.core.ui.descriptionRes
 import solutions.laxmi.omnicompiler.core.ui.labelRes
 import solutions.laxmi.omnicompiler.core.ui.displayName
@@ -50,7 +51,7 @@ import solutions.laxmi.omnicompiler.core.model.EditorTheme
 import solutions.laxmi.omnicompiler.core.model.LineSpacing
 import solutions.laxmi.omnicompiler.core.navigation.Navigator
 
-/** Design U5: editor theme, code font, size, ligatures, indent guides and line height. */
+/** Design U5: app theme, editor theme, code font, size, ligatures, indent guides and line height. */
 @Composable
 fun AppearanceScreen(navigator: Navigator) {
     val viewModel = hiltViewModel<SettingsViewModel>()
@@ -58,10 +59,16 @@ fun AppearanceScreen(navigator: Navigator) {
     val editor = state.editor
     // Segment labels are plain lambdas, so resolve the localized names up front.
     val spacingLabels = LineSpacing.entries.associateWith { stringResource(it.labelRes) }
+    val appThemeLabels = AppTheme.entries.associateWith { stringResource(it.labelRes) }
     val colors = OmniTheme.colors
     Column(Modifier.fillMaxSize().background(colors.background).navigationBarsPadding()) {
         OmniTopBar(stringResource(R.string.appearance_title), onBack = navigator::back)
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
+            SectionLabel(stringResource(R.string.appearance_app_theme))
+            OmniSegmented(
+                AppTheme.entries, state.appTheme, { appThemeLabels.getValue(it) }, viewModel::setAppTheme,
+                Modifier.padding(horizontal = 16.dp).fillMaxWidth(),
+            )
             SectionLabel(stringResource(R.string.appearance_theme))
             EditorTheme.entries.chunked(2).forEach { row ->
                 Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -106,7 +113,7 @@ fun AppearanceScreen(navigator: Navigator) {
 @Composable
 private fun ThemeCard(theme: EditorTheme, settings: EditorSettings, selected: Boolean, modifier: Modifier, onClick: () -> Unit) {
     val colors = OmniTheme.colors
-    val palette = theme.palette()
+    val palette = theme.resolved(colors.isDark).palette()
     Column(
         modifier
             .border(if (selected) 2.dp else 1.dp, if (selected) colors.accent else colors.border)
@@ -126,7 +133,7 @@ private fun ThemeCard(theme: EditorTheme, settings: EditorSettings, selected: Bo
 
 @Composable
 private fun Preview(settings: EditorSettings, modifier: Modifier) {
-    val palette = settings.theme.palette()
+    val palette = settings.theme.resolved(OmniTheme.colors.isDark).palette()
     val style = codeStyle(settings.font).copy(fontSize = settings.fontSizeSp.sp, lineHeight = (settings.fontSizeSp * settings.lineSpacing.multiplier).sp)
     Column(modifier.fillMaxWidth().background(palette.background).padding(12.dp)) {
         (0..3).forEach { Text(sampleLine(palette, it), style = style) }

@@ -1,5 +1,7 @@
 package solutions.laxmi.omnicompiler.feature.auth
 
+import solutions.laxmi.omnicompiler.core.ui.VerdictState
+import solutions.laxmi.omnicompiler.core.ui.VerdictStrip
 import solutions.laxmi.omnicompiler.core.ui.labelRes
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -124,7 +126,7 @@ fun WelcomeScreen(navigator: Navigator, appVersion: String) {
 @Composable
 private fun DemoCard() {
     val colors = OmniTheme.colors
-    val p = EditorTheme.SIGNAL.palette()
+    val p = EditorTheme.AUTO.resolved(colors.isDark).palette()
     val code = listOf(
         buildAnnotatedString { withStyle(SpanStyle(color = p.preprocessor, fontWeight = FontWeight.SemiBold)) { append("#include ") }; withStyle(SpanStyle(color = p.string)) { append("<iostream>") } },
         buildAnnotatedString { withStyle(SpanStyle(color = p.keyword, fontWeight = FontWeight.SemiBold)) { append("int ") }; withStyle(SpanStyle(color = p.function, fontWeight = FontWeight.SemiBold)) { append("main") }; withStyle(SpanStyle(color = p.text)) { append("() {") } },
@@ -151,7 +153,7 @@ private fun DemoCard() {
             VerdictBadge(Verdict.AC)
             Text(stringResource(Verdict.AC.labelRes), style = OmniTheme.typography.bodyStrong, color = colors.textPrimary)
             Text(stringResource(R.string.welcome_demo_meta), style = OmniTheme.typography.monoSmall, color = colors.textTertiary, modifier = Modifier.weight(1f))
-            repeat(3) { Box(Modifier.size(8.dp).background(colors.textPrimary)) }
+            VerdictStrip(List(3) { VerdictState.Done(Verdict.AC) })
         }
     }
 }

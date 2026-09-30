@@ -1,5 +1,6 @@
 package solutions.laxmi.omnicompiler.feature.workspace.console
 
+import solutions.laxmi.omnicompiler.core.ui.tone
 import solutions.laxmi.omnicompiler.core.ui.formatDuration
 import solutions.laxmi.omnicompiler.core.ui.R as CommonR
 import solutions.laxmi.omnicompiler.feature.workspace.R
@@ -118,29 +119,31 @@ private fun VerdictBanner(run: RunRecord) {
     val colors = OmniTheme.colors
     val clipboard = LocalClipboardManager.current
     val verdict = run.verdict ?: return
-    val accepted = verdict == Verdict.AC
+    val tone = verdict.tone(colors)
+    // A wash of the verdict's colour with a solid edge: readable in both themes, and the badge stays visible.
     Row(
         Modifier
             .fillMaxWidth()
-            .background(if (accepted) colors.surfaceRaised else colors.accent)
+            .background(tone?.tint ?: colors.surfaceRaised)
+            .drawBehind { drawRect(tone?.fill ?: colors.border, size = size.copy(width = 3.dp.toPx())) }
             .padding(horizontal = 12.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         VerdictBadge(verdict)
         Column(Modifier.weight(1f)) {
-            Text(run.headline(), style = OmniTheme.typography.bodyStrong, color = if (accepted) colors.textPrimary else colors.onAccent)
+            Text(run.headline(), style = OmniTheme.typography.bodyStrong, color = tone?.text ?: colors.textPrimary)
             Text(
                 listOfNotNull(
                     run.jobId?.let { stringResource(R.string.tests_banner_meta_job, shortJobId(it)) },
                     run.totalTimeMs?.let { stringResource(R.string.tests_banner_meta_total, formatDuration(it)) },
                 ).joinToString(" · "),
                 style = OmniTheme.typography.monoSmall,
-                color = if (accepted) colors.textTertiary else colors.onAccent.copy(alpha = 0.8f),
+                color = colors.textTertiary,
             )
         }
         run.jobId?.let { jobId ->
-            OmniIconButton(OmniIcons.Copy, stringResource(R.string.tests_copy_job_id), { clipboard.setText(AnnotatedString(jobId)) }, tint = if (accepted) colors.textSecondary else colors.onAccent)
+            OmniIconButton(OmniIcons.Copy, stringResource(R.string.tests_copy_job_id), { clipboard.setText(AnnotatedString(jobId)) }, tint = colors.textSecondary)
         }
     }
 }
@@ -156,7 +159,9 @@ private fun Metrics(run: RunRecord) {
     )
     val colors = OmniTheme.colors
     Row(Modifier.fillMaxWidth().drawBehind { drawLine(colors.divider, Offset(0f, size.height), Offset(size.width, size.height), 1f) }) {
-        cells.forEach { (label, value, fraction) ->
+        cells.forEachIndexed { index, (label, value, fraction) ->
+            // The pass bar carries the outcome colour; the others are neutral measurements.
+            val bar = if (index == PASSED_CELL) colors.status.accepted.fill else colors.textSecondary
             Column(
                 Modifier.weight(1f).padding(horizontal = 12.dp, vertical = 10.dp),
                 verticalArrangement = Arrangement.spacedBy(4.dp),
@@ -164,7 +169,7 @@ private fun Metrics(run: RunRecord) {
                 Text(label.uppercase(), style = OmniTheme.typography.overline, color = colors.textTertiary)
                 Text(value, style = OmniTheme.typography.mono.copy(fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold), color = colors.textPrimary)
                 Box(Modifier.fillMaxWidth().height(2.dp).background(colors.surfaceMuted)) {
-                    Box(Modifier.fillMaxWidth(fraction.coerceIn(0f, 1f)).fillMaxHeight().background(colors.textSecondary))
+                    Box(Modifier.fillMaxWidth(fraction.coerceIn(0f, 1f)).fillMaxHeight().background(bar))
                 }
             }
         }
@@ -271,7 +276,7 @@ internal fun CodeBlock(label: String, text: String, highlight: Set<Int>, modifie
         val content = buildAnnotatedString {
             val lines = text.replace("\r\n", "\n").trimEnd('\n').split('\n')
             lines.forEachIndexed { i, line ->
-                if (i in highlight) withStyle(SpanStyle(background = colors.accentStrong)) { append(line.ifEmpty { " " }) } else append(line)
+                if (i in highlight) withStyle(SpanStyle(background = colors.status.rejected.highlight)) { append(line.ifEmpty { " " }) } else append(line)
                 if (i < lines.lastIndex) append('\n')
             }
         }
@@ -295,3 +300,5 @@ internal fun CodeBlock(label: String, text: String, highlight: Set<Int>, modifie
         }
     }
 }
+
+private const val PASSED_CELL = 1

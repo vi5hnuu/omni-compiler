@@ -1,5 +1,6 @@
 package solutions.laxmi.omnicompiler.core.ui
 
+import solutions.laxmi.omnicompiler.core.model.AppTheme
 import androidx.annotation.StringRes
 import solutions.laxmi.omnicompiler.core.model.CodeFont
 import solutions.laxmi.omnicompiler.core.model.Difficulty
@@ -25,6 +26,7 @@ val Verdict.labelRes: Int
 @get:StringRes
 val EditorTheme.labelRes: Int
     get() = when (this) {
+        EditorTheme.AUTO -> R.string.theme_auto
         EditorTheme.SIGNAL -> R.string.theme_signal
         EditorTheme.GRAPHITE -> R.string.theme_graphite
         EditorTheme.PAPER -> R.string.theme_paper
@@ -34,6 +36,7 @@ val EditorTheme.labelRes: Int
 @get:StringRes
 val EditorTheme.descriptionRes: Int
     get() = when (this) {
+        EditorTheme.AUTO -> R.string.theme_auto_description
         EditorTheme.SIGNAL -> R.string.theme_signal_description
         EditorTheme.GRAPHITE -> R.string.theme_graphite_description
         EditorTheme.PAPER -> R.string.theme_paper_description
@@ -72,4 +75,12 @@ val Difficulty.labelRes: Int
         Difficulty.EASY -> R.string.difficulty_easy
         Difficulty.MEDIUM -> R.string.difficulty_medium
         Difficulty.HARD -> R.string.difficulty_hard
+    }
+
+@get:StringRes
+val AppTheme.labelRes: Int
+    get() = when (this) {
+        AppTheme.SYSTEM -> R.string.app_theme_system
+        AppTheme.LIGHT -> R.string.app_theme_light
+        AppTheme.DARK -> R.string.app_theme_dark
     }

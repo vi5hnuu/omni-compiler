@@ -4,7 +4,6 @@ import solutions.laxmi.omnicompiler.core.model.RunPhase
 import solutions.laxmi.omnicompiler.feature.workspace.R
 import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -20,13 +19,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
 import solutions.laxmi.omnicompiler.core.designsystem.component.OmniCompactButton
 import solutions.laxmi.omnicompiler.core.designsystem.component.OmniIconButton
 import solutions.laxmi.omnicompiler.core.designsystem.component.OmniTab
 import solutions.laxmi.omnicompiler.core.designsystem.component.OmniTabRow
-import solutions.laxmi.omnicompiler.core.designsystem.component.SheetHandle
 import solutions.laxmi.omnicompiler.core.designsystem.icon.OmniIcons
 import solutions.laxmi.omnicompiler.core.designsystem.theme.OmniTheme
 import solutions.laxmi.omnicompiler.core.model.CompileProblem
@@ -49,7 +46,7 @@ internal class ConsoleSheetActions(
     val tests: TestActions,
 )
 
-/** Expanded console (design C1/T1/V1/V2): tabs over the lower part of the editor. */
+/** Console body (design C1/T1/V1/V2): the tabs shown when the console sheet is expanded. */
 @Composable
 internal fun ConsoleSheet(
     state: ConsoleUiState,
@@ -60,12 +57,7 @@ internal fun ConsoleSheet(
 ) {
     val colors = OmniTheme.colors
     val latestProblems = state.latest?.problems.orEmpty()
-    Column(
-        modifier
-            .background(colors.surface)
-            .drawBehind { drawLine(colors.borderStrong, Offset(0f, 0f), Offset(size.width, 0f), 1f) },
-    ) {
-        SheetHandle(Modifier.pointerInput(Unit) { detectVerticalDragGestures { _, drag -> if (drag > 8f) actions.onClose() } })
+    Column(modifier.background(colors.surface)) {
         OmniTabRow(
             tabs = listOf(
                 OmniTab(stringResource(R.string.console_tab_console)),

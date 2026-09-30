@@ -38,8 +38,9 @@ data class EditorPalette(
 private val Accent = Color(0xFFEC3013)
 private val AccentText = Color(0xFFFF5A3F)
 
+/** Colours of a concrete theme; resolve [EditorTheme.AUTO] with `resolved()` first (it falls back to Signal). */
 fun EditorTheme.palette(): EditorPalette = when (this) {
-    EditorTheme.SIGNAL -> EditorPalette(
+    EditorTheme.AUTO, EditorTheme.SIGNAL -> EditorPalette(
         isDark = true,
         background = Color(0xFF000000), text = Color(0xFFF3F2F2),
         keyword = Color(0xFFFF6B52), type = Color(0xFF7CC4E8), function = Color(0xFFF0D27A),

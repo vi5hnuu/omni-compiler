@@ -38,7 +38,7 @@ object EditorLanguages {
         definitions?.let { return it }
         FileProviderRegistry.getInstance().addFileProvider(AssetsFileResolver(context.assets))
         val themes = ThemeRegistry.getInstance()
-        EditorTheme.entries.forEach { theme ->
+        EditorTheme.entries.filter { it != EditorTheme.AUTO }.forEach { theme ->
             val json = theme.palette().toTextMateThemeJson(theme.name)
             val model = ThemeModel(IThemeSource.fromString(IThemeSource.ContentType.JSON, json), theme.name)
             model.isDark = theme.palette().isDark

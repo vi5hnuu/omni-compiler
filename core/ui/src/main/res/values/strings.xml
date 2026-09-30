@@ -45,6 +45,11 @@
     <string name="verdict_running">Running</string>
 
     <!-- Editor themes, spacing, language groups, difficulty -->
+    <string name="theme_auto">Match app</string>
+    <string name="theme_auto_description">Paper in light, Signal in dark</string>
+    <string name="app_theme_system">System</string>
+    <string name="app_theme_light">Light</string>
+    <string name="app_theme_dark">Dark</string>
     <string name="theme_signal">Signal</string>
     <string name="theme_signal_description">Default</string>
     <string name="theme_graphite">Graphite</string>

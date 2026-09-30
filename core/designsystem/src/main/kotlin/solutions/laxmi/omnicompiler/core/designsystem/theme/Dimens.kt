@@ -23,6 +23,7 @@ object OmniDimens {
     val buttonHeight = 44.dp
     val buttonHeightLarge = 48.dp
     val inputHeight = 44.dp
+    val sheetHandle = 14.dp
     val iconButton = 36.dp
     val touchTarget = 40.dp
     val listRow = 48.dp

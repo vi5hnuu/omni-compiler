@@ -1,5 +1,6 @@
 package solutions.laxmi.omnicompiler.core.datastore
 
+import solutions.laxmi.omnicompiler.core.model.AppTheme
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
@@ -26,11 +27,13 @@ interface PreferencesStore {
     val runSettings: Flow<RunSettings>
     val recentRuntimeIds: Flow<List<String>>
     val lastProjectId: Flow<String?>
+    val appTheme: Flow<AppTheme>
 
     suspend fun updateEditor(transform: (EditorSettings) -> EditorSettings)
     suspend fun updateRun(transform: (RunSettings) -> RunSettings)
     suspend fun markRuntimeUsed(runtimeId: String)
     suspend fun setLastProjectId(id: String?)
+    suspend fun setAppTheme(theme: AppTheme)
 
     /** Projects whose guest "keep your work" prompt was already shown. */
     suspend fun guestPromptedProjects(): Set<String>
@@ -50,6 +53,7 @@ internal class DataStorePreferencesStore @Inject constructor(
         .map { prefs -> prefs[Keys.RECENT_RUNTIMES]?.split(SEPARATOR)?.filter(String::isNotBlank).orEmpty() }
         .distinctUntilChanged()
     override val lastProjectId: Flow<String?> = dataStore.data.map { it[Keys.LAST_PROJECT] }.distinctUntilChanged()
+    override val appTheme: Flow<AppTheme> = dataStore.data.map { enumOr(it[Keys.APP_THEME], AppTheme.SYSTEM) }.distinctUntilChanged()
 
     override suspend fun updateEditor(transform: (EditorSettings) -> EditorSettings) {
         dataStore.edit { prefs -> prefs.write(transform(prefs.toEditorSettings())) }
@@ -65,6 +69,10 @@ internal class DataStorePreferencesStore @Inject constructor(
             val updated = (listOf(runtimeId) + current.filter { it != runtimeId && it.isNotBlank() }).take(MAX_RECENTS)
             prefs[Keys.RECENT_RUNTIMES] = updated.joinToString(SEPARATOR)
         }
+    }
+
+    override suspend fun setAppTheme(theme: AppTheme) {
+        dataStore.edit { prefs -> prefs[Keys.APP_THEME] = theme.name }
     }
 
     override suspend fun setLastProjectId(id: String?) {
@@ -147,6 +155,7 @@ internal class DataStorePreferencesStore @Inject constructor(
 
     private object Keys {
         val THEME = stringPreferencesKey("editor_theme")
+        val APP_THEME = stringPreferencesKey("app_theme")
         val FONT = stringPreferencesKey("editor_font")
         val FONT_SIZE = intPreferencesKey("editor_font_size")
         val LIGATURES = booleanPreferencesKey("editor_ligatures")

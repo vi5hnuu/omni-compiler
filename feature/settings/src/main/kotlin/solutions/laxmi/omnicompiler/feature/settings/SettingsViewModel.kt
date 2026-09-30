@@ -1,5 +1,6 @@
 package solutions.laxmi.omnicompiler.feature.settings
 
+import solutions.laxmi.omnicompiler.core.model.AppTheme
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -25,6 +26,7 @@ data class SettingsUiState(
     val run: RunSettings = RunSettings(),
     val user: User? = null,
     val languages: List<Language> = emptyList(),
+    val appTheme: AppTheme = AppTheme.SYSTEM,
 )
 
 @HiltViewModel
@@ -40,12 +42,17 @@ class SettingsViewModel @Inject constructor(
         settings.runSettings,
         auth.session,
         runtimes.languages,
-    ) { editor, run, session, languages ->
-        SettingsUiState(editor, run, (session as? Session.Active)?.user, languages.filter { it.defaultRuntime?.isRunnable == true })
+        settings.appTheme,
+    ) { editor, run, session, languages, appTheme ->
+        SettingsUiState(editor, run, (session as? Session.Active)?.user, languages.filter { it.defaultRuntime?.isRunnable == true }, appTheme)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SettingsUiState())
 
     fun updateEditor(transform: (EditorSettings) -> EditorSettings) {
         viewModelScope.launch { settings.updateEditor(transform) }
+    }
+
+    fun setAppTheme(theme: AppTheme) {
+        viewModelScope.launch { settings.setAppTheme(theme) }
     }
 
     fun updateRun(transform: (RunSettings) -> RunSettings) {

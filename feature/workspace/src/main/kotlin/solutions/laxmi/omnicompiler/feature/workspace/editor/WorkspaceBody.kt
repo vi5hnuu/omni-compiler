@@ -1,15 +1,25 @@
 package solutions.laxmi.omnicompiler.feature.workspace.editor
 
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.getValue
+import solutions.laxmi.omnicompiler.feature.workspace.console.ConsolePeekHeight
+import solutions.laxmi.omnicompiler.core.designsystem.component.SheetHandle
+import solutions.laxmi.omnicompiler.core.designsystem.theme.OmniDimens
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.material3.rememberStandardBottomSheetState
+import androidx.compose.material3.rememberBottomSheetScaffoldState
+import androidx.compose.material3.SheetValue
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.BottomSheetScaffold
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
@@ -22,12 +32,9 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.platform.LocalResources
@@ -39,7 +46,6 @@ import solutions.laxmi.omnicompiler.feature.workspace.R
 import kotlinx.coroutines.launch
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import solutions.laxmi.omnicompiler.core.designsystem.component.InfoBanner
-import solutions.laxmi.omnicompiler.core.designsystem.component.OmniCompactButton
 import solutions.laxmi.omnicompiler.core.designsystem.icon.OmniIcons
 import solutions.laxmi.omnicompiler.core.designsystem.theme.OmniTheme
 import solutions.laxmi.omnicompiler.core.editor.CodeEditor
@@ -74,6 +80,7 @@ import solutions.laxmi.omnicompiler.feature.workspace.console.problemsFor
 private enum class StdinTarget { Input, TestEditor }
 
 /** Editor + console for a resolved project. Owns the console ViewModel, keyed by project. */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun ColumnScope.WorkspaceBody(
     state: EditorUiState,
@@ -99,7 +106,11 @@ internal fun ColumnScope.WorkspaceBody(
     val loadedTestStdin by console.loadedTestStdin.collectAsStateWithLifecycle()
 
     val resources = LocalResources.current
-    var consoleOpen by rememberSaveable { mutableStateOf(false) }
+    // The console is a standard (persistent) bottom sheet: collapsed it shows the peek row, dragged or tapped it expands.
+    val sheetState = rememberStandardBottomSheetState(initialValue = SheetValue.PartiallyExpanded)
+    val scaffoldState = rememberBottomSheetScaffoldState(bottomSheetState = sheetState)
+    val scope = rememberCoroutineScope()
+    val consoleExpanded = sheetState.targetValue == SheetValue.Expanded
     var tab by rememberSaveable { mutableStateOf(ConsoleTab.Console) }
     var editingTest by remember { mutableStateOf<TestCase?>(null) }
     var creatingTest by rememberSaveable { mutableStateOf(false) }
@@ -129,17 +140,26 @@ internal fun ColumnScope.WorkspaceBody(
                     if (result == SnackbarResult.ActionPerformed) console.restoreTest(event.test)
                 }
                 is ConsoleEvent.RunStarted -> {
-                    consoleOpen = true
                     tab = if (event.mode == RunMode.TESTS) ConsoleTab.Tests else ConsoleTab.Console
+                    launch { sheetState.expand() }
                 }
             }
         }
     }
 
+    fun openConsole(target: ConsoleTab? = null) {
+        target?.let { tab = it }
+        scope.launch { sheetState.expand() }
+    }
+    fun collapseConsole() {
+        scope.launch { sheetState.partialExpand() }
+    }
+    // Typing in the code gets the whole height; the console folds down to make room.
+    LaunchedEffect(typing) { if (typing && sheetState.currentValue == SheetValue.Expanded) sheetState.partialExpand() }
+
     // Back peels layers top-down: the open drawer handles itself, then the console sheet, then the find bar.
-    val sheetVisible = consoleOpen && !typing
-    BackHandler(enabled = !drawerOpen && sheetVisible) { consoleOpen = false }
-    BackHandler(enabled = !drawerOpen && !sheetVisible && searching) { onSearchChange(false) }
+    BackHandler(enabled = !drawerOpen && consoleExpanded) { collapseConsole() }
+    BackHandler(enabled = !drawerOpen && !consoleExpanded && searching) { onSearchChange(false) }
 
     val latest = consoleState.latest
     val running = consoleState.isRunning
@@ -173,10 +193,7 @@ internal fun ColumnScope.WorkspaceBody(
             overflow = {
                 OverflowMenu(
                     listOf(
-                        stringResource(R.string.editor_menu_run_with_input) to {
-                            consoleOpen = true
-                            tab = ConsoleTab.Input
-                        },
+                        stringResource(R.string.editor_menu_run_with_input) to { openConsole(ConsoleTab.Input) },
                         stringResource(R.string.editor_menu_benchmark) to { showBenchmark = true },
                         stringResource(R.string.editor_menu_limits) to { showLimits = true },
                         stringResource(R.string.editor_new_file) to onShowNewFile,
@@ -206,83 +223,102 @@ internal fun ColumnScope.WorkspaceBody(
     if (searching) FindBar(editorState, onClose = { onSearchChange(false) }) else if (!typing) Breadcrumb(activeFile.name)
 
     val problems = consoleState.problemsFor(activeFile.name, activeFile.isEntry)
-    BoxWithConstraints(Modifier.weight(1f).fillMaxWidth()) {
-        val sheetHeight = maxHeight * SHEET_FRACTION
-        CodeEditor(
-            state = editorState,
-            document = EditorDocument(
-                id = activeFile.id,
-                revision = activeFile.contentVersion,
-                text = activeFile.content,
-                fileName = activeFile.name,
-                languageBase = state.runtime?.language,
-                isEntry = activeFile.isEntry,
-            ),
-            settings = state.settings,
-            onTextChange = actions.onContentChanged,
-            diagnostics = remember(problems) { problems.map { EditorDiagnostic(it.line!!, it.column, it.message, it.isError) } },
-            onRunShortcut = if (consoleState.runSettings.runOnCtrlEnter) runTests else null,
-            lineHint = runHint(activeFile, state.runtime?.language, consoleState.tests.size, latest, running),
-            onLineHintClick = runTests,
-            modifier = Modifier.fillMaxSize(),
-        )
-        if (sheetVisible) {
-            Box(
-                Modifier
-                    .fillMaxSize()
-                    .background(OmniTheme.colors.scrim)
-                    .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { consoleOpen = false },
-            )
-        }
-        SlideUpPanel(visible = sheetVisible, modifier = Modifier.align(Alignment.BottomCenter)) {
-            ConsoleSheet(
-                state = consoleState,
-                tab = tab,
-                stdin = stdin,
-                modifier = Modifier.fillMaxWidth().height(sheetHeight),
-                actions = ConsoleSheetActions(
-                    onClose = { consoleOpen = false },
-                    onSelectTab = { tab = it },
-                    onClear = console::clearConsole,
-                    onStop = console::stop,
-                    onRunWithInput = {
-                        editorState.flush()
-                        console.runWithInput()
-                    },
-                    onStdinChange = console::setStdin,
-                    onLoadStdinFile = { pickStdin(StdinTarget.Input) },
-                    onSaveStdinAsTest = console::saveStdinAsTest,
-                    onVerify = console::verify,
-                    onGoTo = { problem ->
-                        consoleOpen = false
-                        val target = state.workspace?.files?.firstOrNull { it.name == problem.fileName } ?: activeFile
-                        if (target.id != activeFile.id) actions.onSelectFile(target.id)
-                        problem.line?.let { editorState.goTo(it, problem.column ?: 1) }
-                    },
-                    onCancelPending = console::cancelPending,
-                    onSendPendingNow = console::sendPendingNow,
-                    onSendWhenOnline = console::setSendWhenOnline,
-                    tests = TestActions(
-                        onRunAll = runTests,
-                        onRunOne = { test ->
-                            editorState.flush()
-                            console.runTests(setOf(test.id))
-                        },
-                        onAdd = { creatingTest = true },
-                        onEdit = { editingTest = it },
-                        onDuplicate = console::duplicateTest,
-                        onDelete = console::deleteTest,
-                        onAcceptOutput = console::acceptOutput,
-                        onRaiseLimits = { showLimits = true },
+    val colors = OmniTheme.colors
+    // The bottom strip keeps one height in every mode: resizing the code view while the keyboard opens makes it
+    // lose input focus. It shows the console summary normally and the symbol keys while typing code.
+    val peekHeight = OmniDimens.sheetHandle + ConsolePeekHeight
+    val symbolStrip = typing && state.settings.symbolRow
+    // Clipped: the collapsed sheet's hidden part would otherwise draw over the system navigation bar.
+    BoxWithConstraints(Modifier.weight(1f).fillMaxWidth().clipToBounds()) {
+        val expandedHeight = maxHeight * SHEET_FRACTION
+        BottomSheetScaffold(
+            scaffoldState = scaffoldState,
+            sheetPeekHeight = peekHeight,
+            sheetSwipeEnabled = !typing,
+            sheetShape = RectangleShape,
+            sheetContainerColor = colors.surface,
+            sheetContentColor = colors.textPrimary,
+            sheetTonalElevation = 0.dp,
+            sheetShadowElevation = 0.dp,
+            sheetDragHandle = {
+                val border = Modifier.drawBehind { drawLine(colors.borderStrong, Offset(0f, 0f), Offset(size.width, 0f), 1f) }
+                // No drag affordance while typing: the sheet can't be dragged then.
+                if (typing) Spacer(border.fillMaxWidth().height(OmniDimens.sheetHandle)) else SheetHandle(border)
+            },
+            containerColor = colors.background,
+            sheetContent = {
+                if (symbolStrip) {
+                    SymbolRow(editorState, Modifier.height(ConsolePeekHeight))
+                } else Column(Modifier.fillMaxWidth().height(expandedHeight - OmniDimens.sheetHandle)) {
+                    ConsolePeek(latest, expanded = consoleExpanded, onToggle = { if (consoleExpanded) collapseConsole() else openConsole() })
+                    ConsoleSheet(
+                        state = consoleState,
+                        tab = tab,
+                        stdin = stdin,
+                        modifier = Modifier.weight(1f).fillMaxWidth(),
+                        actions = ConsoleSheetActions(
+                            onClose = ::collapseConsole,
+                            onSelectTab = { tab = it },
+                            onClear = console::clearConsole,
+                            onStop = console::stop,
+                            onRunWithInput = {
+                                editorState.flush()
+                                console.runWithInput()
+                            },
+                            onStdinChange = console::setStdin,
+                            onLoadStdinFile = { pickStdin(StdinTarget.Input) },
+                            onSaveStdinAsTest = console::saveStdinAsTest,
+                            onVerify = console::verify,
+                            onGoTo = { problem ->
+                                collapseConsole()
+                                val target = state.workspace?.files?.firstOrNull { it.name == problem.fileName } ?: activeFile
+                                if (target.id != activeFile.id) actions.onSelectFile(target.id)
+                                problem.line?.let { editorState.goTo(it, problem.column ?: 1) }
+                            },
+                            onCancelPending = console::cancelPending,
+                            onSendPendingNow = console::sendPendingNow,
+                            onSendWhenOnline = console::setSendWhenOnline,
+                            tests = TestActions(
+                                onRunAll = runTests,
+                                onRunOne = { test ->
+                                    editorState.flush()
+                                    console.runTests(setOf(test.id))
+                                },
+                                onAdd = { creatingTest = true },
+                                onEdit = { editingTest = it },
+                                onDuplicate = console::duplicateTest,
+                                onDelete = console::deleteTest,
+                                onAcceptOutput = console::acceptOutput,
+                                onRaiseLimits = { showLimits = true },
+                            ),
+                        ),
+                    )
+                }
+            },
+        ) {
+            // The collapsed sheet overlays the bottom; reserve its height so the status bar stays visible above it.
+            Column(Modifier.fillMaxSize().padding(bottom = peekHeight)) {
+                CodeEditor(
+                    state = editorState,
+                    document = EditorDocument(
+                        id = activeFile.id,
+                        revision = activeFile.contentVersion,
+                        text = activeFile.content,
+                        fileName = activeFile.name,
+                        languageBase = state.runtime?.language,
+                        isEntry = activeFile.isEntry,
                     ),
-                ),
-            )
+                    settings = state.settings,
+                    onTextChange = actions.onContentChanged,
+                    diagnostics = remember(problems) { problems.map { EditorDiagnostic(it.line!!, it.column, it.message, it.isError) } },
+                    onRunShortcut = if (consoleState.runSettings.runOnCtrlEnter) runTests else null,
+                    lineHint = runHint(activeFile, state.runtime?.language, consoleState.tests.size, latest, running),
+                    onLineHintClick = runTests,
+                    modifier = Modifier.weight(1f).fillMaxWidth(),
+                )
+                EditorStatusBar(editorState, state.settings.tabSize, problems = latest?.problems?.size ?: 0)
+            }
         }
-    }
-    if (typing && state.settings.symbolRow) SymbolRow(editorState)
-    if (!typing && !consoleOpen) {
-        ConsolePeek(latest) { consoleOpen = true }
-        EditorStatusBar(editorState, state.settings.tabSize, problems = latest?.problems?.size ?: 0)
     }
 
     if (creatingTest || editingTest != null) {
@@ -360,14 +396,6 @@ private fun runHint(file: SourceFile, languageBase: String?, testCount: Int, lat
         else stringResource(R.string.editor_run_hint_last, verdict.code)
     }
     return EditorLineHint(line, parts.joinToString(" · "))
-}
-
-/** Kept outside any Row/Column scope so the unscoped AnimatedVisibility overload is used. */
-@Composable
-private fun SlideUpPanel(visible: Boolean, modifier: Modifier, content: @Composable () -> Unit) {
-    AnimatedVisibility(visible = visible, modifier = modifier, enter = slideInVertically { it }, exit = slideOutVertically { it }) {
-        content()
-    }
 }
 
 private const val SHEET_FRACTION = 0.78f

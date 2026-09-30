@@ -1,5 +1,7 @@
 package solutions.laxmi.omnicompiler
 
+import solutions.laxmi.omnicompiler.core.model.AppTheme
+import solutions.laxmi.omnicompiler.core.data.settings.SettingsRepository
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -15,7 +17,7 @@ import javax.inject.Inject
 enum class AuthGate { Loading, SignedOut, SignedIn }
 
 @HiltViewModel
-class MainViewModel @Inject constructor(auth: AuthRepository) : ViewModel() {
+class MainViewModel @Inject constructor(auth: AuthRepository, settings: SettingsRepository) : ViewModel() {
     val gate: StateFlow<AuthGate> = auth.session
         .map {
             when (it) {
@@ -25,4 +27,6 @@ class MainViewModel @Inject constructor(auth: AuthRepository) : ViewModel() {
             }
         }
         .stateIn(viewModelScope, SharingStarted.Eagerly, AuthGate.Loading)
+
+    val appTheme: StateFlow<AppTheme> = settings.appTheme.stateIn(viewModelScope, SharingStarted.Eagerly, AppTheme.SYSTEM)
 }

@@ -4,6 +4,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Shapes
 import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.ReadOnlyComposable
@@ -11,12 +12,12 @@ import androidx.compose.foundation.text.selection.LocalTextSelectionColors
 import androidx.compose.foundation.text.selection.TextSelectionColors
 import androidx.compose.ui.unit.dp
 
-/** The app is dark-only by design; editor themes (Signal/Graphite/Paper/Contrast) apply to code only. */
+/** App chrome in dark (Signal) or light (Paper); editor themes are chosen separately (see `EditorTheme`). */
 @Composable
-fun OmniTheme(content: @Composable () -> Unit) {
-    val colors = SignalColors
-    // Material components we still use (menus, snackbars, sliders) inherit the Signal palette and square shapes.
-    val material = darkColorScheme(
+fun OmniTheme(darkTheme: Boolean = true, content: @Composable () -> Unit) {
+    val colors = if (darkTheme) SignalColors else PaperColors
+    // Material components we still use (menus, snackbars, sliders) inherit the palette and square shapes.
+    val material = (if (darkTheme) darkColorScheme() else lightColorScheme()).copy(
         primary = colors.accent,
         onPrimary = colors.onAccent,
         secondary = colors.textSecondary,
