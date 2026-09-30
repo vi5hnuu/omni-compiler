@@ -34,25 +34,40 @@
    "grammar": "textmate/grammars/cobol.json",
    "name": "cobol",
    "scopeName": "source.cobol",
-   "languageConfiguration": "textmate/config/none.json"
+   "languageConfiguration": "textmate/config/none.json",
+   "dependencies": [
+    "source.java"
+   ]
   },
   {
    "grammar": "textmate/grammars/coffee.json",
    "name": "coffee",
    "scopeName": "source.coffee",
-   "languageConfiguration": "textmate/config/hash-sq.json"
+   "languageConfiguration": "textmate/config/hash-sq.json",
+   "dependencies": [
+    "source.js"
+   ]
   },
   {
    "grammar": "textmate/grammars/cpp.json",
    "name": "cpp",
    "scopeName": "source.cpp",
-   "languageConfiguration": "textmate/config/slash.json"
+   "languageConfiguration": "textmate/config/slash.json",
+   "dependencies": [
+    "source.regexp.python"
+   ]
   },
   {
    "grammar": "textmate/grammars/crystal.json",
    "name": "crystal",
    "scopeName": "source.crystal",
-   "languageConfiguration": "textmate/config/hash.json"
+   "languageConfiguration": "textmate/config/hash.json",
+   "dependencies": [
+    "source.c",
+    "source.js",
+    "source.shell",
+    "source.sql"
+   ]
   },
   {
    "grammar": "textmate/grammars/csharp.json",
@@ -130,7 +145,14 @@
    "grammar": "textmate/grammars/julia.json",
    "name": "julia",
    "scopeName": "source.julia",
-   "languageConfiguration": "textmate/config/hash.json"
+   "languageConfiguration": "textmate/config/hash.json",
+   "dependencies": [
+    "source.cpp",
+    "source.js",
+    "source.python",
+    "source.r",
+    "source.sql"
+   ]
   },
   {
    "grammar": "textmate/grammars/kotlin.json",
@@ -148,7 +170,10 @@
    "grammar": "textmate/grammars/lua.json",
    "name": "lua",
    "scopeName": "source.lua",
-   "languageConfiguration": "textmate/config/dash-sq.json"
+   "languageConfiguration": "textmate/config/dash-sq.json",
+   "dependencies": [
+    "source.c"
+   ]
   },
   {
    "grammar": "textmate/grammars/asm.json",
@@ -172,13 +197,21 @@
    "grammar": "textmate/grammars/perl.json",
    "name": "perl",
    "scopeName": "source.perl",
-   "languageConfiguration": "textmate/config/hash-sq.json"
+   "languageConfiguration": "textmate/config/hash-sq.json",
+   "dependencies": [
+    "source.js",
+    "source.sql"
+   ]
   },
   {
    "grammar": "textmate/grammars/php.json",
    "name": "php",
    "scopeName": "source.php",
-   "languageConfiguration": "textmate/config/slash-sq.json"
+   "languageConfiguration": "textmate/config/slash-sq.json",
+   "dependencies": [
+    "source.js",
+    "source.sql"
+   ]
   },
   {
    "grammar": "textmate/grammars/powershell.json",
@@ -214,7 +247,15 @@
    "grammar": "textmate/grammars/ruby.json",
    "name": "ruby",
    "scopeName": "source.ruby",
-   "languageConfiguration": "textmate/config/hash-sq.json"
+   "languageConfiguration": "textmate/config/hash-sq.json",
+   "dependencies": [
+    "source.c",
+    "source.cpp",
+    "source.js",
+    "source.lua",
+    "source.shell",
+    "source.sql"
+   ]
   },
   {
    "grammar": "textmate/grammars/rust.json",

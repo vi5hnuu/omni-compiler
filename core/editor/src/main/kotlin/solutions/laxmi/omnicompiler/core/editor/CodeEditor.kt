@@ -87,25 +87,31 @@ fun CodeEditor(
     val palette = remember(settings.theme) { settings.theme.palette() }
     val currentOnTextChange by rememberUpdatedState(onTextChange)
     val currentRunShortcut by rememberUpdatedState(onRunShortcut)
-    var ready by remember { mutableStateOf(false) }
+    val grammar = remember(document.fileName, document.languageBase, document.isEntry) {
+        EditorLanguages.grammarFor(document.fileName, document.languageBase, document.isEntry)
+    }
+    // Which grammar is parsed and usable; a document is bound only once its own grammar is.
+    var loaded by remember { mutableStateOf<LoadedGrammar?>(null) }
 
-    LaunchedEffect(Unit) {
-        withContext(Dispatchers.IO) { EditorLanguages.ensureInitialized(context) }
-        ready = true
+    LaunchedEffect(grammar) {
+        withContext(Dispatchers.IO) { EditorLanguages.ensureLoaded(context, grammar) }
+        loaded = LoadedGrammar(grammar)
     }
     SideEffect { state.onTextChanged = { id, text -> currentOnTextChange(id, text) } }
 
     Row(modifier.background(palette.background)) {
         Box(Modifier.weight(1f).fillMaxHeight()) {
-            if (ready) {
+            if (loaded != null) {
                 AndroidView(
                     modifier = Modifier.fillMaxSize(),
                     factory = { ctx -> createEditor(ctx, state) { currentRunShortcut?.invoke() } },
                     update = { editor ->
                         editor.applySettings(context, settings, palette)
                         editor.isEditable = !readOnly
-                        editor.bindDocument(state, document)
-                        editor.setDiagnostics(diagnostics)
+                        if (loaded?.grammar == grammar) {
+                            editor.bindDocument(state, document, grammar)
+                            editor.setDiagnostics(diagnostics)
+                        }
                     },
                     onRelease = { editor ->
                         state.flush()
@@ -288,12 +294,11 @@ private fun CodeFont.typeface(context: Context): Typeface {
 }
 
 /** Swaps buffers only when the document identity changes, never on ordinary recomposition. */
-private fun CodeEditor.bindDocument(state: CodeEditorState, document: EditorDocument) {
+private fun CodeEditor.bindDocument(state: CodeEditorState, document: EditorDocument, grammar: GrammarId?) {
     if (getTag(R.id.omni_editor_document) == document.key) return
     state.flush()
     setTag(R.id.omni_editor_document, document.key)
     state.boundDocumentId = document.id
-    val grammar = EditorLanguages.grammarFor(document.fileName, document.languageBase, document.isEntry)
     val previous = editorLanguage
     setEditorLanguage(grammar?.let { TextMateLanguage.create(it.scopeName, true) } ?: EmptyLanguage())
     (previous as? TextMateLanguage)?.destroy()
@@ -326,3 +331,6 @@ private fun CodeEditor.setDiagnostics(items: List<EditorDiagnostic>) {
 
 /** Underline length when only a caret column is known (compiler reports a point, not a range). */
 private const val TOKEN_UNDERLINE = 8
+
+/** Wrapper so "plain text is ready" (`grammar == null`) differs from "nothing loaded yet". */
+private data class LoadedGrammar(val grammar: GrammarId?)

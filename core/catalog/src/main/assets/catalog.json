@@ -1642,6 +1642,920 @@
    }
   }
  ],
+ "runtimes": [
+  {
+   "id": "ada-2012",
+   "language": "ada",
+   "version": "2012",
+   "status": "ready",
+   "filename": "solution.adb",
+   "lane": "cold"
+  },
+  {
+   "id": "awk-5",
+   "language": "awk",
+   "version": "5",
+   "status": "ready",
+   "filename": "solution.awk",
+   "lane": "cold"
+  },
+  {
+   "id": "bash-5",
+   "language": "bash",
+   "version": "5",
+   "status": "ready",
+   "filename": "solution.sh",
+   "lane": "cold"
+  },
+  {
+   "id": "bc-1",
+   "language": "bc",
+   "version": "1",
+   "status": "ready",
+   "filename": "solution.bc",
+   "lane": "cold"
+  },
+  {
+   "id": "bqn-0",
+   "language": "bqn",
+   "version": "0",
+   "status": "ready",
+   "filename": "solution.bqn",
+   "lane": "cold"
+  },
+  {
+   "id": "brainfuck-0",
+   "language": "brainfuck",
+   "version": "0",
+   "status": "ready",
+   "filename": "solution.bf",
+   "lane": "cold"
+  },
+  {
+   "id": "bun-1",
+   "language": "bun",
+   "version": "1",
+   "status": "ready",
+   "filename": "solution.js",
+   "lane": "cold"
+  },
+  {
+   "id": "c-11",
+   "language": "c",
+   "version": "11",
+   "status": "ready",
+   "filename": "solution.c",
+   "lane": "cold"
+  },
+  {
+   "id": "c-17",
+   "language": "c",
+   "version": "17",
+   "status": "ready",
+   "filename": "solution.c",
+   "lane": "cold"
+  },
+  {
+   "id": "c-23",
+   "language": "c",
+   "version": "23",
+   "status": "ready",
+   "filename": "solution.c",
+   "lane": "cold"
+  },
+  {
+   "id": "c-90",
+   "language": "c",
+   "version": "90",
+   "status": "ready",
+   "filename": "solution.c",
+   "lane": "cold"
+  },
+  {
+   "id": "c-99",
+   "language": "c",
+   "version": "99",
+   "status": "ready",
+   "filename": "solution.c",
+   "lane": "cold"
+  },
+  {
+   "id": "clojure-1",
+   "language": "clojure",
+   "version": "1",
+   "status": "ready",
+   "filename": "solution.clj",
+   "lane": "cold"
+  },
+  {
+   "id": "cobol-3",
+   "language": "cobol",
+   "version": "3",
+   "status": "ready",
+   "filename": "solution.cob",
+   "lane": "cold"
+  },
+  {
+   "id": "coffeescript-2",
+   "language": "coffeescript",
+   "version": "2",
+   "status": "ready",
+   "filename": "solution.coffee",
+   "lane": "cold"
+  },
+  {
+   "id": "cpp-11",
+   "language": "cpp",
+   "version": "11",
+   "status": "ready",
+   "filename": "solution.cpp",
+   "lane": "hot"
+  },
+  {
+   "id": "cpp-14",
+   "language": "cpp",
+   "version": "14",
+   "status": "ready",
+   "filename": "solution.cpp",
+   "lane": "hot"
+  },
+  {
+   "id": "cpp-17",
+   "language": "cpp",
+   "version": "17",
+   "status": "ready",
+   "filename": "solution.cpp",
+   "lane": "hot"
+  },
+  {
+   "id": "cpp-20",
+   "language": "cpp",
+   "version": "20",
+   "status": "ready",
+   "filename": "solution.cpp",
+   "lane": "hot"
+  },
+  {
+   "id": "cpp-23",
+   "language": "cpp",
+   "version": "23",
+   "status": "ready",
+   "filename": "solution.cpp",
+   "lane": "hot"
+  },
+  {
+   "id": "cpp-26",
+   "language": "cpp",
+   "version": "26",
+   "status": "ready",
+   "filename": "solution.cpp",
+   "lane": "hot"
+  },
+  {
+   "id": "cpp-98",
+   "language": "cpp",
+   "version": "98",
+   "status": "ready",
+   "filename": "solution.cpp",
+   "lane": "hot"
+  },
+  {
+   "id": "crystal-1",
+   "language": "crystal",
+   "version": "1",
+   "status": "ready",
+   "filename": "solution.cr",
+   "lane": "cold"
+  },
+  {
+   "id": "csharp-12",
+   "language": "csharp",
+   "version": "12",
+   "status": "ready",
+   "filename": "solution.cs",
+   "lane": "cold"
+  },
+  {
+   "id": "csharp-13",
+   "language": "csharp",
+   "version": "13",
+   "status": "ready",
+   "filename": "solution.cs",
+   "lane": "cold"
+  },
+  {
+   "id": "csharp-14",
+   "language": "csharp",
+   "version": "14",
+   "status": "ready",
+   "filename": "solution.cs",
+   "lane": "cold"
+  },
+  {
+   "id": "d-2",
+   "language": "d",
+   "version": "2",
+   "status": "ready",
+   "filename": "solution.d",
+   "lane": "cold"
+  },
+  {
+   "id": "dart-3",
+   "language": "dart",
+   "version": "3",
+   "status": "ready",
+   "filename": "solution.dart",
+   "lane": "cold"
+  },
+  {
+   "id": "dart-3.7",
+   "language": "dart",
+   "version": "3.7",
+   "status": "ready",
+   "filename": "solution.dart",
+   "lane": "cold"
+  },
+  {
+   "id": "dc-0",
+   "language": "dc",
+   "version": "0",
+   "status": "ready",
+   "filename": "solution.dc",
+   "lane": "cold"
+  },
+  {
+   "id": "deno-2",
+   "language": "deno",
+   "version": "2",
+   "status": "ready",
+   "filename": "solution.js",
+   "lane": "cold"
+  },
+  {
+   "id": "elixir-1",
+   "language": "elixir",
+   "version": "1",
+   "status": "ready",
+   "filename": "solution.exs",
+   "lane": "cold"
+  },
+  {
+   "id": "elixir-1.17",
+   "language": "elixir",
+   "version": "1.17",
+   "status": "ready",
+   "filename": "solution.exs",
+   "lane": "cold"
+  },
+  {
+   "id": "elixir-1.18",
+   "language": "elixir",
+   "version": "1.18",
+   "status": "ready",
+   "filename": "solution.exs",
+   "lane": "cold"
+  },
+  {
+   "id": "erlang-26",
+   "language": "erlang",
+   "version": "26",
+   "status": "ready",
+   "filename": "solution.erl",
+   "lane": "cold"
+  },
+  {
+   "id": "erlang-27",
+   "language": "erlang",
+   "version": "27",
+   "status": "ready",
+   "filename": "solution.erl",
+   "lane": "cold"
+  },
+  {
+   "id": "erlang-28",
+   "language": "erlang",
+   "version": "28",
+   "status": "ready",
+   "filename": "solution.erl",
+   "lane": "cold"
+  },
+  {
+   "id": "fish-3",
+   "language": "fish",
+   "version": "3",
+   "status": "ready",
+   "filename": "solution.fish",
+   "lane": "cold"
+  },
+  {
+   "id": "forth-0",
+   "language": "forth",
+   "version": "0",
+   "status": "ready",
+   "filename": "solution.forth",
+   "lane": "cold"
+  },
+  {
+   "id": "fortran-2018",
+   "language": "fortran",
+   "version": "2018",
+   "status": "ready",
+   "filename": "solution.f90",
+   "lane": "cold"
+  },
+  {
+   "id": "fsharp-10",
+   "language": "fsharp",
+   "version": "10",
+   "status": "ready",
+   "filename": "solution.fs",
+   "lane": "cold"
+  },
+  {
+   "id": "fsharp-8",
+   "language": "fsharp",
+   "version": "8",
+   "status": "ready",
+   "filename": "solution.fs",
+   "lane": "cold"
+  },
+  {
+   "id": "fsharp-9",
+   "language": "fsharp",
+   "version": "9",
+   "status": "ready",
+   "filename": "solution.fs",
+   "lane": "cold"
+  },
+  {
+   "id": "go-1.22",
+   "language": "go",
+   "version": "1.22",
+   "status": "ready",
+   "filename": "solution.go",
+   "lane": "hot"
+  },
+  {
+   "id": "go-1.23",
+   "language": "go",
+   "version": "1.23",
+   "status": "ready",
+   "filename": "solution.go",
+   "lane": "hot"
+  },
+  {
+   "id": "go-1.24",
+   "language": "go",
+   "version": "1.24",
+   "status": "ready",
+   "filename": "solution.go",
+   "lane": "hot"
+  },
+  {
+   "id": "go-1.25",
+   "language": "go",
+   "version": "1.25",
+   "status": "ready",
+   "filename": "solution.go",
+   "lane": "hot"
+  },
+  {
+   "id": "groovy-4",
+   "language": "groovy",
+   "version": "4",
+   "status": "ready",
+   "filename": "solution.groovy",
+   "lane": "cold"
+  },
+  {
+   "id": "guile-3",
+   "language": "guile",
+   "version": "3",
+   "status": "ready",
+   "filename": "solution.scm",
+   "lane": "cold"
+  },
+  {
+   "id": "haskell-9",
+   "language": "haskell",
+   "version": "9",
+   "status": "ready",
+   "filename": "solution.hs",
+   "lane": "cold"
+  },
+  {
+   "id": "haskell-9.10",
+   "language": "haskell",
+   "version": "9.10",
+   "status": "ready",
+   "filename": "solution.hs",
+   "lane": "cold"
+  },
+  {
+   "id": "java-11",
+   "language": "java",
+   "version": "11",
+   "status": "ready",
+   "filename": "Solution.java",
+   "lane": "hot"
+  },
+  {
+   "id": "java-17",
+   "language": "java",
+   "version": "17",
+   "status": "ready",
+   "filename": "Solution.java",
+   "lane": "hot"
+  },
+  {
+   "id": "java-21",
+   "language": "java",
+   "version": "21",
+   "status": "ready",
+   "filename": "Solution.java",
+   "lane": "hot"
+  },
+  {
+   "id": "java-22",
+   "language": "java",
+   "version": "22",
+   "status": "ready",
+   "filename": "Solution.java",
+   "lane": "hot"
+  },
+  {
+   "id": "java-23",
+   "language": "java",
+   "version": "23",
+   "status": "ready",
+   "filename": "Solution.java",
+   "lane": "hot"
+  },
+  {
+   "id": "java-24",
+   "language": "java",
+   "version": "24",
+   "status": "ready",
+   "filename": "Solution.java",
+   "lane": "hot"
+  },
+  {
+   "id": "java-25",
+   "language": "java",
+   "version": "25",
+   "status": "ready",
+   "filename": "Solution.java",
+   "lane": "hot"
+  },
+  {
+   "id": "java-8",
+   "language": "java",
+   "version": "8",
+   "status": "ready",
+   "filename": "Solution.java",
+   "lane": "hot"
+  },
+  {
+   "id": "javascript-20",
+   "language": "javascript",
+   "version": "20",
+   "status": "ready",
+   "filename": "solution.js",
+   "lane": "hot"
+  },
+  {
+   "id": "javascript-22",
+   "language": "javascript",
+   "version": "22",
+   "status": "ready",
+   "filename": "solution.js",
+   "lane": "hot"
+  },
+  {
+   "id": "javascript-23",
+   "language": "javascript",
+   "version": "23",
+   "status": "ready",
+   "filename": "solution.js",
+   "lane": "hot"
+  },
+  {
+   "id": "javascript-24",
+   "language": "javascript",
+   "version": "24",
+   "status": "ready",
+   "filename": "solution.js",
+   "lane": "hot"
+  },
+  {
+   "id": "javascript-25",
+   "language": "javascript",
+   "version": "25",
+   "status": "ready",
+   "filename": "solution.js",
+   "lane": "hot"
+  },
+  {
+   "id": "javascript-26",
+   "language": "javascript",
+   "version": "26",
+   "status": "ready",
+   "filename": "solution.js",
+   "lane": "hot"
+  },
+  {
+   "id": "jq-1",
+   "language": "jq",
+   "version": "1",
+   "status": "ready",
+   "filename": "solution.jq",
+   "lane": "cold"
+  },
+  {
+   "id": "julia-1",
+   "language": "julia",
+   "version": "1",
+   "status": "ready",
+   "filename": "solution.jl",
+   "lane": "cold"
+  },
+  {
+   "id": "julia-1.11",
+   "language": "julia",
+   "version": "1.11",
+   "status": "ready",
+   "filename": "solution.jl",
+   "lane": "cold"
+  },
+  {
+   "id": "kotlin-2",
+   "language": "kotlin",
+   "version": "2",
+   "status": "ready",
+   "filename": "solution.kt",
+   "lane": "cold"
+  },
+  {
+   "id": "lisp-2",
+   "language": "lisp",
+   "version": "2",
+   "status": "ready",
+   "filename": "solution.lisp",
+   "lane": "cold"
+  },
+  {
+   "id": "lua-5.1",
+   "language": "lua",
+   "version": "5.1",
+   "status": "ready",
+   "filename": "solution.lua",
+   "lane": "cold"
+  },
+  {
+   "id": "lua-5.3",
+   "language": "lua",
+   "version": "5.3",
+   "status": "ready",
+   "filename": "solution.lua",
+   "lane": "cold"
+  },
+  {
+   "id": "lua-5.4",
+   "language": "lua",
+   "version": "5.4",
+   "status": "ready",
+   "filename": "solution.lua",
+   "lane": "cold"
+  },
+  {
+   "id": "nasm-2",
+   "language": "nasm",
+   "version": "2",
+   "status": "ready",
+   "filename": "solution.asm",
+   "lane": "cold"
+  },
+  {
+   "id": "nim-2",
+   "language": "nim",
+   "version": "2",
+   "status": "ready",
+   "filename": "solution.nim",
+   "lane": "cold"
+  },
+  {
+   "id": "ocaml-5",
+   "language": "ocaml",
+   "version": "5",
+   "status": "ready",
+   "filename": "solution.ml",
+   "lane": "cold"
+  },
+  {
+   "id": "octave-8",
+   "language": "octave",
+   "version": "8",
+   "status": "ready",
+   "filename": "solution.m",
+   "lane": "cold"
+  },
+  {
+   "id": "pascal-3",
+   "language": "pascal",
+   "version": "3",
+   "status": "ready",
+   "filename": "solution.pas",
+   "lane": "cold"
+  },
+  {
+   "id": "perl-5",
+   "language": "perl",
+   "version": "5",
+   "status": "ready",
+   "filename": "solution.pl",
+   "lane": "cold"
+  },
+  {
+   "id": "php-8",
+   "language": "php",
+   "version": "8",
+   "status": "ready",
+   "filename": "solution.php",
+   "lane": "cold"
+  },
+  {
+   "id": "php-8.3",
+   "language": "php",
+   "version": "8.3",
+   "status": "ready",
+   "filename": "solution.php",
+   "lane": "cold"
+  },
+  {
+   "id": "php-8.4",
+   "language": "php",
+   "version": "8.4",
+   "status": "ready",
+   "filename": "solution.php",
+   "lane": "cold"
+  },
+  {
+   "id": "powershell-7",
+   "language": "powershell",
+   "version": "7",
+   "status": "ready",
+   "filename": "solution.ps1",
+   "lane": "cold"
+  },
+  {
+   "id": "prolog-9",
+   "language": "prolog",
+   "version": "9",
+   "status": "ready",
+   "filename": "solution.pl",
+   "lane": "cold"
+  },
+  {
+   "id": "pypy-3",
+   "language": "pypy",
+   "version": "3",
+   "status": "ready",
+   "filename": "solution.py",
+   "lane": "cold"
+  },
+  {
+   "id": "pypy-3.11",
+   "language": "pypy",
+   "version": "3.11",
+   "status": "ready",
+   "filename": "solution.py",
+   "lane": "cold"
+  },
+  {
+   "id": "python-3.11",
+   "language": "python",
+   "version": "3.11",
+   "status": "ready",
+   "filename": "solution.py",
+   "lane": "hot"
+  },
+  {
+   "id": "python-3.12",
+   "language": "python",
+   "version": "3.12",
+   "status": "ready",
+   "filename": "solution.py",
+   "lane": "hot"
+  },
+  {
+   "id": "python-3.13",
+   "language": "python",
+   "version": "3.13",
+   "status": "ready",
+   "filename": "solution.py",
+   "lane": "hot"
+  },
+  {
+   "id": "python-3.14",
+   "language": "python",
+   "version": "3.14",
+   "status": "ready",
+   "filename": "solution.py",
+   "lane": "hot"
+  },
+  {
+   "id": "python-3.15",
+   "language": "python",
+   "version": "3.15",
+   "status": "ready",
+   "filename": "solution.py",
+   "lane": "hot"
+  },
+  {
+   "id": "r-4",
+   "language": "r",
+   "version": "4",
+   "status": "ready",
+   "filename": "solution.r",
+   "lane": "cold"
+  },
+  {
+   "id": "racket-8",
+   "language": "racket",
+   "version": "8",
+   "status": "ready",
+   "filename": "solution.rkt",
+   "lane": "cold"
+  },
+  {
+   "id": "raku-0",
+   "language": "raku",
+   "version": "0",
+   "status": "ready",
+   "filename": "solution.raku",
+   "lane": "cold"
+  },
+  {
+   "id": "ruby-3",
+   "language": "ruby",
+   "version": "3",
+   "status": "ready",
+   "filename": "solution.rb",
+   "lane": "cold"
+  },
+  {
+   "id": "ruby-3.2",
+   "language": "ruby",
+   "version": "3.2",
+   "status": "ready",
+   "filename": "solution.rb",
+   "lane": "cold"
+  },
+  {
+   "id": "ruby-3.3",
+   "language": "ruby",
+   "version": "3.3",
+   "status": "ready",
+   "filename": "solution.rb",
+   "lane": "cold"
+  },
+  {
+   "id": "ruby-3.4",
+   "language": "ruby",
+   "version": "3.4",
+   "status": "ready",
+   "filename": "solution.rb",
+   "lane": "cold"
+  },
+  {
+   "id": "rust-1",
+   "language": "rust",
+   "version": "1",
+   "status": "ready",
+   "filename": "solution.rs",
+   "lane": "cold"
+  },
+  {
+   "id": "rust-1.82",
+   "language": "rust",
+   "version": "1.82",
+   "status": "ready",
+   "filename": "solution.rs",
+   "lane": "cold"
+  },
+  {
+   "id": "rust-1.83",
+   "language": "rust",
+   "version": "1.83",
+   "status": "ready",
+   "filename": "solution.rs",
+   "lane": "cold"
+  },
+  {
+   "id": "rust-1.87",
+   "language": "rust",
+   "version": "1.87",
+   "status": "ready",
+   "filename": "solution.rs",
+   "lane": "cold"
+  },
+  {
+   "id": "scala-3",
+   "language": "scala",
+   "version": "3",
+   "status": "ready",
+   "filename": "solution.scala",
+   "lane": "cold"
+  },
+  {
+   "id": "smalltalk-0",
+   "language": "smalltalk",
+   "version": "0",
+   "status": "ready",
+   "filename": "solution.st",
+   "lane": "cold"
+  },
+  {
+   "id": "sqlite-3",
+   "language": "sqlite",
+   "version": "3",
+   "status": "ready",
+   "filename": "solution.sql",
+   "lane": "hot"
+  },
+  {
+   "id": "swift-5",
+   "language": "swift",
+   "version": "5",
+   "status": "ready",
+   "filename": "solution.swift",
+   "lane": "cold"
+  },
+  {
+   "id": "swift-6",
+   "language": "swift",
+   "version": "6",
+   "status": "ready",
+   "filename": "solution.swift",
+   "lane": "cold"
+  },
+  {
+   "id": "tcl-8",
+   "language": "tcl",
+   "version": "8",
+   "status": "ready",
+   "filename": "solution.tcl",
+   "lane": "cold"
+  },
+  {
+   "id": "typescript-5",
+   "language": "typescript",
+   "version": "5",
+   "status": "ready",
+   "filename": "solution.ts",
+   "lane": "cold"
+  },
+  {
+   "id": "vlang-0",
+   "language": "vlang",
+   "version": "0",
+   "status": "ready",
+   "filename": "solution.v",
+   "lane": "cold"
+  },
+  {
+   "id": "wasm-1",
+   "language": "wasm",
+   "version": "1",
+   "status": "ready",
+   "filename": "solution.wat",
+   "lane": "cold"
+  },
+  {
+   "id": "zig-0.13",
+   "language": "zig",
+   "version": "0.13",
+   "status": "ready",
+   "filename": "solution.zig",
+   "lane": "cold"
+  },
+  {
+   "id": "zig-0.14",
+   "language": "zig",
+   "version": "0.14",
+   "status": "ready",
+   "filename": "solution.zig",
+   "lane": "cold"
+  },
+  {
+   "id": "zsh-5",
+   "language": "zsh",
+   "version": "5",
+   "status": "ready",
+   "filename": "solution.zsh",
+   "lane": "cold"
+  }
+ ],
  "examples": [
   {
    "id": "double",

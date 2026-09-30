@@ -9,12 +9,24 @@ internal data class CatalogJson(
     val defaultLimits: LimitsJson,
     val runtimeLimits: Map<String, LimitsJson>,
     val languages: List<LanguageJson>,
+    val runtimes: List<RuntimeJson> = emptyList(),
     val examples: List<ExampleJson>,
     val problems: List<ProblemJson>,
 )
 
 @Serializable
 internal data class LimitsJson(val timeMs: Int, val memMb: Int)
+
+/** Build-time snapshot of ls-judge runtime definitions (deploy/firecracker/runtimes). */
+@Serializable
+internal data class RuntimeJson(
+    val id: String,
+    val language: String,
+    val version: String,
+    val status: String,
+    val filename: String,
+    val lane: String,
+)
 
 @Serializable
 internal data class TestJson(val stdin: String, val expected: String)

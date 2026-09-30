@@ -11,6 +11,9 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onStart
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import solutions.laxmi.omnicompiler.core.catalog.LanguageCatalog
 import solutions.laxmi.omnicompiler.core.data.mapper.toEntity
 import solutions.laxmi.omnicompiler.core.data.mapper.toModel
@@ -63,7 +66,12 @@ internal class DefaultRuntimeRepository @Inject constructor(
     private val inFlightLock = Any()
     private var inFlight: Deferred<Outcome<Unit>>? = null
 
-    private val runtimes: Flow<List<Runtime>> = dao.observeAll().map { rows -> rows.map { it.toModel() } }
+    private val seedLock = Mutex()
+    @Volatile private var seeded = false
+
+    private val runtimes: Flow<List<Runtime>> = dao.observeAll()
+        .onStart { ensureSeeded() }
+        .map { rows -> rows.map { it.toModel() } }
 
     override val languages: Flow<List<Language>> = combine(
         runtimes,
@@ -100,7 +108,21 @@ internal class DefaultRuntimeRepository @Inject constructor(
         return Outcome.Success(Unit)
     }
 
-    override suspend fun runtime(id: String): Runtime? = dao.get(id)?.toModel()
+    override suspend fun runtime(id: String): Runtime? {
+        ensureSeeded()
+        return dao.get(id)?.toModel()
+    }
+
+    /** A fresh install offline still gets pickers and new projects from the bundled snapshot. */
+    private suspend fun ensureSeeded() {
+        if (seeded) return
+        seedLock.withLock {
+            if (!seeded) {
+                dao.seedIfEmpty(catalog.seedRuntimes().map { it.toEntity() })
+                seeded = true
+            }
+        }
+    }
 
     override suspend fun languageInfo(base: String): LanguageInfo = catalog.language(base)
 

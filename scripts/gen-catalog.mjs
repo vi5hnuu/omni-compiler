@@ -6,7 +6,7 @@
 // as the web playground.
 //
 // Usage:  node scripts/gen-catalog.mjs [path/to/ls-judge]     (default: ../../WebstormProjects/ls-judge)
-import { readdir, writeFile, mkdir } from 'node:fs/promises';
+import { readdir, readFile, writeFile, mkdir } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -99,9 +99,44 @@ const capitalize = (s) => s.charAt(0).toUpperCase() + s.slice(1);
 const normalizeTests = (tests) => (tests ?? []).map((t) => ({ stdin: t.stdin ?? '', expected: t.expected ?? '' }));
 
 // Every family that has a runtime definition, plus anything the web catalog advertises.
-const runtimeDirs = (await readdir(join(lsJudge, 'deploy', 'firecracker', 'runtimes'), { withFileTypes: true }))
-  .filter((e) => e.isDirectory() && !e.name.startsWith('_'))
-  .map((e) => e.name.split('-')[0]);
+const runtimesRoot = join(lsJudge, 'deploy', 'firecracker', 'runtimes');
+const runtimeEntries = (await readdir(runtimesRoot, { withFileTypes: true }))
+  .filter((e) => e.isDirectory() && !e.name.startsWith('_'));
+const runtimeDirs = runtimeEntries.map((e) => e.name.split('-')[0]);
+
+// Offline snapshot of runtimes (id, entry filename, status) so projects can be created before the live
+// GET /runtimes has ever succeeded. Hot-lane families mirror ls-judge internal/models HotLanguages.
+const HOT_LANGUAGES = new Set(['python', 'cpp', 'java', 'javascript', 'go', 'sqlite']);
+const runtimes = [];
+for (const entry of runtimeEntries) {
+  let tests;
+  try {
+    tests = JSON.parse(await readFile(join(runtimesRoot, entry.name, 'tests.json'), 'utf8'));
+  } catch {
+    continue; // not a buildable runtime definition
+  }
+  let status = 'ready';
+  try {
+    const meta = await readFile(join(runtimesRoot, entry.name, 'metadata.yml'), 'utf8');
+    status = /^status:\s*(\w+)/m.exec(meta)?.[1] ?? 'ready';
+  } catch {
+    // no metadata.yml: ready by convention
+  }
+  if (status === 'removed') continue;
+  const id = tests.runtime_id ?? entry.name;
+  const dash = id.indexOf('-');
+  const language = dash < 0 ? id : id.slice(0, dash);
+  runtimes.push({
+    id,
+    language,
+    version: dash < 0 ? '' : id.slice(dash + 1),
+    // "experimental" passes its tests.json and is schedulable; only the admin console flags it.
+    status: status === 'experimental' ? 'ready' : status,
+    filename: tests.filename ?? '',
+    lane: HOT_LANGUAGES.has(language) ? 'hot' : 'cold',
+  });
+}
+runtimes.sort((a, b) => a.id.localeCompare(b.id));
 const catalogByBase = Object.fromEntries(RUNTIME_CATALOG.map((e) => [e.base, e]));
 const bases = [...new Set([...runtimeDirs, ...Object.keys(catalogByBase)])].sort();
 
@@ -149,10 +184,11 @@ const catalog = {
   defaultLimits: { timeMs: DEFAULT_TIME_MS, memMb: DEFAULT_MEM_MB },
   runtimeLimits: RUNTIME_LIMITS,
   languages,
+  runtimes,
   examples,
   problems,
 };
 
 await mkdir(dirname(outFile), { recursive: true });
 await writeFile(outFile, JSON.stringify(catalog, null, 1) + '\n');
-console.log(`catalog.json: ${languages.length} languages, ${examples.length} examples, ${problems.length} problems`);
+console.log(`catalog.json: ${languages.length} languages, ${runtimes.length} runtimes, ${examples.length} examples, ${problems.length} problems`);

@@ -3,7 +3,7 @@
 //
 // Only permissively licensed grammars (MIT / BSD / Apache-2.0) are bundled; languages whose grammar is
 // GPL or unlicensed open as plain text. Re-run after bumping VERSION:  node scripts/fetch-grammars.mjs
-import { mkdir, writeFile, rm } from 'node:fs/promises';
+import { mkdir, readFile, writeFile, rm } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -81,6 +81,16 @@ for (const [name, [style, singleQuote]] of Object.entries(GRAMMARS)) {
     languageConfiguration: `textmate/config/${configName}`,
   });
   notices.push(`${name}\t${info.license}\t${info.source}`);
+}
+
+// Grammars are loaded lazily per language, so each entry lists the other bundled grammars it includes
+// (heredocs, embedded SQL/JS, …) for the app to load first. Sora's own reader ignores this key.
+const bundledScopes = new Set(languages.map((l) => l.scopeName));
+for (const language of languages) {
+  const raw = await readFile(join(assets, 'grammars', `${language.name}.json`), 'utf8');
+  const refs = [...raw.matchAll(/"include"\s*:\s*"((?:source|text)\.[^"#]+)/g)].map((m) => m[1]);
+  const dependencies = [...new Set(refs)].filter((scope) => scope !== language.scopeName && bundledScopes.has(scope)).sort();
+  if (dependencies.length) language.dependencies = dependencies;
 }
 
 await writeFile(join(assets, 'languages.json'), JSON.stringify({ languages }, null, 1) + '\n');

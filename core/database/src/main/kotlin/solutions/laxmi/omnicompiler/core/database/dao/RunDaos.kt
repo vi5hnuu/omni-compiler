@@ -77,6 +77,15 @@ interface RuntimeDao {
         upsertAll(runtimes)
     }
 
+    /** Inserts [runtimes] only when nothing is cached yet, so a live list is never overwritten. */
+    @Transaction
+    suspend fun seedIfEmpty(runtimes: List<RuntimeEntity>) {
+        if (count() == 0) upsertAll(runtimes)
+    }
+
+    @Query("SELECT COUNT(*) FROM runtimes")
+    suspend fun count(): Int
+
     @Upsert
     suspend fun upsertAll(runtimes: List<RuntimeEntity>)
 

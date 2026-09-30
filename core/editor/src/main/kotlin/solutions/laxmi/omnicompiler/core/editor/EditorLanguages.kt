@@ -4,9 +4,12 @@ import android.content.Context
 import io.github.rosemoe.sora.langs.textmate.registry.FileProviderRegistry
 import io.github.rosemoe.sora.langs.textmate.registry.GrammarRegistry
 import io.github.rosemoe.sora.langs.textmate.registry.ThemeRegistry
+import io.github.rosemoe.sora.langs.textmate.registry.model.DefaultGrammarDefinition
 import io.github.rosemoe.sora.langs.textmate.registry.model.ThemeModel
 import io.github.rosemoe.sora.langs.textmate.registry.provider.AssetsFileResolver
+import org.eclipse.tm4e.core.registry.IGrammarSource
 import org.eclipse.tm4e.core.registry.IThemeSource
+import org.json.JSONObject
 import solutions.laxmi.omnicompiler.core.model.EditorTheme
 
 /** A TextMate grammar bundled under `assets/textmate`. */
@@ -14,27 +17,67 @@ import solutions.laxmi.omnicompiler.core.model.EditorTheme
 value class GrammarId(val scopeName: String)
 
 /**
- * Process-wide TextMate setup (grammars + one theme per [EditorTheme]). Sora's registries are
- * singletons, so this is loaded once and must be called off the main thread.
+ * Process-wide TextMate setup. Themes (one per [EditorTheme]) are registered once; grammars are parsed only
+ * when a file of that language is first opened, together with the bundled grammars it includes. Sora's
+ * registries are singletons, so every call here blocks and must run off the main thread.
  */
 object EditorLanguages {
 
-    @Volatile private var initialized = false
+    private class Entry(val name: String, val grammarPath: String, val configPath: String?, val dependencies: List<String>)
 
-    fun ensureInitialized(context: Context) {
-        if (initialized) return
-        synchronized(this) {
-            if (initialized) return
-            FileProviderRegistry.getInstance().addFileProvider(AssetsFileResolver(context.applicationContext.assets))
-            GrammarRegistry.getInstance().loadGrammars("textmate/languages.json")
-            val themes = ThemeRegistry.getInstance()
-            EditorTheme.entries.forEach { theme ->
-                val json = theme.palette().toTextMateThemeJson(theme.name)
-                val model = ThemeModel(IThemeSource.fromString(IThemeSource.ContentType.JSON, json), theme.name)
-                model.isDark = theme.palette().isDark
-                themes.loadTheme(model)
-            }
-            initialized = true
+    @Volatile private var definitions: Map<String, Entry>? = null
+    private val loadedScopes = HashSet<String>()
+
+    /** Makes [grammar] (and the themes) ready for `TextMateLanguage.create`; `null` only prepares themes. */
+    fun ensureLoaded(context: Context, grammar: GrammarId?) {
+        val index = definitions ?: initialize(context.applicationContext)
+        if (grammar != null) synchronized(this) { load(index, grammar.scopeName) }
+    }
+
+    private fun initialize(context: Context): Map<String, Entry> = synchronized(this) {
+        definitions?.let { return it }
+        FileProviderRegistry.getInstance().addFileProvider(AssetsFileResolver(context.assets))
+        val themes = ThemeRegistry.getInstance()
+        EditorTheme.entries.forEach { theme ->
+            val json = theme.palette().toTextMateThemeJson(theme.name)
+            val model = ThemeModel(IThemeSource.fromString(IThemeSource.ContentType.JSON, json), theme.name)
+            model.isDark = theme.palette().isDark
+            themes.loadTheme(model)
+        }
+        readIndex(context).also { definitions = it }
+    }
+
+    /** Parses `languages.json` only (a few KB); grammar files stay unread until needed. */
+    private fun readIndex(context: Context): Map<String, Entry> {
+        val raw = context.assets.open(INDEX).bufferedReader().use { it.readText() }
+        val languages = JSONObject(raw).getJSONArray("languages")
+        return (0 until languages.length()).associate { i ->
+            val item = languages.getJSONObject(i)
+            val dependencies = item.optJSONArray("dependencies")
+            item.getString("scopeName") to Entry(
+                name = item.getString("name"),
+                grammarPath = item.getString("grammar"),
+                configPath = item.optString("languageConfiguration").ifEmpty { null },
+                dependencies = List(dependencies?.length() ?: 0) { dependencies!!.getString(it) },
+            )
+        }
+    }
+
+    /** Caller holds the lock. Dependencies are marked first so include cycles terminate. */
+    private fun load(index: Map<String, Entry>, scopeName: String) {
+        if (!loadedScopes.add(scopeName)) return
+        val entry = index[scopeName] ?: return
+        try {
+            entry.dependencies.forEach { load(index, it) }
+            val stream = FileProviderRegistry.getInstance().tryGetInputStream(entry.grammarPath)
+                ?: error("Missing bundled grammar ${entry.grammarPath}")
+            val source = IGrammarSource.fromInputStream(stream, entry.grammarPath, Charsets.UTF_8)
+            GrammarRegistry.getInstance().loadGrammar(
+                DefaultGrammarDefinition.withLanguageConfiguration(source, entry.configPath, entry.name, scopeName),
+            )
+        } catch (e: Exception) {
+            loadedScopes.remove(scopeName)
+            throw e
         }
     }
 
@@ -49,6 +92,8 @@ object EditorLanguages {
         val name = if (isEntry) byBase ?: byExt else byExt ?: if (ext in PLAIN_EXTENSIONS) null else byBase
         return name?.let { SCOPES[it] }?.let(::GrammarId)
     }
+
+    private const val INDEX = "textmate/languages.json"
 
     private val PLAIN_EXTENSIONS = setOf("txt", "in", "out", "csv", "tsv", "dat", "md", "json")
 
