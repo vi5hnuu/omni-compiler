@@ -223,7 +223,8 @@ private fun TestRow(index: Int, test: TestCase, result: TestResult?, runActive: 
             Column(Modifier.padding(start = 12.dp, end = 12.dp, bottom = 10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 val output = result?.stdout
                 if (output != null) {
-                    val mismatched = diffLines(test.expected, output)
+                    // Only a wrong answer is a diff; on RE/TLE/… the output is just truncated, not "wrong".
+                    val mismatched = if (result.isOutputMismatch()) diffLines(test.expected, output) else emptySet()
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         CodeBlock(stringResource(R.string.tests_expected), test.expected, mismatched, Modifier.weight(1f))
                         CodeBlock(stringResource(R.string.tests_output), output, mismatched, Modifier.weight(1f), accentLabel = true)
@@ -266,12 +267,7 @@ internal fun CodeBlock(label: String, text: String, highlight: Set<Int>, modifie
     val colors = OmniTheme.colors
     val clipboard = LocalClipboardManager.current
     Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(label.uppercase(), style = OmniTheme.typography.overline, color = if (accentLabel) colors.accentText else colors.textTertiary, modifier = Modifier.weight(1f))
-            if (text.isNotEmpty()) {
-                OmniIconButton(OmniIcons.Copy, stringResource(CommonR.string.common_copy), { clipboard.setText(AnnotatedString(text)) }, size = 28.dp, iconSize = 14.dp)
-            }
-        }
+        Text(label.uppercase(), style = OmniTheme.typography.overline, color = if (accentLabel) colors.accentText else colors.textTertiary)
         val content = buildAnnotatedString {
             val lines = text.replace("\r\n", "\n").trimEnd('\n').split('\n')
             lines.forEachIndexed { i, line ->
@@ -279,16 +275,22 @@ internal fun CodeBlock(label: String, text: String, highlight: Set<Int>, modifie
                 if (i < lines.lastIndex) append('\n')
             }
         }
-        Box(
-            Modifier
-                .fillMaxWidth()
-                .heightIn(min = 28.dp, max = 180.dp)
-                .background(colors.surfaceRaised)
-                .horizontalScroll(rememberScrollState())
-                .padding(8.dp),
-        ) {
-            SelectionContainer {
-                Text(if (text.isEmpty()) AnnotatedString(stringResource(R.string.tests_empty_block)) else content, style = OmniTheme.typography.mono, color = if (text.isEmpty()) colors.textTertiary else colors.textPrimary)
+        // Copy sits inside the block's corner so side-by-side blocks (expected | output) keep their labels aligned.
+        Box(Modifier.fillMaxWidth().heightIn(min = 36.dp, max = 180.dp).background(colors.surfaceRaised)) {
+            Box(Modifier.horizontalScroll(rememberScrollState()).padding(start = 8.dp, top = 8.dp, bottom = 8.dp, end = if (text.isEmpty()) 8.dp else 36.dp)) {
+                SelectionContainer {
+                    Text(if (text.isEmpty()) AnnotatedString(stringResource(R.string.tests_empty_block)) else content, style = OmniTheme.typography.mono, color = if (text.isEmpty()) colors.textTertiary else colors.textPrimary)
+                }
+            }
+            if (text.isNotEmpty()) {
+                OmniIconButton(
+                    OmniIcons.Copy,
+                    stringResource(CommonR.string.common_copy),
+                    { clipboard.setText(AnnotatedString(text)) },
+                    modifier = Modifier.align(Alignment.TopEnd),
+                    size = 32.dp,
+                    iconSize = 14.dp,
+                )
             }
         }
     }

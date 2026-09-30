@@ -42,6 +42,9 @@ class CodeEditorState internal constructor(private val scope: CoroutineScope) {
     var minimap by mutableStateOf<List<MinimapLine>>(emptyList()); internal set
     var viewport by mutableStateOf(EditorViewport(0f, 1f)); internal set
     var isDirty by mutableStateOf(false); internal set
+
+    /** The code view holds input focus (as opposed to another text field on screen, e.g. stdin). */
+    var hasFocus by mutableStateOf(false); internal set
     var searchMatches by mutableStateOf(0); internal set
     var searchIndex by mutableStateOf(-1); internal set
 

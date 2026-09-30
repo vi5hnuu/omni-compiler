@@ -12,6 +12,8 @@ data class LanguageInfo(
     val lineComment: String?,
     val blockComment: Pair<String, String>?,
     val tagline: String?,
+    /** Versions as the web catalog lists them, newest first (years like "98" can't be ordered numerically). */
+    val versionOrder: List<String> = emptyList(),
 ) {
     /** Placeholder source used when the family ships no reference sample. */
     fun placeholderCode(): String {

@@ -79,9 +79,10 @@ internal class DefaultRuntimeRepository @Inject constructor(
         flow { emit(catalog.languages().associateBy { it.base }) },
     ) { all, statsByLanguage, infoByBase ->
         all.groupBy { it.language }.map { (base, list) ->
+            val info = infoByBase[base] ?: catalog.language(base)
             Language(
-                info = infoByBase[base] ?: catalog.language(base),
-                runtimes = list.sortedWith(RuntimeOrder),
+                info = info,
+                runtimes = list.sortedWith(runtimeOrder(info.versionOrder)),
                 acceptanceRate = statsByLanguage[base]?.acceptanceRate,
             )
         }.sortedBy { it.info.name.lowercase() }
@@ -139,7 +140,9 @@ internal class DefaultRuntimeRepository @Inject constructor(
         val ready = all.filter { it.isRunnable && it.status == RuntimeStatus.READY }
         val preferred = preferences.runSettings.first().defaultRuntimeId
         return ready.firstOrNull { it.id == preferred }
-            ?: PREFERRED_LANGUAGES.firstNotNullOfOrNull { base -> ready.filter { it.language == base }.sortedWith(RuntimeOrder).firstOrNull() }
+            ?: PREFERRED_LANGUAGES.firstNotNullOfOrNull { base ->
+                ready.filter { it.language == base }.sortedWith(runtimeOrder(catalog.language(base).versionOrder)).firstOrNull()
+            }
             ?: ready.firstOrNull()
     }
 
@@ -150,9 +153,16 @@ internal class DefaultRuntimeRepository @Inject constructor(
     }
 }
 
-/** Ready before deprecated/others, then newest version first (numeric-aware). */
-internal val RuntimeOrder: Comparator<Runtime> = compareBy<Runtime> { statusRank(it.status) }
-    .then { a, b -> compareVersions(b.version, a.version) }
+/**
+ * Ready before deprecated/others, then the catalog's newest-first order, then (for versions the catalog doesn't
+ * list) newest first numerically.
+ */
+internal fun runtimeOrder(versionOrder: List<String>): Comparator<Runtime> {
+    val rank = versionOrder.withIndex().associate { (i, v) -> v to i }
+    return compareBy<Runtime> { statusRank(it.status) }
+        .thenBy { rank[it.version] ?: Int.MAX_VALUE }
+        .then { a, b -> compareVersions(b.version, a.version) }
+}
 
 private fun statusRank(status: RuntimeStatus) = when (status) {
     RuntimeStatus.READY -> 0

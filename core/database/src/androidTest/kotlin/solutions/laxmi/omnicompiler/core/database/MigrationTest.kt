@@ -56,9 +56,25 @@ class MigrationTest {
     }
 
     @Test
-    fun migrate1To3_runsEveryStep() {
+    fun migrate3To4_keepsFilesAndStartsVersionsAtZero() {
+        helper.createDatabase(DB, 3).use { db ->
+            db.execSQL("INSERT INTO projects VALUES ('p1', 'two-sum', 'cpp-23', 5000, 256, NULL, 0, 0)")
+            db.execSQL("INSERT INTO files (id, project_id, name, content, is_entry, position) VALUES ('f1', 'p1', 'main.cpp', 'int main(){}', 1, 0)")
+        }
+
+        helper.runMigrationsAndValidate(DB, 4, true, OmniMigrations.MIGRATION_3_4).use { db ->
+            db.query("SELECT content, content_version FROM files WHERE id = 'f1'").use { cursor ->
+                assertThat(cursor.moveToFirst()).isTrue()
+                assertThat(cursor.getString(0)).isEqualTo("int main(){}")
+                assertThat(cursor.getInt(1)).isEqualTo(0)
+            }
+        }
+    }
+
+    @Test
+    fun migrate1ToLatest_runsEveryStep() {
         helper.createDatabase(DB, 1).close()
-        helper.runMigrationsAndValidate(DB, 3, true, *OmniMigrations.ALL).close()
+        helper.runMigrationsAndValidate(DB, 4, true, *OmniMigrations.ALL).close()
     }
 
     private companion object {

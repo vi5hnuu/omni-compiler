@@ -40,7 +40,7 @@ internal fun ProjectSummaryRow.toModel() = ProjectSummary(
     testCount = testCount,
 )
 
-internal fun FileEntity.toModel() = SourceFile(id, projectId, name, content, isEntry, position)
+internal fun FileEntity.toModel() = SourceFile(id, projectId, name, content, isEntry, position, contentVersion)
 
 internal fun TestCaseEntity.toModel() = TestCase(id, projectId, name, stdin, expected, position)
 

@@ -1,5 +1,7 @@
 package solutions.laxmi.omnicompiler.core.data.history
 
+import kotlinx.coroutines.flow.emitAll
+import kotlinx.coroutines.flow.flow
 import androidx.paging.ExperimentalPagingApi
 import androidx.paging.Pager
 import androidx.paging.PagingConfig
@@ -37,7 +39,7 @@ interface HistoryRepository {
     fun submissions(verdict: Verdict?): Flow<PagingData<Submission>>
     val summary: Flow<CachedHistorySummary>
 
-    /** Last 7 local days, oldest first, from cached submissions. The window is fixed when collection starts. */
+    /** Last 7 local days, oldest first, from cached submissions. The window is computed each time collection starts. */
     fun observeLastWeek(): Flow<List<DayActivity>>
 
     suspend fun stats(): Outcome<UsageStats>
@@ -66,10 +68,10 @@ internal class DefaultHistoryRepository @Inject constructor(
         )
     }
 
-    override fun observeLastWeek(): Flow<List<DayActivity>> {
+    override fun observeLastWeek(): Flow<List<DayActivity>> = flow {
         val now = time.now().toEpochMilliseconds()
         val days = (6 downTo 0).map { startOfDay(now, daysAgo = it) }
-        return dao.observeSince(days.first()).map { rows -> weekOf(days, rows) }
+        emitAll(dao.observeSince(days.first()).map { rows -> weekOf(days, rows) })
     }
 
     private fun weekOf(days: List<Long>, rows: List<SubmissionEntity>): List<DayActivity> =

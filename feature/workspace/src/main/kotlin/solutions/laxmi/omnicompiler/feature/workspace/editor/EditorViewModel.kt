@@ -19,8 +19,9 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import solutions.laxmi.omnicompiler.core.data.account.AccountRepository
 import solutions.laxmi.omnicompiler.core.data.auth.AuthRepository
 import solutions.laxmi.omnicompiler.core.data.project.ProjectRepository
@@ -50,7 +51,6 @@ data class EditorUiState(
     val runtime: Runtime? = null,
     val language: LanguageInfo? = null,
     val activeFileId: String? = null,
-    val revisions: Map<String, Int> = emptyMap(),
     val settings: EditorSettings = EditorSettings(),
     val user: User? = null,
 ) {
@@ -86,16 +86,8 @@ class EditorViewModel @AssistedInject constructor(
     private val activeFileId = MutableStateFlow<String?>(null)
     private val startupError = MutableStateFlow<UiText?>(null)
 
-    /** Content the editor view currently holds per file; a DB value that differs means an external replace. */
-    private val knownContent = mutableMapOf<String, String>()
-
-    /**
-     * Saves still being written per file. While one is in flight, a database emission may carry
-     * older text (read before the write landed) and must not be mistaken for an external replace.
-     * Touched only on the main thread (ViewModel callbacks and viewModelScope).
-     */
-    private val savesInFlight = mutableMapOf<String, Int>()
-    private val revisions = MutableStateFlow<Map<String, Int>>(emptyMap())
+    /** Autosaves are written one at a time, in order, so an older buffer can never overwrite a newer one. */
+    private val saveLock = Mutex()
 
     private val events = Channel<EditorEvent>(Channel.BUFFERED)
     val eventFlow = events.receiveAsFlow()
@@ -118,12 +110,11 @@ class EditorViewModel @AssistedInject constructor(
 
     val uiState: StateFlow<EditorUiState> = combine(
         combine(loadedWorkspace, runtime, language, ::Triple),
-        combine(activeFileId, revisions, startupError, ::Triple),
+        combine(activeFileId, startupError, ::Pair),
         settingsRepository.editorSettings,
         auth.session,
-    ) { (loaded, rt, lang), (activeId, revs, error), settings, session ->
+    ) { (loaded, rt, lang), (activeId, error), settings, session ->
         val (loadedId, ws) = loaded
-        ws?.files?.forEach(::trackExternalChanges)
         // A resolved project that reads back as null was deleted while open (e.g. from Projects).
         val shownError = error ?: UiText.Res(R.string.editor_project_deleted).takeIf { loadedId != null && ws == null }
         EditorUiState(
@@ -133,7 +124,6 @@ class EditorViewModel @AssistedInject constructor(
             runtime = rt,
             language = lang,
             activeFileId = activeId?.takeIf { id -> ws?.files?.any { it.id == id } == true } ?: ws?.entry?.id,
-            revisions = revs,
             settings = settings,
             user = (session as? Session.Active)?.user,
         )
@@ -176,15 +166,7 @@ class EditorViewModel @AssistedInject constructor(
     }
 
     fun onContentChanged(fileId: String, text: String) {
-        knownContent[fileId] = text
-        savesInFlight[fileId] = (savesInFlight[fileId] ?: 0) + 1
-        viewModelScope.launch {
-            try {
-                projects.updateFileContent(fileId, text)
-            } finally {
-                savesInFlight[fileId] = (savesInFlight[fileId] ?: 1) - 1
-            }
-        }
+        viewModelScope.launch { saveLock.withLock { projects.updateFileContent(fileId, text) } }
     }
 
     fun toggleMinimap() = updateSettings { it.copy(minimap = !it.minimap) }
@@ -288,17 +270,6 @@ class EditorViewModel @AssistedInject constructor(
                 }
                 is Outcome.Failure -> startupError.value = result.error.toUiText()
             }
-        }
-    }
-
-    private fun trackExternalChanges(file: SourceFile) {
-        if ((savesInFlight[file.id] ?: 0) > 0) return
-        val known = knownContent[file.id]
-        if (known == null) {
-            knownContent[file.id] = file.content
-        } else if (known != file.content) {
-            knownContent[file.id] = file.content
-            revisions.update { it + (file.id to (it[file.id] ?: 0) + 1) }
         }
     }
 

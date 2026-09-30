@@ -212,7 +212,7 @@ internal fun ColumnScope.WorkspaceBody(
             state = editorState,
             document = EditorDocument(
                 id = activeFile.id,
-                revision = state.revisions[activeFile.id] ?: 0,
+                revision = activeFile.contentVersion,
                 text = activeFile.content,
                 fileName = activeFile.name,
                 languageBase = state.runtime?.language,

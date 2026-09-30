@@ -1,5 +1,7 @@
 package solutions.laxmi.omnicompiler.core.database.entity
 
+import androidx.room.Relation
+import androidx.room.Embedded
 import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.ForeignKey
@@ -30,6 +32,18 @@ data class FileEntity(
     val content: String,
     @ColumnInfo(name = "is_entry") val isEntry: Boolean,
     val position: Int,
+    /**
+     * Bumped only when the content is replaced by something other than the editor (reset to starter, a language
+     * switch, an edit made outside the app). The editor reloads its buffer when this changes, never on its own saves.
+     */
+    @ColumnInfo(name = "content_version", defaultValue = "0") val contentVersion: Int = 0,
+)
+
+/** A project with its files and tests read in one transaction, so observers never see a half-updated workspace. */
+data class ProjectWithChildren(
+    @Embedded val project: ProjectEntity,
+    @Relation(parentColumn = "id", entityColumn = "project_id") val files: List<FileEntity>,
+    @Relation(parentColumn = "id", entityColumn = "project_id") val tests: List<TestCaseEntity>,
 )
 
 @Entity(

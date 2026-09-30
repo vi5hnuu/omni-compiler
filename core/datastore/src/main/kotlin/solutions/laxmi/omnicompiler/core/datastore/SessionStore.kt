@@ -55,8 +55,9 @@ internal class EncryptedSessionStore @Inject constructor(
     }
 
     override suspend fun expire() {
-        clear()
+        // Flag first: clearing signs the user out, and Welcome reads the flag as soon as it appears.
         expiredState.value = true
+        clear()
     }
 
     override fun acknowledgeExpiry() {

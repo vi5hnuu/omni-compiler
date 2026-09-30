@@ -147,6 +147,7 @@ private fun LanguageJson.toModel() = LanguageInfo(
     lineComment = lineComment,
     blockComment = blockComment?.takeIf { it.size == 2 }?.let { it[0] to it[1] },
     tagline = tagline,
+    versionOrder = versions,
 )
 
 private fun ExampleJson.toModel() = Example(id, title, difficulty(difficulty), statement, tests.map { it.toModel() })

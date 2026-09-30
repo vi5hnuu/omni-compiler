@@ -218,6 +218,7 @@ private fun createEditor(context: Context, state: CodeEditorState, onRunShortcut
             onLineHintClick()
             event.intercept()
         }
+        setOnFocusChangeListener { _, focused -> state.hasFocus = focused }
         addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ ->
             updateViewport(state)
             updateActiveRow(state)

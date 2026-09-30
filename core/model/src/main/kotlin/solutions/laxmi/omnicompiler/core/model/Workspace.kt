@@ -23,6 +23,8 @@ data class SourceFile(
     val content: String,
     val isEntry: Boolean,
     val position: Int,
+    /** Changes when the content was replaced outside the editor; the editor reloads only then. */
+    val contentVersion: Int = 0,
 )
 
 data class TestCase(

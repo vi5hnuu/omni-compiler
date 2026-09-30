@@ -41,6 +41,7 @@ internal data class LanguageJson(
     val shortCode: String,
     val category: String,
     val tagline: String? = null,
+    val versions: List<String> = emptyList(),
     val importHint: String,
     val multiFileSupported: Boolean,
     val lineComment: String? = null,

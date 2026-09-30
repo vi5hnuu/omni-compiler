@@ -217,6 +217,9 @@
    "shortCode": "Ad",
    "category": "COMPILED",
    "tagline": "Run Ada online with GNAT — strong typing, contracts, real-time safety without installing a toolchain.",
+   "versions": [
+    "2012"
+   ],
    "importHint": "with Helper;  use Helper;",
    "multiFileSupported": true,
    "lineComment": "--",
@@ -241,6 +244,9 @@
    "shortCode": "Aw",
    "category": "SCRIPTING",
    "tagline": "Run AWK scripts online — pattern-action text processing, no install.",
+   "versions": [
+    "5"
+   ],
    "importHint": "all files live together in /workspace (flat, import by bare name)",
    "multiFileSupported": true,
    "lineComment": "#",
@@ -265,6 +271,9 @@
    "shortCode": "Ba",
    "category": "SCRIPTING",
    "tagline": "Run Bash 5 scripts online — sandboxed in a Firecracker microVM.",
+   "versions": [
+    "5"
+   ],
    "importHint": "all files live together in /workspace (flat, import by bare name)",
    "multiFileSupported": true,
    "lineComment": "#",
@@ -289,6 +298,11 @@
    "shortCode": "Bc",
    "category": "SCRIPTING",
    "tagline": "bc arbitrary-precision calculator, online. Sandboxed, no install.",
+   "versions": [
+    "1.18",
+    "1.17",
+    "1"
+   ],
    "importHint": "all files live together in /workspace (flat, import by bare name)",
    "multiFileSupported": false,
    "lineComment": "#",
@@ -313,6 +327,9 @@
    "shortCode": "Bq",
    "category": "ESOTERIC",
    "tagline": "Run BQN online — the array-programming language, browser-hosted.",
+   "versions": [
+    "0"
+   ],
    "importHint": "all files live together in /workspace (flat, import by bare name)",
    "multiFileSupported": false,
    "lineComment": "#",
@@ -337,6 +354,9 @@
    "shortCode": "Bf",
    "category": "ESOTERIC",
    "tagline": "Run Brainfuck online — 8 commands, one tape, zero install.",
+   "versions": [
+    "0"
+   ],
    "importHint": "all files live together in /workspace (flat, import by bare name)",
    "multiFileSupported": false,
    "lineComment": null,
@@ -357,6 +377,9 @@
    "shortCode": "Bn",
    "category": "SCRIPTING",
    "tagline": "Run Bun 1 online — the all-in-one JavaScript/TypeScript runtime, bundler, and test runner.",
+   "versions": [
+    "1"
+   ],
    "importHint": "all files live together in /workspace (flat, import by bare name)",
    "multiFileSupported": true,
    "lineComment": "//",
@@ -369,6 +392,13 @@
    "shortCode": "C",
    "category": "COMPILED",
    "tagline": "Run C online — real GCC, real memory. C90 through C23 in a Firecracker microVM.",
+   "versions": [
+    "23",
+    "17",
+    "11",
+    "99",
+    "90"
+   ],
    "importHint": "#include \"helper.h\"  (all *.c linked)",
    "multiFileSupported": true,
    "lineComment": "//",
@@ -393,6 +423,10 @@
    "shortCode": "Cj",
    "category": "JVM",
    "tagline": "Run Clojure online — Lisp on the JVM, immutable by default. No local install.",
+   "versions": [
+    "1.11",
+    "1"
+   ],
    "importHint": "all files live together in /workspace (flat, import by bare name)",
    "multiFileSupported": true,
    "lineComment": ";",
@@ -417,6 +451,10 @@
    "shortCode": "Co",
    "category": "COMPILED",
    "tagline": "Run COBOL online — GnuCOBOL 3, browser-hosted, no mainframe required.",
+   "versions": [
+    "3.7",
+    "3"
+   ],
    "importHint": "all files live together in /workspace (flat, import by bare name)",
    "multiFileSupported": false,
    "lineComment": "*>",
@@ -441,6 +479,9 @@
    "shortCode": "Cs",
    "category": "SCRIPTING",
    "tagline": "Run CoffeeScript 2 online — compiles to JavaScript. Sandboxed, no install.",
+   "versions": [
+    "2"
+   ],
    "importHint": "all files live together in /workspace (flat, import by bare name)",
    "multiFileSupported": true,
    "lineComment": "#",
@@ -465,6 +506,15 @@
    "shortCode": "C+",
    "category": "COMPILED",
    "tagline": "Run C++ online — GCC, C++98 through C++26, real templates in a Firecracker microVM.",
+   "versions": [
+    "26",
+    "23",
+    "20",
+    "17",
+    "14",
+    "11",
+    "98"
+   ],
    "importHint": "#include \"helper.h\"  (all *.cpp linked)",
    "multiFileSupported": true,
    "lineComment": "//",
@@ -489,6 +539,9 @@
    "shortCode": "Cr",
    "category": "COMPILED",
    "tagline": "Run Crystal online — Ruby-like syntax, static types, native performance.",
+   "versions": [
+    "1"
+   ],
    "importHint": "require \"./helper\"",
    "multiFileSupported": true,
    "lineComment": "#",
@@ -513,6 +566,11 @@
    "shortCode": "C#",
    "category": "COMPILED",
    "tagline": "Run C# online — .NET, C# 12/13/14, in a Firecracker microVM. No install.",
+   "versions": [
+    "14",
+    "13",
+    "12"
+   ],
    "importHint": "same namespace — reference class directly",
    "multiFileSupported": true,
    "lineComment": "//",
@@ -537,6 +595,9 @@
    "shortCode": "D",
    "category": "COMPILED",
    "tagline": "Run D online — D2, browser-hosted, native performance.",
+   "versions": [
+    "2"
+   ],
    "importHint": "import helper;  (all *.d linked)",
    "multiFileSupported": true,
    "lineComment": "//",
@@ -561,6 +622,10 @@
    "shortCode": "Da",
    "category": "COMPILED",
    "tagline": "Run Dart 3 online — the Flutter language, browser-hosted.",
+   "versions": [
+    "3.7",
+    "3"
+   ],
    "importHint": "import 'helper.dart';",
    "multiFileSupported": true,
    "lineComment": "//",
@@ -585,6 +650,9 @@
    "shortCode": "Dc",
    "category": "SCRIPTING",
    "tagline": "Run dc online — the reverse-Polish calculator, no install.",
+   "versions": [
+    "0"
+   ],
    "importHint": "all files live together in /workspace (flat, import by bare name)",
    "multiFileSupported": false,
    "lineComment": "#",
@@ -609,6 +677,9 @@
    "shortCode": "Dn",
    "category": "SCRIPTING",
    "tagline": "Run Deno 2 online — secure-by-default JavaScript/TypeScript runtime, browser-hosted.",
+   "versions": [
+    "2"
+   ],
    "importHint": "all files live together in /workspace (flat, import by bare name)",
    "multiFileSupported": true,
    "lineComment": "//",
@@ -621,6 +692,11 @@
    "shortCode": "Ex",
    "category": "FUNCTIONAL",
    "tagline": "Run Elixir online — Erlang VM, actor concurrency, browser-hosted.",
+   "versions": [
+    "1.18",
+    "1.17",
+    "1"
+   ],
    "importHint": "all files live together in /workspace (flat, import by bare name)",
    "multiFileSupported": true,
    "lineComment": "#",
@@ -645,6 +721,11 @@
    "shortCode": "Er",
    "category": "FUNCTIONAL",
    "tagline": "Run Erlang OTP 26 online — the fault-tolerant BEAM VM, browser-hosted.",
+   "versions": [
+    "28",
+    "27",
+    "26"
+   ],
    "importHint": "all files live together in /workspace (flat, import by bare name)",
    "multiFileSupported": true,
    "lineComment": "%",
@@ -669,6 +750,9 @@
    "shortCode": "Fi",
    "category": "SCRIPTING",
    "tagline": "Run Fish 3 shell scripts online — Friendly Interactive Shell, sandboxed.",
+   "versions": [
+    "3"
+   ],
    "importHint": "all files live together in /workspace (flat, import by bare name)",
    "multiFileSupported": true,
    "lineComment": "#",
@@ -693,6 +777,9 @@
    "shortCode": "Fr",
    "category": "ESOTERIC",
    "tagline": "Run Forth online — stack-based, concatenative, browser-hosted.",
+   "versions": [
+    "0"
+   ],
    "importHint": "all files live together in /workspace (flat, import by bare name)",
    "multiFileSupported": false,
    "lineComment": "\\",
@@ -717,6 +804,9 @@
    "shortCode": "Fo",
    "category": "COMPILED",
    "tagline": "Run Fortran online — GFortran, Fortran 2018 standard, browser-hosted.",
+   "versions": [
+    "2018"
+   ],
    "importHint": "all files live together in /workspace (flat, import by bare name)",
    "multiFileSupported": false,
    "lineComment": "!",
@@ -741,6 +831,11 @@
    "shortCode": "F#",
    "category": "FUNCTIONAL",
    "tagline": "Run F# online — functional-first .NET, browser-hosted.",
+   "versions": [
+    "10",
+    "9",
+    "8"
+   ],
    "importHint": "all files live together in /workspace (flat, import by bare name)",
    "multiFileSupported": true,
    "lineComment": "//",
@@ -765,6 +860,12 @@
    "shortCode": "Go",
    "category": "COMPILED",
    "tagline": "Run Go online — Go 1.22 through 1.25, real toolchain, no install.",
+   "versions": [
+    "1.25",
+    "1.24",
+    "1.23",
+    "1.22"
+   ],
    "importHint": "same package main — call funcs directly (all *.go built)",
    "multiFileSupported": true,
    "lineComment": "//",
@@ -789,6 +890,9 @@
    "shortCode": "Gr",
    "category": "JVM",
    "tagline": "Run Groovy 4 online — dynamic JVM language, browser-hosted.",
+   "versions": [
+    "4"
+   ],
    "importHint": "same dir — reference class Helper directly",
    "multiFileSupported": true,
    "lineComment": "//",
@@ -813,6 +917,9 @@
    "shortCode": "Gu",
    "category": "FUNCTIONAL",
    "tagline": "Run Guile Scheme online — GNU's Scheme implementation.",
+   "versions": [
+    "3"
+   ],
    "importHint": "all files live together in /workspace (flat, import by bare name)",
    "multiFileSupported": true,
    "lineComment": ";",
@@ -837,6 +944,10 @@
    "shortCode": "Hs",
    "category": "FUNCTIONAL",
    "tagline": "Run Haskell online — GHC 9, purely functional, browser-hosted.",
+   "versions": [
+    "9.10",
+    "9"
+   ],
    "importHint": "import Helper  — module Helper in Helper.hs",
    "multiFileSupported": true,
    "lineComment": "--",
@@ -861,6 +972,16 @@
    "shortCode": "Jv",
    "category": "JVM",
    "tagline": "Run Java online — Java 8 through 25, real JDK, in a Firecracker microVM.",
+   "versions": [
+    "25",
+    "24",
+    "23",
+    "22",
+    "21",
+    "17",
+    "11",
+    "8"
+   ],
    "importHint": "default package — use class Helper directly (all *.java compiled)",
    "multiFileSupported": true,
    "lineComment": "//",
@@ -885,6 +1006,14 @@
    "shortCode": "Js",
    "category": "SCRIPTING",
    "tagline": "Run JavaScript online — Node 20/22/23/24/25/26, real V8, in a Firecracker microVM.",
+   "versions": [
+    "26",
+    "25",
+    "24",
+    "23",
+    "22",
+    "20"
+   ],
    "importHint": "require('./helper')  or  import './helper.js'",
    "multiFileSupported": true,
    "lineComment": "//",
@@ -909,6 +1038,9 @@
    "shortCode": "Jq",
    "category": "SCRIPTING",
    "tagline": "Run jq online — JSON on the command line, sandboxed.",
+   "versions": [
+    "1"
+   ],
    "importHint": "all files live together in /workspace (flat, import by bare name)",
    "multiFileSupported": false,
    "lineComment": "#",
@@ -933,6 +1065,10 @@
    "shortCode": "Jl",
    "category": "SCRIPTING",
    "tagline": "Run Julia 1 online — scientific computing, browser-hosted.",
+   "versions": [
+    "1.11",
+    "1"
+   ],
    "importHint": "all files live together in /workspace (flat, import by bare name)",
    "multiFileSupported": true,
    "lineComment": "#",
@@ -957,6 +1093,9 @@
    "shortCode": "Kt",
    "category": "JVM",
    "tagline": "Run Kotlin 2 online — the modern JVM language, Android's default.",
+   "versions": [
+    "2"
+   ],
    "importHint": "same package — call top-level declarations (all *.kt compiled)",
    "multiFileSupported": true,
    "lineComment": "//",
@@ -981,6 +1120,9 @@
    "shortCode": "Li",
    "category": "FUNCTIONAL",
    "tagline": "Run Common Lisp online — SBCL, the workhorse CL implementation.",
+   "versions": [
+    "2"
+   ],
    "importHint": "all files live together in /workspace (flat, import by bare name)",
    "multiFileSupported": true,
    "lineComment": ";",
@@ -1005,6 +1147,11 @@
    "shortCode": "Lu",
    "category": "SCRIPTING",
    "tagline": "Run Lua online — 5.1, 5.3, 5.4. Tiny, embeddable, browser-hosted.",
+   "versions": [
+    "5.4",
+    "5.3",
+    "5.1"
+   ],
    "importHint": "require('helper')",
    "multiFileSupported": true,
    "lineComment": "--",
@@ -1029,6 +1176,9 @@
    "shortCode": "As",
    "category": "COMPILED",
    "tagline": "Run x86-64 NASM assembly online — real syscalls, real ELF.",
+   "versions": [
+    "2"
+   ],
    "importHint": "all files live together in /workspace (flat, import by bare name)",
    "multiFileSupported": false,
    "lineComment": ";",
@@ -1049,6 +1199,9 @@
    "shortCode": "Ni",
    "category": "COMPILED",
    "tagline": "Run Nim 2 online — Python-clean syntax, C-fast binaries.",
+   "versions": [
+    "2"
+   ],
    "importHint": "import helper",
    "multiFileSupported": true,
    "lineComment": "#",
@@ -1073,6 +1226,9 @@
    "shortCode": "Ml",
    "category": "FUNCTIONAL",
    "tagline": "Run OCaml 5 online — algebraic types, effect handlers, no install.",
+   "versions": [
+    "5"
+   ],
    "importHint": "reference Helper.fn (compiled together)",
    "multiFileSupported": false,
    "lineComment": null,
@@ -1100,6 +1256,9 @@
    "shortCode": "Oc",
    "category": "SCRIPTING",
    "tagline": "Run Octave 8 online — MATLAB-compatible numerical computing.",
+   "versions": [
+    "8"
+   ],
    "importHint": "all files live together in /workspace (flat, import by bare name)",
    "multiFileSupported": true,
    "lineComment": "%",
@@ -1124,6 +1283,9 @@
    "shortCode": "Pa",
    "category": "COMPILED",
    "tagline": "Run Pascal online — Free Pascal 3, Object Pascal, browser-hosted.",
+   "versions": [
+    "3"
+   ],
    "importHint": "uses helper;",
    "multiFileSupported": true,
    "lineComment": "//",
@@ -1148,6 +1310,9 @@
    "shortCode": "Pe",
    "category": "SCRIPTING",
    "tagline": "Run Perl 5 online — the classic scripting swiss army knife.",
+   "versions": [
+    "5"
+   ],
    "importHint": "require 'helper.pl';",
    "multiFileSupported": true,
    "lineComment": "#",
@@ -1172,6 +1337,11 @@
    "shortCode": "Ph",
    "category": "SCRIPTING",
    "tagline": "Run PHP online — PHP 8.4 or 8.x, real Zend engine, browser-hosted, no install.",
+   "versions": [
+    "8.4",
+    "8.3",
+    "8"
+   ],
    "importHint": "require 'helper.php';",
    "multiFileSupported": true,
    "lineComment": "//",
@@ -1196,6 +1366,9 @@
    "shortCode": "Ps",
    "category": "SCRIPTING",
    "tagline": "Run PowerShell 7 online — cross-platform, object-pipeline, browser-hosted.",
+   "versions": [
+    "7"
+   ],
    "importHint": "all files live together in /workspace (flat, import by bare name)",
    "multiFileSupported": true,
    "lineComment": "#",
@@ -1220,6 +1393,9 @@
    "shortCode": "Pl",
    "category": "FUNCTIONAL",
    "tagline": "Run Prolog online — SWI-Prolog 9, logic programming, browser-hosted.",
+   "versions": [
+    "9"
+   ],
    "importHint": "all files live together in /workspace (flat, import by bare name)",
    "multiFileSupported": false,
    "lineComment": "%",
@@ -1244,6 +1420,10 @@
    "shortCode": "PP",
    "category": "SCRIPTING",
    "tagline": "Run PyPy 3 online — Python-compatible JIT, faster than CPython.",
+   "versions": [
+    "3.11",
+    "3"
+   ],
    "importHint": "import helper  — from helper.py",
    "multiFileSupported": true,
    "lineComment": "#",
@@ -1268,6 +1448,13 @@
    "shortCode": "Py",
    "category": "SCRIPTING",
    "tagline": "Run Python online — real CPython 3.11 → 3.15 (RC), no install, sandboxed per submission.",
+   "versions": [
+    "3.15",
+    "3.14",
+    "3.13",
+    "3.12",
+    "3.11"
+   ],
    "importHint": "import helper  — from helper.py (same dir)",
    "multiFileSupported": true,
    "lineComment": "#",
@@ -1292,6 +1479,9 @@
    "shortCode": "R",
    "category": "SCRIPTING",
    "tagline": "Run R 4 online — statistical computing, browser-hosted.",
+   "versions": [
+    "4"
+   ],
    "importHint": "all files live together in /workspace (flat, import by bare name)",
    "multiFileSupported": true,
    "lineComment": "#",
@@ -1316,6 +1506,9 @@
    "shortCode": "Rk",
    "category": "FUNCTIONAL",
    "tagline": "Run Racket 8 online — the language-oriented Scheme.",
+   "versions": [
+    "8"
+   ],
    "importHint": "all files live together in /workspace (flat, import by bare name)",
    "multiFileSupported": true,
    "lineComment": ";",
@@ -1340,6 +1533,9 @@
    "shortCode": "Ra",
    "category": "SCRIPTING",
    "tagline": "Run Raku online — Perl's multi-paradigm successor, browser-hosted.",
+   "versions": [
+    "0"
+   ],
    "importHint": "all files live together in /workspace (flat, import by bare name)",
    "multiFileSupported": true,
    "lineComment": "#",
@@ -1364,6 +1560,12 @@
    "shortCode": "Rb",
    "category": "SCRIPTING",
    "tagline": "Run Ruby online — Ruby 3.4, 3.3, or 3.x MRI, blocks and metaprogramming, browser-hosted.",
+   "versions": [
+    "3.4",
+    "3.3",
+    "3.2",
+    "3"
+   ],
    "importHint": "require_relative 'helper'",
    "multiFileSupported": true,
    "lineComment": "#",
@@ -1388,6 +1590,12 @@
    "shortCode": "Rs",
    "category": "COMPILED",
    "tagline": "Run Rust online — Rust 1.87 or the stable 1.x rustc, real borrow checker, isolated per submission.",
+   "versions": [
+    "1.87",
+    "1.83",
+    "1.82",
+    "1"
+   ],
    "importHint": "mod helper;  then helper::fn()",
    "multiFileSupported": true,
    "lineComment": "//",
@@ -1412,6 +1620,9 @@
    "shortCode": "Sc",
    "category": "JVM",
    "tagline": "Run Scala 3 online — functional + object-oriented on the JVM.",
+   "versions": [
+    "3"
+   ],
    "importHint": "same package — reference directly (all *.scala compiled)",
    "multiFileSupported": true,
    "lineComment": "//",
@@ -1436,6 +1647,9 @@
    "shortCode": "St",
    "category": "SCRIPTING",
    "tagline": "Run Smalltalk online — the mother of OO, browser-hosted.",
+   "versions": [
+    "0"
+   ],
    "importHint": "all files live together in /workspace (flat, import by bare name)",
    "multiFileSupported": false,
    "lineComment": null,
@@ -1463,6 +1677,9 @@
    "shortCode": "Sq",
    "category": "SCRIPTING",
    "tagline": "Run SQLite 3 online — real DB engine, in-memory, browser-hosted.",
+   "versions": [
+    "3"
+   ],
    "importHint": "all files live together in /workspace (flat, import by bare name)",
    "multiFileSupported": false,
    "lineComment": "--",
@@ -1483,6 +1700,10 @@
    "shortCode": "Sw",
    "category": "COMPILED",
    "tagline": "Run Swift online — Swift 5 and 6, browser-hosted, no Xcode.",
+   "versions": [
+    "6",
+    "5"
+   ],
    "importHint": "same module — reference directly (all *.swift compiled)",
    "multiFileSupported": true,
    "lineComment": "//",
@@ -1507,6 +1728,9 @@
    "shortCode": "Tc",
    "category": "SCRIPTING",
    "tagline": "Run Tcl 8 online — the \"everything is a string\" language.",
+   "versions": [
+    "8"
+   ],
    "importHint": "all files live together in /workspace (flat, import by bare name)",
    "multiFileSupported": true,
    "lineComment": "#",
@@ -1531,6 +1755,9 @@
    "shortCode": "Ts",
    "category": "SCRIPTING",
    "tagline": "Run TypeScript 5 online — typed JavaScript, Node runtime, browser-hosted.",
+   "versions": [
+    "5"
+   ],
    "importHint": "import { x } from './helper'",
    "multiFileSupported": true,
    "lineComment": "//",
@@ -1555,6 +1782,9 @@
    "shortCode": "V",
    "category": "COMPILED",
    "tagline": "Run V online — Go-like syntax, C-fast binaries.",
+   "versions": [
+    "0"
+   ],
    "importHint": "all files live together in /workspace (flat, import by bare name)",
    "multiFileSupported": false,
    "lineComment": "//",
@@ -1579,6 +1809,9 @@
    "shortCode": "Wa",
    "category": "COMPILED",
    "tagline": "Run WebAssembly (WAT) online — text format, real runtime.",
+   "versions": [
+    "1"
+   ],
    "importHint": "all files live together in /workspace (flat, import by bare name)",
    "multiFileSupported": false,
    "lineComment": ";;",
@@ -1599,6 +1832,10 @@
    "shortCode": "Zg",
    "category": "COMPILED",
    "tagline": "Run Zig 0.13 / 0.14 online — no hidden control flow, no macros, real speed.",
+   "versions": [
+    "0.14",
+    "0.13"
+   ],
    "importHint": "all files live together in /workspace (flat, import by bare name)",
    "multiFileSupported": false,
    "lineComment": "//",
@@ -1623,6 +1860,9 @@
    "shortCode": "Zs",
    "category": "SCRIPTING",
    "tagline": "Run Zsh 5 scripts online — the interactive shell champion.",
+   "versions": [
+    "5"
+   ],
    "importHint": "all files live together in /workspace (flat, import by bare name)",
    "multiFileSupported": true,
    "lineComment": "#",

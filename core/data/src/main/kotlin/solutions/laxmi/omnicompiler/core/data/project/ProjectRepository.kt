@@ -1,8 +1,8 @@
 package solutions.laxmi.omnicompiler.core.data.project
 
+import kotlinx.coroutines.flow.distinctUntilChanged
 import androidx.room.withTransaction
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import solutions.laxmi.omnicompiler.core.common.IdGenerator
@@ -94,13 +94,16 @@ internal class LocalProjectRepository @Inject constructor(
             rows.map { it.toModel() }.filter(filter::matches)
         }
 
-    override fun observeWorkspace(projectId: String): Flow<ProjectWorkspace?> = combine(
-        projects.observe(projectId),
-        files.observe(projectId),
-        tests.observe(projectId),
-    ) { project, fileRows, testRows ->
-        project?.let { ProjectWorkspace(it.toModel(), fileRows.map { f -> f.toModel() }, testRows.map { t -> t.toModel() }) }
-    }
+    override fun observeWorkspace(projectId: String): Flow<ProjectWorkspace?> =
+        projects.observeWithChildren(projectId).map { row ->
+            row?.let {
+                ProjectWorkspace(
+                    project = it.project.toModel(),
+                    files = it.files.sortedWith(compareByDescending<FileEntity> { f -> f.isEntry }.thenBy { f -> f.position }).map { f -> f.toModel() },
+                    tests = it.tests.sortedBy { t -> t.position }.map { t -> t.toModel() },
+                )
+            }
+        }.distinctUntilChanged()
 
     override suspend fun resolveStartupProject(): Outcome<String> {
         preferences.lastProjectId.first()?.let { id -> if (projects.get(id) != null) return Outcome.Success(id) }
@@ -186,7 +189,7 @@ internal class LocalProjectRepository @Inject constructor(
             )
             if (entry != null) {
                 files.rename(entry.id, runtime.filename.ifBlank { entry.name })
-                if (switchingLanguage && entryUntouched) files.updateContent(entry.id, newInfo.placeholderCode())
+                if (switchingLanguage && entryUntouched) files.replaceContent(entry.id, newInfo.placeholderCode())
             }
             if (switchingLanguage && testsUntouched) {
                 tests.replaceAll(projectId, newInfo.starter?.tests.orEmpty().mapIndexed { i, d -> d.toEntity(projectId, i) })
@@ -260,7 +263,7 @@ internal class LocalProjectRepository @Inject constructor(
         val info = runtimes.languageInfo(runtime?.language ?: project.runtimeId.substringBefore('-'))
         val entry = files.list(projectId).firstOrNull { it.isEntry } ?: return Outcome.Failure(AppError.NotFound(reason = ErrorReason.EntryFileMissing))
         db.withTransaction {
-            files.updateContent(entry.id, info.placeholderCode())
+            files.replaceContent(entry.id, info.placeholderCode())
             tests.replaceAll(projectId, (info.starter?.tests ?: listOf(TestCaseDraft("", ""))).mapIndexed { i, d -> d.toEntity(projectId, i) })
         }
         return Outcome.Success(Unit)

@@ -169,7 +169,8 @@ private fun EditorContent(state: EditorUiState, drawer: DrawerContent, snackbar:
     val drawerState = drawer.state
     val scope = rememberCoroutineScope()
     val editorState = rememberCodeEditorState()
-    val typing = WindowInsets.isImeVisible
+    // Typing mode is for code only; a keyboard raised by another field (stdin, test editor) keeps the normal chrome.
+    val typing = WindowInsets.isImeVisible && editorState.hasFocus
     var searching by rememberSaveable { mutableStateOf(false) }
     var showNewFile by rememberSaveable { mutableStateOf(false) }
     var renamingProject by rememberSaveable { mutableStateOf(false) }
@@ -183,9 +184,17 @@ private fun EditorContent(state: EditorUiState, drawer: DrawerContent, snackbar:
 
     ModalNavigationDrawer(
         drawerState = drawerState,
+        // Opens from the menu button only: an edge swipe would fight code scrolling and the console sheet.
+        gesturesEnabled = drawerState.isOpen,
         scrimColor = colors.scrim,
         drawerContent = {
-            ModalDrawerSheet(drawerShape = RectangleShape, drawerContainerColor = colors.surface, windowInsets = WindowInsets(0.dp)) {
+            // The drawerState overload is the one that closes the drawer on (predictive) Back.
+            ModalDrawerSheet(
+                drawerState = drawerState,
+                drawerShape = RectangleShape,
+                drawerContainerColor = colors.surface,
+                windowInsets = WindowInsets(0.dp),
+            ) {
                 EditorDrawer(
                     user = state.user,
                     projects = drawer.projects,

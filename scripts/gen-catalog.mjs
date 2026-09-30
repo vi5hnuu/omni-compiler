@@ -150,6 +150,8 @@ const languages = bases.map((base) => {
     shortCode: shortCodeOf(base, name),
     category: categoryOf(base),
     tagline: entry?.tagline ?? null,
+    // Newest first, as the web orders them; decides the default version (C++23 before C++98).
+    versions: entry?.versions ?? [],
     importHint: IMPORT_HINT[base] ?? DEFAULT_IMPORT_HINT,
     multiFileSupported: !MULTIFILE_UNSUPPORTED.has(base),
     lineComment: LINE_COMMENT[base] ?? null,

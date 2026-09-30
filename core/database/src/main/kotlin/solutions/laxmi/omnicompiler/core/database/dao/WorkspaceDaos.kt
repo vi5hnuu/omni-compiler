@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.Flow
 import solutions.laxmi.omnicompiler.core.database.entity.FileEntity
 import solutions.laxmi.omnicompiler.core.database.entity.ProjectEntity
 import solutions.laxmi.omnicompiler.core.database.entity.ProjectSummaryRow
+import solutions.laxmi.omnicompiler.core.database.entity.ProjectWithChildren
 import solutions.laxmi.omnicompiler.core.database.entity.TestCaseEntity
 
 @Dao
@@ -27,8 +28,9 @@ interface ProjectDao {
     )
     fun observeSummaries(query: String): Flow<List<ProjectSummaryRow>>
 
+    @Transaction
     @Query("SELECT * FROM projects WHERE id = :id")
-    fun observe(id: String): Flow<ProjectEntity?>
+    fun observeWithChildren(id: String): Flow<ProjectWithChildren?>
 
     @Query("SELECT * FROM projects WHERE id = :id")
     suspend fun get(id: String): ProjectEntity?
@@ -64,9 +66,6 @@ interface ProjectDao {
 @Dao
 interface FileDao {
     @Query("SELECT * FROM files WHERE project_id = :projectId ORDER BY is_entry DESC, position")
-    fun observe(projectId: String): Flow<List<FileEntity>>
-
-    @Query("SELECT * FROM files WHERE project_id = :projectId ORDER BY is_entry DESC, position")
     suspend fun list(projectId: String): List<FileEntity>
 
     @Query("SELECT COALESCE(MAX(position), -1) + 1 FROM files WHERE project_id = :projectId")
@@ -78,8 +77,13 @@ interface FileDao {
     @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insertAll(files: List<FileEntity>)
 
+    /** The editor's own save: the open buffer already has this text, so no reload is signalled. */
     @Query("UPDATE files SET content = :content WHERE id = :id")
     suspend fun updateContent(id: String, content: String)
+
+    /** Content replaced from outside the editor; bumps [FileEntity.contentVersion] so an open editor reloads. */
+    @Query("UPDATE files SET content = :content, content_version = content_version + 1 WHERE id = :id")
+    suspend fun replaceContent(id: String, content: String)
 
     @Query("UPDATE files SET name = :name WHERE id = :id")
     suspend fun rename(id: String, name: String)
@@ -90,9 +94,6 @@ interface FileDao {
 
 @Dao
 interface TestCaseDao {
-    @Query("SELECT * FROM test_cases WHERE project_id = :projectId ORDER BY position")
-    fun observe(projectId: String): Flow<List<TestCaseEntity>>
-
     @Query("SELECT * FROM test_cases WHERE project_id = :projectId ORDER BY position")
     suspend fun list(projectId: String): List<TestCaseEntity>
 
