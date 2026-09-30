@@ -1,0 +1,2338 @@
+{
+ "version": 1,
+ "defaultLimits": {
+  "timeMs": 5000,
+  "memMb": 256
+ },
+ "runtimeLimits": {
+  "brainfuck-0": {
+   "timeMs": 10000,
+   "memMb": 256
+  },
+  "clojure-1": {
+   "timeMs": 30000,
+   "memMb": 512
+  },
+  "crystal-1": {
+   "timeMs": 10000,
+   "memMb": 256
+  },
+  "csharp-12": {
+   "timeMs": 10000,
+   "memMb": 256
+  },
+  "csharp-13": {
+   "timeMs": 10000,
+   "memMb": 256
+  },
+  "csharp-14": {
+   "timeMs": 10000,
+   "memMb": 256
+  },
+  "dart-3": {
+   "timeMs": 15000,
+   "memMb": 512
+  },
+  "elixir-1": {
+   "timeMs": 10000,
+   "memMb": 256
+  },
+  "erlang-26": {
+   "timeMs": 15000,
+   "memMb": 256
+  },
+  "fsharp-10": {
+   "timeMs": 10000,
+   "memMb": 256
+  },
+  "fsharp-8": {
+   "timeMs": 10000,
+   "memMb": 256
+  },
+  "fsharp-9": {
+   "timeMs": 10000,
+   "memMb": 256
+  },
+  "groovy-4": {
+   "timeMs": 20000,
+   "memMb": 512
+  },
+  "guile-3": {
+   "timeMs": 10000,
+   "memMb": 256
+  },
+  "haskell-9": {
+   "timeMs": 10000,
+   "memMb": 256
+  },
+  "java-11": {
+   "timeMs": 10000,
+   "memMb": 256
+  },
+  "java-17": {
+   "timeMs": 10000,
+   "memMb": 256
+  },
+  "java-21": {
+   "timeMs": 10000,
+   "memMb": 256
+  },
+  "java-22": {
+   "timeMs": 10000,
+   "memMb": 256
+  },
+  "java-23": {
+   "timeMs": 10000,
+   "memMb": 256
+  },
+  "java-24": {
+   "timeMs": 10000,
+   "memMb": 256
+  },
+  "java-25": {
+   "timeMs": 10000,
+   "memMb": 256
+  },
+  "java-8": {
+   "timeMs": 10000,
+   "memMb": 256
+  },
+  "julia-1": {
+   "timeMs": 10000,
+   "memMb": 512
+  },
+  "kotlin-2": {
+   "timeMs": 15000,
+   "memMb": 512
+  },
+  "lisp-2": {
+   "timeMs": 10000,
+   "memMb": 256
+  },
+  "octave-8": {
+   "timeMs": 10000,
+   "memMb": 256
+  },
+  "powershell-7": {
+   "timeMs": 10000,
+   "memMb": 512
+  },
+  "r-4": {
+   "timeMs": 10000,
+   "memMb": 256
+  },
+  "racket-8": {
+   "timeMs": 10000,
+   "memMb": 256
+  },
+  "raku-0": {
+   "timeMs": 15000,
+   "memMb": 512
+  },
+  "rust-1": {
+   "timeMs": 10000,
+   "memMb": 256
+  },
+  "rust-1.87": {
+   "timeMs": 10000,
+   "memMb": 256
+  },
+  "scala-3": {
+   "timeMs": 15000,
+   "memMb": 512
+  },
+  "smalltalk-0": {
+   "timeMs": 10000,
+   "memMb": 256
+  },
+  "swift-5": {
+   "timeMs": 10000,
+   "memMb": 256
+  },
+  "swift-6": {
+   "timeMs": 15000,
+   "memMb": 512
+  },
+  "typescript-5": {
+   "timeMs": 8000,
+   "memMb": 768
+  },
+  "vlang-0": {
+   "timeMs": 10000,
+   "memMb": 256
+  },
+  "wasm-1": {
+   "timeMs": 10000,
+   "memMb": 256
+  },
+  "zig-0.13": {
+   "timeMs": 10000,
+   "memMb": 256
+  },
+  "zig-0.14": {
+   "timeMs": 10000,
+   "memMb": 512
+  },
+  "dart-3.7": {
+   "timeMs": 15000,
+   "memMb": 512
+  },
+  "elixir-1.17": {
+   "timeMs": 10000,
+   "memMb": 256
+  },
+  "elixir-1.18": {
+   "timeMs": 10000,
+   "memMb": 256
+  },
+  "erlang-27": {
+   "timeMs": 15000,
+   "memMb": 256
+  },
+  "erlang-28": {
+   "timeMs": 15000,
+   "memMb": 256
+  },
+  "haskell-9.10": {
+   "timeMs": 10000,
+   "memMb": 256
+  },
+  "julia-1.11": {
+   "timeMs": 10000,
+   "memMb": 512
+  },
+  "rust-1.82": {
+   "timeMs": 10000,
+   "memMb": 256
+  },
+  "rust-1.83": {
+   "timeMs": 10000,
+   "memMb": 256
+  }
+ },
+ "languages": [
+  {
+   "base": "ada",
+   "name": "Ada",
+   "shortCode": "Ad",
+   "category": "COMPILED",
+   "tagline": "Run Ada online with GNAT — strong typing, contracts, real-time safety without installing a toolchain.",
+   "importHint": "with Helper;  use Helper;",
+   "multiFileSupported": true,
+   "lineComment": "--",
+   "blockComment": null,
+   "starter": {
+    "code": "with Ada.Text_IO, Ada.Integer_Text_IO;\nuse Ada.Text_IO, Ada.Integer_Text_IO;\nprocedure Solution is\n   N : Integer;\nbegin\n   Get (N);\n   Put (N * 2, Width => 0);\n   New_Line;\nend Solution;\n",
+    "tests": [
+     {
+      "stdin": "21\n",
+      "expected": "42\n"
+     },
+     {
+      "stdin": "0\n",
+      "expected": "0\n"
+     }
+    ]
+   }
+  },
+  {
+   "base": "awk",
+   "name": "AWK",
+   "shortCode": "Aw",
+   "category": "SCRIPTING",
+   "tagline": "Run AWK scripts online — pattern-action text processing, no install.",
+   "importHint": "all files live together in /workspace (flat, import by bare name)",
+   "multiFileSupported": true,
+   "lineComment": "#",
+   "blockComment": null,
+   "starter": {
+    "code": "{ print $1 * 2 }\n",
+    "tests": [
+     {
+      "stdin": "21\n",
+      "expected": "42\n"
+     },
+     {
+      "stdin": "0\n",
+      "expected": "0\n"
+     }
+    ]
+   }
+  },
+  {
+   "base": "bash",
+   "name": "Bash",
+   "shortCode": "Ba",
+   "category": "SCRIPTING",
+   "tagline": "Run Bash 5 scripts online — sandboxed in a Firecracker microVM.",
+   "importHint": "all files live together in /workspace (flat, import by bare name)",
+   "multiFileSupported": true,
+   "lineComment": "#",
+   "blockComment": null,
+   "starter": {
+    "code": "read n; echo $((n * 2))\n",
+    "tests": [
+     {
+      "stdin": "21\n",
+      "expected": "42\n"
+     },
+     {
+      "stdin": "0\n",
+      "expected": "0\n"
+     }
+    ]
+   }
+  },
+  {
+   "base": "bc",
+   "name": "bc",
+   "shortCode": "Bc",
+   "category": "SCRIPTING",
+   "tagline": "bc arbitrary-precision calculator, online. Sandboxed, no install.",
+   "importHint": "all files live together in /workspace (flat, import by bare name)",
+   "multiFileSupported": false,
+   "lineComment": "#",
+   "blockComment": null,
+   "starter": {
+    "code": "n = read()\nprint n * 2, \"\\n\"\nhalt\n",
+    "tests": [
+     {
+      "stdin": "21\n",
+      "expected": "42\n"
+     },
+     {
+      "stdin": "0\n",
+      "expected": "0\n"
+     }
+    ]
+   }
+  },
+  {
+   "base": "bqn",
+   "name": "BQN",
+   "shortCode": "Bq",
+   "category": "ESOTERIC",
+   "tagline": "Run BQN online — the array-programming language, browser-hosted.",
+   "importHint": "all files live together in /workspace (flat, import by bare name)",
+   "multiFileSupported": false,
+   "lineComment": "#",
+   "blockComment": null,
+   "starter": {
+    "code": "n ← •BQN •GetLine \"\"\n•Out •Fmt (2×n)\n",
+    "tests": [
+     {
+      "stdin": "21\n",
+      "expected": "42\n"
+     },
+     {
+      "stdin": "0\n",
+      "expected": "0\n"
+     }
+    ]
+   }
+  },
+  {
+   "base": "brainfuck",
+   "name": "Brainfuck",
+   "shortCode": "Bf",
+   "category": "ESOTERIC",
+   "tagline": "Run Brainfuck online — 8 commands, one tape, zero install.",
+   "importHint": "all files live together in /workspace (flat, import by bare name)",
+   "multiFileSupported": false,
+   "lineComment": null,
+   "blockComment": null,
+   "starter": {
+    "code": ",.\n",
+    "tests": [
+     {
+      "stdin": "A",
+      "expected": "A"
+     }
+    ]
+   }
+  },
+  {
+   "base": "bun",
+   "name": "Bun",
+   "shortCode": "Bn",
+   "category": "SCRIPTING",
+   "tagline": "Run Bun 1 online — the all-in-one JavaScript/TypeScript runtime, bundler, and test runner.",
+   "importHint": "all files live together in /workspace (flat, import by bare name)",
+   "multiFileSupported": true,
+   "lineComment": "//",
+   "blockComment": null,
+   "starter": null
+  },
+  {
+   "base": "c",
+   "name": "C",
+   "shortCode": "C",
+   "category": "COMPILED",
+   "tagline": "Run C online — real GCC, real memory. C90 through C23 in a Firecracker microVM.",
+   "importHint": "#include \"helper.h\"  (all *.c linked)",
+   "multiFileSupported": true,
+   "lineComment": "//",
+   "blockComment": null,
+   "starter": {
+    "code": "#include<stdio.h>\nint main(){int n;scanf(\"%d\",&n);printf(\"%d\\n\",n*2);return 0;}\n",
+    "tests": [
+     {
+      "stdin": "21\n",
+      "expected": "42\n"
+     },
+     {
+      "stdin": "0\n",
+      "expected": "0\n"
+     }
+    ]
+   }
+  },
+  {
+   "base": "clojure",
+   "name": "Clojure",
+   "shortCode": "Cj",
+   "category": "JVM",
+   "tagline": "Run Clojure online — Lisp on the JVM, immutable by default. No local install.",
+   "importHint": "all files live together in /workspace (flat, import by bare name)",
+   "multiFileSupported": true,
+   "lineComment": ";",
+   "blockComment": null,
+   "starter": {
+    "code": "(let [n (Integer/parseInt (clojure.string/trim (read-line)))] (println (* n 2)))\n",
+    "tests": [
+     {
+      "stdin": "21\n",
+      "expected": "42\n"
+     },
+     {
+      "stdin": "0\n",
+      "expected": "0\n"
+     }
+    ]
+   }
+  },
+  {
+   "base": "cobol",
+   "name": "COBOL",
+   "shortCode": "Co",
+   "category": "COMPILED",
+   "tagline": "Run COBOL online — GnuCOBOL 3, browser-hosted, no mainframe required.",
+   "importHint": "all files live together in /workspace (flat, import by bare name)",
+   "multiFileSupported": false,
+   "lineComment": "*>",
+   "blockComment": null,
+   "starter": {
+    "code": "IDENTIFICATION DIVISION.\nPROGRAM-ID. solution.\nDATA DIVISION.\nWORKING-STORAGE SECTION.\n01 N PIC 9(9).\n01 R PIC 9(9).\nPROCEDURE DIVISION.\n    ACCEPT N\n    COMPUTE R = N * 2\n    DISPLAY R\n    STOP RUN.\n",
+    "tests": [
+     {
+      "stdin": "21\n",
+      "expected": "000000042\n"
+     },
+     {
+      "stdin": "0\n",
+      "expected": "000000000\n"
+     }
+    ]
+   }
+  },
+  {
+   "base": "coffeescript",
+   "name": "CoffeeScript",
+   "shortCode": "Cs",
+   "category": "SCRIPTING",
+   "tagline": "Run CoffeeScript 2 online — compiles to JavaScript. Sandboxed, no install.",
+   "importHint": "all files live together in /workspace (flat, import by bare name)",
+   "multiFileSupported": true,
+   "lineComment": "#",
+   "blockComment": null,
+   "starter": {
+    "code": "lines = []\nprocess.stdin.on 'data', (d) -> lines.push d.toString()\nprocess.stdin.on 'end', ->\n  n = parseInt lines.join('').trim()\n  process.stdout.write \"#{n*2}\\n\"\n",
+    "tests": [
+     {
+      "stdin": "21\n",
+      "expected": "42\n"
+     },
+     {
+      "stdin": "0\n",
+      "expected": "0\n"
+     }
+    ]
+   }
+  },
+  {
+   "base": "cpp",
+   "name": "C++",
+   "shortCode": "C+",
+   "category": "COMPILED",
+   "tagline": "Run C++ online — GCC, C++98 through C++26, real templates in a Firecracker microVM.",
+   "importHint": "#include \"helper.h\"  (all *.cpp linked)",
+   "multiFileSupported": true,
+   "lineComment": "//",
+   "blockComment": null,
+   "starter": {
+    "code": "#include<iostream>\nint main(){int n;std::cin>>n;std::cout<<n*2<<std::endl;return 0;}\n",
+    "tests": [
+     {
+      "stdin": "21\n",
+      "expected": "42\n"
+     },
+     {
+      "stdin": "0\n",
+      "expected": "0\n"
+     }
+    ]
+   }
+  },
+  {
+   "base": "crystal",
+   "name": "Crystal",
+   "shortCode": "Cr",
+   "category": "COMPILED",
+   "tagline": "Run Crystal online — Ruby-like syntax, static types, native performance.",
+   "importHint": "require \"./helper\"",
+   "multiFileSupported": true,
+   "lineComment": "#",
+   "blockComment": null,
+   "starter": {
+    "code": "n = gets.not_nil!.chomp.to_i\nputs n * 2\n",
+    "tests": [
+     {
+      "stdin": "21\n",
+      "expected": "42\n"
+     },
+     {
+      "stdin": "0\n",
+      "expected": "0\n"
+     }
+    ]
+   }
+  },
+  {
+   "base": "csharp",
+   "name": "C#",
+   "shortCode": "C#",
+   "category": "COMPILED",
+   "tagline": "Run C# online — .NET, C# 12/13/14, in a Firecracker microVM. No install.",
+   "importHint": "same namespace — reference class directly",
+   "multiFileSupported": true,
+   "lineComment": "//",
+   "blockComment": null,
+   "starter": {
+    "code": "using System;\nclass Solution { static void Main() { int n = int.Parse(Console.ReadLine()!.Trim()); Console.WriteLine(n * 2); } }\n",
+    "tests": [
+     {
+      "stdin": "21\n",
+      "expected": "42\n"
+     },
+     {
+      "stdin": "0\n",
+      "expected": "0\n"
+     }
+    ]
+   }
+  },
+  {
+   "base": "d",
+   "name": "D",
+   "shortCode": "D",
+   "category": "COMPILED",
+   "tagline": "Run D online — D2, browser-hosted, native performance.",
+   "importHint": "import helper;  (all *.d linked)",
+   "multiFileSupported": true,
+   "lineComment": "//",
+   "blockComment": null,
+   "starter": {
+    "code": "import std.stdio, std.conv, std.string;\nvoid main() { int n = readln().strip().to!int; writeln(n * 2); }\n",
+    "tests": [
+     {
+      "stdin": "21\n",
+      "expected": "42\n"
+     },
+     {
+      "stdin": "0\n",
+      "expected": "0\n"
+     }
+    ]
+   }
+  },
+  {
+   "base": "dart",
+   "name": "Dart",
+   "shortCode": "Da",
+   "category": "COMPILED",
+   "tagline": "Run Dart 3 online — the Flutter language, browser-hosted.",
+   "importHint": "import 'helper.dart';",
+   "multiFileSupported": true,
+   "lineComment": "//",
+   "blockComment": null,
+   "starter": {
+    "code": "import 'dart:io';\nvoid main() {\n  final n = int.parse(stdin.readLineSync()!.trim());\n  print(n * 2);\n}\n",
+    "tests": [
+     {
+      "stdin": "21\n",
+      "expected": "42\n"
+     },
+     {
+      "stdin": "0\n",
+      "expected": "0\n"
+     }
+    ]
+   }
+  },
+  {
+   "base": "dc",
+   "name": "dc",
+   "shortCode": "Dc",
+   "category": "SCRIPTING",
+   "tagline": "Run dc online — the reverse-Polish calculator, no install.",
+   "importHint": "all files live together in /workspace (flat, import by bare name)",
+   "multiFileSupported": false,
+   "lineComment": "#",
+   "blockComment": null,
+   "starter": {
+    "code": "? 2 * p\n",
+    "tests": [
+     {
+      "stdin": "21\n",
+      "expected": "42\n"
+     },
+     {
+      "stdin": "0\n",
+      "expected": "0\n"
+     }
+    ]
+   }
+  },
+  {
+   "base": "deno",
+   "name": "Deno",
+   "shortCode": "Dn",
+   "category": "SCRIPTING",
+   "tagline": "Run Deno 2 online — secure-by-default JavaScript/TypeScript runtime, browser-hosted.",
+   "importHint": "all files live together in /workspace (flat, import by bare name)",
+   "multiFileSupported": true,
+   "lineComment": "//",
+   "blockComment": null,
+   "starter": null
+  },
+  {
+   "base": "elixir",
+   "name": "Elixir",
+   "shortCode": "Ex",
+   "category": "FUNCTIONAL",
+   "tagline": "Run Elixir online — Erlang VM, actor concurrency, browser-hosted.",
+   "importHint": "all files live together in /workspace (flat, import by bare name)",
+   "multiFileSupported": true,
+   "lineComment": "#",
+   "blockComment": null,
+   "starter": {
+    "code": "n = IO.read(:stdio, :line) |> String.trim() |> String.to_integer()\nIO.puts(n * 2)\n",
+    "tests": [
+     {
+      "stdin": "21\n",
+      "expected": "42\n"
+     },
+     {
+      "stdin": "0\n",
+      "expected": "0\n"
+     }
+    ]
+   }
+  },
+  {
+   "base": "erlang",
+   "name": "Erlang",
+   "shortCode": "Er",
+   "category": "FUNCTIONAL",
+   "tagline": "Run Erlang OTP 26 online — the fault-tolerant BEAM VM, browser-hosted.",
+   "importHint": "all files live together in /workspace (flat, import by bare name)",
+   "multiFileSupported": true,
+   "lineComment": "%",
+   "blockComment": null,
+   "starter": {
+    "code": "-module(solution).\n-export([main/0]).\nmain() ->\n    {ok, [N]} = io:fread(\"\", \"~d\"),\n    io:format(\"~b~n\", [N * 2]).\n",
+    "tests": [
+     {
+      "stdin": "21\n",
+      "expected": "42\n"
+     },
+     {
+      "stdin": "0\n",
+      "expected": "0\n"
+     }
+    ]
+   }
+  },
+  {
+   "base": "fish",
+   "name": "Fish",
+   "shortCode": "Fi",
+   "category": "SCRIPTING",
+   "tagline": "Run Fish 3 shell scripts online — Friendly Interactive Shell, sandboxed.",
+   "importHint": "all files live together in /workspace (flat, import by bare name)",
+   "multiFileSupported": true,
+   "lineComment": "#",
+   "blockComment": null,
+   "starter": {
+    "code": "read n\necho (math $n \\* 2)\n",
+    "tests": [
+     {
+      "stdin": "21\n",
+      "expected": "42\n"
+     },
+     {
+      "stdin": "0\n",
+      "expected": "0\n"
+     }
+    ]
+   }
+  },
+  {
+   "base": "forth",
+   "name": "Forth",
+   "shortCode": "Fr",
+   "category": "ESOTERIC",
+   "tagline": "Run Forth online — stack-based, concatenative, browser-hosted.",
+   "importHint": "all files live together in /workspace (flat, import by bare name)",
+   "multiFileSupported": false,
+   "lineComment": "\\",
+   "blockComment": null,
+   "starter": {
+    "code": "pad 64 stdin read-line drop drop pad swap evaluate 2 * . cr\n",
+    "tests": [
+     {
+      "stdin": "21\n",
+      "expected": "42 \n"
+     },
+     {
+      "stdin": "0\n",
+      "expected": "0 \n"
+     }
+    ]
+   }
+  },
+  {
+   "base": "fortran",
+   "name": "Fortran",
+   "shortCode": "Fo",
+   "category": "COMPILED",
+   "tagline": "Run Fortran online — GFortran, Fortran 2018 standard, browser-hosted.",
+   "importHint": "all files live together in /workspace (flat, import by bare name)",
+   "multiFileSupported": false,
+   "lineComment": "!",
+   "blockComment": null,
+   "starter": {
+    "code": "program solution\n  implicit none\n  integer :: n\n  read(*,*) n\n  write(*,'(i0)') n * 2\nend program solution\n",
+    "tests": [
+     {
+      "stdin": "21\n",
+      "expected": "42\n"
+     },
+     {
+      "stdin": "0\n",
+      "expected": "0\n"
+     }
+    ]
+   }
+  },
+  {
+   "base": "fsharp",
+   "name": "F#",
+   "shortCode": "F#",
+   "category": "FUNCTIONAL",
+   "tagline": "Run F# online — functional-first .NET, browser-hosted.",
+   "importHint": "all files live together in /workspace (flat, import by bare name)",
+   "multiFileSupported": true,
+   "lineComment": "//",
+   "blockComment": null,
+   "starter": {
+    "code": "[<EntryPoint>]\nlet main _ =\n    let n = System.Console.ReadLine().Trim() |> int\n    printfn \"%d\" (n * 2)\n    0\n",
+    "tests": [
+     {
+      "stdin": "21\n",
+      "expected": "42\n"
+     },
+     {
+      "stdin": "0\n",
+      "expected": "0\n"
+     }
+    ]
+   }
+  },
+  {
+   "base": "go",
+   "name": "Go",
+   "shortCode": "Go",
+   "category": "COMPILED",
+   "tagline": "Run Go online — Go 1.22 through 1.25, real toolchain, no install.",
+   "importHint": "same package main — call funcs directly (all *.go built)",
+   "multiFileSupported": true,
+   "lineComment": "//",
+   "blockComment": null,
+   "starter": {
+    "code": "package main\nimport \"fmt\"\nfunc main(){var n int;fmt.Scan(&n);fmt.Println(n*2)}\n",
+    "tests": [
+     {
+      "stdin": "21\n",
+      "expected": "42\n"
+     },
+     {
+      "stdin": "0\n",
+      "expected": "0\n"
+     }
+    ]
+   }
+  },
+  {
+   "base": "groovy",
+   "name": "Groovy",
+   "shortCode": "Gr",
+   "category": "JVM",
+   "tagline": "Run Groovy 4 online — dynamic JVM language, browser-hosted.",
+   "importHint": "same dir — reference class Helper directly",
+   "multiFileSupported": true,
+   "lineComment": "//",
+   "blockComment": null,
+   "starter": {
+    "code": "def n = System.in.newReader().readLine().trim().toInteger(); println(n * 2)\n",
+    "tests": [
+     {
+      "stdin": "21\n",
+      "expected": "42\n"
+     },
+     {
+      "stdin": "0\n",
+      "expected": "0\n"
+     }
+    ]
+   }
+  },
+  {
+   "base": "guile",
+   "name": "Guile",
+   "shortCode": "Gu",
+   "category": "FUNCTIONAL",
+   "tagline": "Run Guile Scheme online — GNU's Scheme implementation.",
+   "importHint": "all files live together in /workspace (flat, import by bare name)",
+   "multiFileSupported": true,
+   "lineComment": ";",
+   "blockComment": null,
+   "starter": {
+    "code": "(define n (read))\n(display (* n 2))\n(newline)\n",
+    "tests": [
+     {
+      "stdin": "21\n",
+      "expected": "42\n"
+     },
+     {
+      "stdin": "0\n",
+      "expected": "0\n"
+     }
+    ]
+   }
+  },
+  {
+   "base": "haskell",
+   "name": "Haskell",
+   "shortCode": "Hs",
+   "category": "FUNCTIONAL",
+   "tagline": "Run Haskell online — GHC 9, purely functional, browser-hosted.",
+   "importHint": "import Helper  — module Helper in Helper.hs",
+   "multiFileSupported": true,
+   "lineComment": "--",
+   "blockComment": null,
+   "starter": {
+    "code": "main :: IO ()\nmain = do\n  line <- getLine\n  let n = read line :: Int\n  print (n * 2)\n",
+    "tests": [
+     {
+      "stdin": "21\n",
+      "expected": "42\n"
+     },
+     {
+      "stdin": "0\n",
+      "expected": "0\n"
+     }
+    ]
+   }
+  },
+  {
+   "base": "java",
+   "name": "Java",
+   "shortCode": "Jv",
+   "category": "JVM",
+   "tagline": "Run Java online — Java 8 through 25, real JDK, in a Firecracker microVM.",
+   "importHint": "default package — use class Helper directly (all *.java compiled)",
+   "multiFileSupported": true,
+   "lineComment": "//",
+   "blockComment": null,
+   "starter": {
+    "code": "import java.util.Scanner;\npublic class Solution {\n  public static void main(String[] args) {\n    Scanner sc = new Scanner(System.in);\n    int n = sc.nextInt();\n    System.out.println(n * 2);\n  }\n}\n",
+    "tests": [
+     {
+      "stdin": "21\n",
+      "expected": "42\n"
+     },
+     {
+      "stdin": "0\n",
+      "expected": "0\n"
+     }
+    ]
+   }
+  },
+  {
+   "base": "javascript",
+   "name": "JavaScript",
+   "shortCode": "Js",
+   "category": "SCRIPTING",
+   "tagline": "Run JavaScript online — Node 20/22/23/24/25/26, real V8, in a Firecracker microVM.",
+   "importHint": "require('./helper')  or  import './helper.js'",
+   "multiFileSupported": true,
+   "lineComment": "//",
+   "blockComment": null,
+   "starter": {
+    "code": "const lines = [];\nprocess.stdin.on('data', d => lines.push(d.toString()));\nprocess.stdin.on('end', () => {\n  const n = parseInt(lines.join('').trim());\n  console.log(n * 2);\n});\n",
+    "tests": [
+     {
+      "stdin": "21\n",
+      "expected": "42\n"
+     },
+     {
+      "stdin": "0\n",
+      "expected": "0\n"
+     }
+    ]
+   }
+  },
+  {
+   "base": "jq",
+   "name": "jq",
+   "shortCode": "Jq",
+   "category": "SCRIPTING",
+   "tagline": "Run jq online — JSON on the command line, sandboxed.",
+   "importHint": "all files live together in /workspace (flat, import by bare name)",
+   "multiFileSupported": false,
+   "lineComment": "#",
+   "blockComment": null,
+   "starter": {
+    "code": "input | tonumber | . * 2\n",
+    "tests": [
+     {
+      "stdin": "21\n",
+      "expected": "42\n"
+     },
+     {
+      "stdin": "0\n",
+      "expected": "0\n"
+     }
+    ]
+   }
+  },
+  {
+   "base": "julia",
+   "name": "Julia",
+   "shortCode": "Jl",
+   "category": "SCRIPTING",
+   "tagline": "Run Julia 1 online — scientific computing, browser-hosted.",
+   "importHint": "all files live together in /workspace (flat, import by bare name)",
+   "multiFileSupported": true,
+   "lineComment": "#",
+   "blockComment": null,
+   "starter": {
+    "code": "n = parse(Int, readline())\nprintln(n * 2)\n",
+    "tests": [
+     {
+      "stdin": "21\n",
+      "expected": "42\n"
+     },
+     {
+      "stdin": "0\n",
+      "expected": "0\n"
+     }
+    ]
+   }
+  },
+  {
+   "base": "kotlin",
+   "name": "Kotlin",
+   "shortCode": "Kt",
+   "category": "JVM",
+   "tagline": "Run Kotlin 2 online — the modern JVM language, Android's default.",
+   "importHint": "same package — call top-level declarations (all *.kt compiled)",
+   "multiFileSupported": true,
+   "lineComment": "//",
+   "blockComment": null,
+   "starter": {
+    "code": "fun main() { val n = readLine()!!.trim().toInt(); println(n * 2) }\n",
+    "tests": [
+     {
+      "stdin": "21\n",
+      "expected": "42\n"
+     },
+     {
+      "stdin": "0\n",
+      "expected": "0\n"
+     }
+    ]
+   }
+  },
+  {
+   "base": "lisp",
+   "name": "Common Lisp",
+   "shortCode": "Li",
+   "category": "FUNCTIONAL",
+   "tagline": "Run Common Lisp online — SBCL, the workhorse CL implementation.",
+   "importHint": "all files live together in /workspace (flat, import by bare name)",
+   "multiFileSupported": true,
+   "lineComment": ";",
+   "blockComment": null,
+   "starter": {
+    "code": "(let ((n (parse-integer (read-line))))\n  (write-line (write-to-string (* n 2))))\n",
+    "tests": [
+     {
+      "stdin": "21\n",
+      "expected": "42\n"
+     },
+     {
+      "stdin": "0\n",
+      "expected": "0\n"
+     }
+    ]
+   }
+  },
+  {
+   "base": "lua",
+   "name": "Lua",
+   "shortCode": "Lu",
+   "category": "SCRIPTING",
+   "tagline": "Run Lua online — 5.1, 5.3, 5.4. Tiny, embeddable, browser-hosted.",
+   "importHint": "require('helper')",
+   "multiFileSupported": true,
+   "lineComment": "--",
+   "blockComment": null,
+   "starter": {
+    "code": "local n = tonumber(io.read())\nprint(n * 2)\n",
+    "tests": [
+     {
+      "stdin": "21\n",
+      "expected": "42\n"
+     },
+     {
+      "stdin": "0\n",
+      "expected": "0\n"
+     }
+    ]
+   }
+  },
+  {
+   "base": "nasm",
+   "name": "x86-64 Assembly (NASM)",
+   "shortCode": "As",
+   "category": "COMPILED",
+   "tagline": "Run x86-64 NASM assembly online — real syscalls, real ELF.",
+   "importHint": "all files live together in /workspace (flat, import by bare name)",
+   "multiFileSupported": false,
+   "lineComment": ";",
+   "blockComment": null,
+   "starter": {
+    "code": "section .data\n    msg db \"Hello, World!\", 10\n    len equ $ - msg\nsection .text\n    global _start\n_start:\n    mov rax, 1\n    mov rdi, 1\n    mov rsi, msg\n    mov rdx, len\n    syscall\n    mov rax, 60\n    xor rdi, rdi\n    syscall\n",
+    "tests": [
+     {
+      "stdin": "",
+      "expected": "Hello, World!\n"
+     }
+    ]
+   }
+  },
+  {
+   "base": "nim",
+   "name": "Nim",
+   "shortCode": "Ni",
+   "category": "COMPILED",
+   "tagline": "Run Nim 2 online — Python-clean syntax, C-fast binaries.",
+   "importHint": "import helper",
+   "multiFileSupported": true,
+   "lineComment": "#",
+   "blockComment": null,
+   "starter": {
+    "code": "import strutils\nlet n = parseInt(readLine(stdin))\necho n * 2\n",
+    "tests": [
+     {
+      "stdin": "21\n",
+      "expected": "42\n"
+     },
+     {
+      "stdin": "0\n",
+      "expected": "0\n"
+     }
+    ]
+   }
+  },
+  {
+   "base": "ocaml",
+   "name": "OCaml",
+   "shortCode": "Ml",
+   "category": "FUNCTIONAL",
+   "tagline": "Run OCaml 5 online — algebraic types, effect handlers, no install.",
+   "importHint": "reference Helper.fn (compiled together)",
+   "multiFileSupported": false,
+   "lineComment": null,
+   "blockComment": [
+    "(*",
+    "*)"
+   ],
+   "starter": {
+    "code": "let () =\n  let n = int_of_string (input_line stdin) in\n  Printf.printf \"%d\\n\" (n * 2)\n",
+    "tests": [
+     {
+      "stdin": "21\n",
+      "expected": "42\n"
+     },
+     {
+      "stdin": "0\n",
+      "expected": "0\n"
+     }
+    ]
+   }
+  },
+  {
+   "base": "octave",
+   "name": "GNU Octave",
+   "shortCode": "Oc",
+   "category": "SCRIPTING",
+   "tagline": "Run Octave 8 online — MATLAB-compatible numerical computing.",
+   "importHint": "all files live together in /workspace (flat, import by bare name)",
+   "multiFileSupported": true,
+   "lineComment": "%",
+   "blockComment": null,
+   "starter": {
+    "code": "n = str2num(strtrim(fgetl(stdin)));\nprintf(\"%d\\n\", n * 2);\n",
+    "tests": [
+     {
+      "stdin": "21\n",
+      "expected": "42\n"
+     },
+     {
+      "stdin": "0\n",
+      "expected": "0\n"
+     }
+    ]
+   }
+  },
+  {
+   "base": "pascal",
+   "name": "Pascal",
+   "shortCode": "Pa",
+   "category": "COMPILED",
+   "tagline": "Run Pascal online — Free Pascal 3, Object Pascal, browser-hosted.",
+   "importHint": "uses helper;",
+   "multiFileSupported": true,
+   "lineComment": "//",
+   "blockComment": null,
+   "starter": {
+    "code": "program Solution;\nvar n: integer;\nbegin\n  readln(n);\n  writeln(n * 2);\nend.\n",
+    "tests": [
+     {
+      "stdin": "21\n",
+      "expected": "42\n"
+     },
+     {
+      "stdin": "0\n",
+      "expected": "0\n"
+     }
+    ]
+   }
+  },
+  {
+   "base": "perl",
+   "name": "Perl",
+   "shortCode": "Pe",
+   "category": "SCRIPTING",
+   "tagline": "Run Perl 5 online — the classic scripting swiss army knife.",
+   "importHint": "require 'helper.pl';",
+   "multiFileSupported": true,
+   "lineComment": "#",
+   "blockComment": null,
+   "starter": {
+    "code": "my $n = <STDIN>;\nchomp $n;\nprint $n * 2, \"\\n\";\n",
+    "tests": [
+     {
+      "stdin": "21\n",
+      "expected": "42\n"
+     },
+     {
+      "stdin": "0\n",
+      "expected": "0\n"
+     }
+    ]
+   }
+  },
+  {
+   "base": "php",
+   "name": "PHP",
+   "shortCode": "Ph",
+   "category": "SCRIPTING",
+   "tagline": "Run PHP online — PHP 8.4 or 8.x, real Zend engine, browser-hosted, no install.",
+   "importHint": "require 'helper.php';",
+   "multiFileSupported": true,
+   "lineComment": "//",
+   "blockComment": null,
+   "starter": {
+    "code": "<?php $n = (int)trim(fgets(STDIN)); echo ($n * 2) . \"\\n\";\n",
+    "tests": [
+     {
+      "stdin": "21\n",
+      "expected": "42\n"
+     },
+     {
+      "stdin": "0\n",
+      "expected": "0\n"
+     }
+    ]
+   }
+  },
+  {
+   "base": "powershell",
+   "name": "PowerShell",
+   "shortCode": "Ps",
+   "category": "SCRIPTING",
+   "tagline": "Run PowerShell 7 online — cross-platform, object-pipeline, browser-hosted.",
+   "importHint": "all files live together in /workspace (flat, import by bare name)",
+   "multiFileSupported": true,
+   "lineComment": "#",
+   "blockComment": null,
+   "starter": {
+    "code": "$n = [int][Console]::In.ReadLine()\nWrite-Output ($n * 2)\n",
+    "tests": [
+     {
+      "stdin": "21\n",
+      "expected": "42\n"
+     },
+     {
+      "stdin": "0\n",
+      "expected": "0\n"
+     }
+    ]
+   }
+  },
+  {
+   "base": "prolog",
+   "name": "Prolog",
+   "shortCode": "Pl",
+   "category": "FUNCTIONAL",
+   "tagline": "Run Prolog online — SWI-Prolog 9, logic programming, browser-hosted.",
+   "importHint": "all files live together in /workspace (flat, import by bare name)",
+   "multiFileSupported": false,
+   "lineComment": "%",
+   "blockComment": null,
+   "starter": {
+    "code": "main :- read_term(N, []), N2 is N * 2, write(N2), nl.\n",
+    "tests": [
+     {
+      "stdin": "21.\n",
+      "expected": "42\n"
+     },
+     {
+      "stdin": "0.\n",
+      "expected": "0\n"
+     }
+    ]
+   }
+  },
+  {
+   "base": "pypy",
+   "name": "PyPy",
+   "shortCode": "PP",
+   "category": "SCRIPTING",
+   "tagline": "Run PyPy 3 online — Python-compatible JIT, faster than CPython.",
+   "importHint": "import helper  — from helper.py",
+   "multiFileSupported": true,
+   "lineComment": "#",
+   "blockComment": null,
+   "starter": {
+    "code": "n = int(input())\nprint(n * 2)\n",
+    "tests": [
+     {
+      "stdin": "21\n",
+      "expected": "42\n"
+     },
+     {
+      "stdin": "0\n",
+      "expected": "0\n"
+     }
+    ]
+   }
+  },
+  {
+   "base": "python",
+   "name": "Python",
+   "shortCode": "Py",
+   "category": "SCRIPTING",
+   "tagline": "Run Python online — real CPython 3.11 → 3.15 (RC), no install, sandboxed per submission.",
+   "importHint": "import helper  — from helper.py (same dir)",
+   "multiFileSupported": true,
+   "lineComment": "#",
+   "blockComment": null,
+   "starter": {
+    "code": "n = int(input())\nprint(n * 2)\n",
+    "tests": [
+     {
+      "stdin": "21\n",
+      "expected": "42\n"
+     },
+     {
+      "stdin": "0\n",
+      "expected": "0\n"
+     }
+    ]
+   }
+  },
+  {
+   "base": "r",
+   "name": "R",
+   "shortCode": "R",
+   "category": "SCRIPTING",
+   "tagline": "Run R 4 online — statistical computing, browser-hosted.",
+   "importHint": "all files live together in /workspace (flat, import by bare name)",
+   "multiFileSupported": true,
+   "lineComment": "#",
+   "blockComment": null,
+   "starter": {
+    "code": "n <- as.integer(scan(\"stdin\", integer(), n=1, quiet=TRUE))\ncat(n * 2, \"\\n\", sep=\"\")\n",
+    "tests": [
+     {
+      "stdin": "21\n",
+      "expected": "42\n"
+     },
+     {
+      "stdin": "0\n",
+      "expected": "0\n"
+     }
+    ]
+   }
+  },
+  {
+   "base": "racket",
+   "name": "Racket",
+   "shortCode": "Rk",
+   "category": "FUNCTIONAL",
+   "tagline": "Run Racket 8 online — the language-oriented Scheme.",
+   "importHint": "all files live together in /workspace (flat, import by bare name)",
+   "multiFileSupported": true,
+   "lineComment": ";",
+   "blockComment": null,
+   "starter": {
+    "code": "#lang racket\n(define n (string->number (read-line)))\n(displayln (* n 2))\n",
+    "tests": [
+     {
+      "stdin": "21\n",
+      "expected": "42\n"
+     },
+     {
+      "stdin": "0\n",
+      "expected": "0\n"
+     }
+    ]
+   }
+  },
+  {
+   "base": "raku",
+   "name": "Raku",
+   "shortCode": "Ra",
+   "category": "SCRIPTING",
+   "tagline": "Run Raku online — Perl's multi-paradigm successor, browser-hosted.",
+   "importHint": "all files live together in /workspace (flat, import by bare name)",
+   "multiFileSupported": true,
+   "lineComment": "#",
+   "blockComment": null,
+   "starter": {
+    "code": "my $n = get.trim.Int;\nsay $n * 2;\n",
+    "tests": [
+     {
+      "stdin": "21\n",
+      "expected": "42\n"
+     },
+     {
+      "stdin": "0\n",
+      "expected": "0\n"
+     }
+    ]
+   }
+  },
+  {
+   "base": "ruby",
+   "name": "Ruby",
+   "shortCode": "Rb",
+   "category": "SCRIPTING",
+   "tagline": "Run Ruby online — Ruby 3.4, 3.3, or 3.x MRI, blocks and metaprogramming, browser-hosted.",
+   "importHint": "require_relative 'helper'",
+   "multiFileSupported": true,
+   "lineComment": "#",
+   "blockComment": null,
+   "starter": {
+    "code": "n = gets.chomp.to_i\nputs n * 2\n",
+    "tests": [
+     {
+      "stdin": "21\n",
+      "expected": "42\n"
+     },
+     {
+      "stdin": "0\n",
+      "expected": "0\n"
+     }
+    ]
+   }
+  },
+  {
+   "base": "rust",
+   "name": "Rust",
+   "shortCode": "Rs",
+   "category": "COMPILED",
+   "tagline": "Run Rust online — Rust 1.87 or the stable 1.x rustc, real borrow checker, isolated per submission.",
+   "importHint": "mod helper;  then helper::fn()",
+   "multiFileSupported": true,
+   "lineComment": "//",
+   "blockComment": null,
+   "starter": {
+    "code": "use std::io;\nfn main() {\n    let mut s = String::new();\n    io::stdin().read_line(&mut s).unwrap();\n    let n: i64 = s.trim().parse().unwrap();\n    println!(\"{}\", n * 2);\n}\n",
+    "tests": [
+     {
+      "stdin": "21\n",
+      "expected": "42\n"
+     },
+     {
+      "stdin": "0\n",
+      "expected": "0\n"
+     }
+    ]
+   }
+  },
+  {
+   "base": "scala",
+   "name": "Scala",
+   "shortCode": "Sc",
+   "category": "JVM",
+   "tagline": "Run Scala 3 online — functional + object-oriented on the JVM.",
+   "importHint": "same package — reference directly (all *.scala compiled)",
+   "multiFileSupported": true,
+   "lineComment": "//",
+   "blockComment": null,
+   "starter": {
+    "code": "import scala.io.StdIn; object Solution { def main(args: Array[String]): Unit = { val n = StdIn.readInt(); println(n * 2) } }\n",
+    "tests": [
+     {
+      "stdin": "21\n",
+      "expected": "42\n"
+     },
+     {
+      "stdin": "0\n",
+      "expected": "0\n"
+     }
+    ]
+   }
+  },
+  {
+   "base": "smalltalk",
+   "name": "Smalltalk",
+   "shortCode": "St",
+   "category": "SCRIPTING",
+   "tagline": "Run Smalltalk online — the mother of OO, browser-hosted.",
+   "importHint": "all files live together in /workspace (flat, import by bare name)",
+   "multiFileSupported": false,
+   "lineComment": null,
+   "blockComment": [
+    "\"",
+    "\""
+   ],
+   "starter": {
+    "code": "| n |\nn := stdin nextLine asInteger.\nTranscript show: (n * 2) printString; nl.\n",
+    "tests": [
+     {
+      "stdin": "21\n",
+      "expected": "42\n"
+     },
+     {
+      "stdin": "0\n",
+      "expected": "0\n"
+     }
+    ]
+   }
+  },
+  {
+   "base": "sqlite",
+   "name": "SQLite",
+   "shortCode": "Sq",
+   "category": "SCRIPTING",
+   "tagline": "Run SQLite 3 online — real DB engine, in-memory, browser-hosted.",
+   "importHint": "all files live together in /workspace (flat, import by bare name)",
+   "multiFileSupported": false,
+   "lineComment": "--",
+   "blockComment": null,
+   "starter": {
+    "code": ".mode list\nSELECT 'Hello, World!';\n",
+    "tests": [
+     {
+      "stdin": "",
+      "expected": "Hello, World!\n"
+     }
+    ]
+   }
+  },
+  {
+   "base": "swift",
+   "name": "Swift",
+   "shortCode": "Sw",
+   "category": "COMPILED",
+   "tagline": "Run Swift online — Swift 5 and 6, browser-hosted, no Xcode.",
+   "importHint": "same module — reference directly (all *.swift compiled)",
+   "multiFileSupported": true,
+   "lineComment": "//",
+   "blockComment": null,
+   "starter": {
+    "code": "import Foundation\nlet line = readLine()!\nlet n = Int(line.trimmingCharacters(in: .whitespaces))!\nprint(n * 2)\n",
+    "tests": [
+     {
+      "stdin": "21\n",
+      "expected": "42\n"
+     },
+     {
+      "stdin": "0\n",
+      "expected": "0\n"
+     }
+    ]
+   }
+  },
+  {
+   "base": "tcl",
+   "name": "Tcl",
+   "shortCode": "Tc",
+   "category": "SCRIPTING",
+   "tagline": "Run Tcl 8 online — the \"everything is a string\" language.",
+   "importHint": "all files live together in /workspace (flat, import by bare name)",
+   "multiFileSupported": true,
+   "lineComment": "#",
+   "blockComment": null,
+   "starter": {
+    "code": "set n [gets stdin]\nputs [expr {$n * 2}]\n",
+    "tests": [
+     {
+      "stdin": "21\n",
+      "expected": "42\n"
+     },
+     {
+      "stdin": "0\n",
+      "expected": "0\n"
+     }
+    ]
+   }
+  },
+  {
+   "base": "typescript",
+   "name": "TypeScript",
+   "shortCode": "Ts",
+   "category": "SCRIPTING",
+   "tagline": "Run TypeScript 5 online — typed JavaScript, Node runtime, browser-hosted.",
+   "importHint": "import { x } from './helper'",
+   "multiFileSupported": true,
+   "lineComment": "//",
+   "blockComment": null,
+   "starter": {
+    "code": "const lines: string[] = [];\nprocess.stdin.on('data', (d: Buffer) => lines.push(d.toString()));\nprocess.stdin.on('end', () => {\n  const n: number = parseInt(lines.join('').trim());\n  process.stdout.write((n * 2) + '\\n');\n});\n",
+    "tests": [
+     {
+      "stdin": "21\n",
+      "expected": "42\n"
+     },
+     {
+      "stdin": "0\n",
+      "expected": "0\n"
+     }
+    ]
+   }
+  },
+  {
+   "base": "vlang",
+   "name": "V",
+   "shortCode": "V",
+   "category": "COMPILED",
+   "tagline": "Run V online — Go-like syntax, C-fast binaries.",
+   "importHint": "all files live together in /workspace (flat, import by bare name)",
+   "multiFileSupported": false,
+   "lineComment": "//",
+   "blockComment": null,
+   "starter": {
+    "code": "import os\nfn main() { n := os.input('').int(); println(n * 2) }\n",
+    "tests": [
+     {
+      "stdin": "21\n",
+      "expected": "42\n"
+     },
+     {
+      "stdin": "0\n",
+      "expected": "0\n"
+     }
+    ]
+   }
+  },
+  {
+   "base": "wasm",
+   "name": "WebAssembly",
+   "shortCode": "Wa",
+   "category": "COMPILED",
+   "tagline": "Run WebAssembly (WAT) online — text format, real runtime.",
+   "importHint": "all files live together in /workspace (flat, import by bare name)",
+   "multiFileSupported": false,
+   "lineComment": ";;",
+   "blockComment": null,
+   "starter": {
+    "code": "(module\n  (import \"wasi_snapshot_preview1\" \"fd_write\"\n    (func $fd_write (param i32 i32 i32 i32) (result i32)))\n  (memory 1)\n  (export \"memory\" (memory 0))\n  (data (i32.const 8) \"Hello, World!\\n\")\n  (func $main (export \"_start\")\n    (i32.store (i32.const 0) (i32.const 8))\n    (i32.store (i32.const 4) (i32.const 14))\n    (drop (call $fd_write (i32.const 1) (i32.const 0) (i32.const 1) (i32.const 20)))\n  )\n)\n",
+    "tests": [
+     {
+      "stdin": "",
+      "expected": "Hello, World!\n"
+     }
+    ]
+   }
+  },
+  {
+   "base": "zig",
+   "name": "Zig",
+   "shortCode": "Zg",
+   "category": "COMPILED",
+   "tagline": "Run Zig 0.13 / 0.14 online — no hidden control flow, no macros, real speed.",
+   "importHint": "all files live together in /workspace (flat, import by bare name)",
+   "multiFileSupported": false,
+   "lineComment": "//",
+   "blockComment": null,
+   "starter": {
+    "code": "const std = @import(\"std\");\npub fn main() !void {\n    const stdin = std.io.getStdIn().reader();\n    const stdout = std.io.getStdOut().writer();\n    var buf: [64]u8 = undefined;\n    const line = try stdin.readUntilDelimiter(&buf, '\\n');\n    const n = try std.fmt.parseInt(i64, std.mem.trim(u8, line, &std.ascii.whitespace), 10);\n    try stdout.print(\"{d}\\n\", .{n * 2});\n}\n",
+    "tests": [
+     {
+      "stdin": "21\n",
+      "expected": "42\n"
+     },
+     {
+      "stdin": "0\n",
+      "expected": "0\n"
+     }
+    ]
+   }
+  },
+  {
+   "base": "zsh",
+   "name": "Zsh",
+   "shortCode": "Zs",
+   "category": "SCRIPTING",
+   "tagline": "Run Zsh 5 scripts online — the interactive shell champion.",
+   "importHint": "all files live together in /workspace (flat, import by bare name)",
+   "multiFileSupported": true,
+   "lineComment": "#",
+   "blockComment": null,
+   "starter": {
+    "code": "read n; echo $((n * 2))\n",
+    "tests": [
+     {
+      "stdin": "21\n",
+      "expected": "42\n"
+     },
+     {
+      "stdin": "0\n",
+      "expected": "0\n"
+     }
+    ]
+   }
+  }
+ ],
+ "examples": [
+  {
+   "id": "double",
+   "title": "Double a number",
+   "difficulty": "EASY",
+   "statement": "Read an integer n from stdin and print n × 2. This matches the default starter for every language — a good first run.",
+   "tests": [
+    {
+     "stdin": "21\n",
+     "expected": "42\n"
+    },
+    {
+     "stdin": "0\n",
+     "expected": "0\n"
+    },
+    {
+     "stdin": "-7\n",
+     "expected": "-14\n"
+    }
+   ]
+  },
+  {
+   "id": "sum-two",
+   "title": "Sum of two integers",
+   "difficulty": "EASY",
+   "statement": "The input is two integers a and b separated by a space on one line. Print their sum.",
+   "tests": [
+    {
+     "stdin": "2 3\n",
+     "expected": "5\n"
+    },
+    {
+     "stdin": "-4 10\n",
+     "expected": "6\n"
+    },
+    {
+     "stdin": "1000000 1\n",
+     "expected": "1000001\n"
+    }
+   ]
+  },
+  {
+   "id": "reverse-string",
+   "title": "Reverse a string",
+   "difficulty": "EASY",
+   "statement": "Read one line of text and print it reversed (the last character first). The line contains no leading or trailing spaces.",
+   "tests": [
+    {
+     "stdin": "hello\n",
+     "expected": "olleh\n"
+    },
+    {
+     "stdin": "racecar\n",
+     "expected": "racecar\n"
+    },
+    {
+     "stdin": "ls-judge\n",
+     "expected": "egduj-sl\n"
+    }
+   ]
+  },
+  {
+   "id": "max-of-list",
+   "title": "Maximum of a list",
+   "difficulty": "EASY",
+   "statement": "The first line has an integer n (the count). The second line has n space-separated integers. Print the largest of them.",
+   "tests": [
+    {
+     "stdin": "5\n3 8 1 9 2\n",
+     "expected": "9\n"
+    },
+    {
+     "stdin": "3\n-5 -1 -9\n",
+     "expected": "-1\n"
+    },
+    {
+     "stdin": "1\n42\n",
+     "expected": "42\n"
+    }
+   ]
+  },
+  {
+   "id": "fizzbuzz",
+   "title": "FizzBuzz",
+   "difficulty": "MEDIUM",
+   "statement": "Read an integer n. For each i from 1 to n, print \"Fizz\" if i is divisible by 3, \"Buzz\" if divisible by 5, \"FizzBuzz\" if divisible by both, otherwise print i. One value per line.",
+   "tests": [
+    {
+     "stdin": "5\n",
+     "expected": "1\n2\nFizz\n4\nBuzz\n"
+    },
+    {
+     "stdin": "15\n",
+     "expected": "1\n2\nFizz\n4\nBuzz\nFizz\n7\n8\nFizz\nBuzz\n11\nFizz\n13\n14\nFizzBuzz\n"
+    }
+   ]
+  },
+  {
+   "id": "factorial",
+   "title": "Factorial",
+   "difficulty": "MEDIUM",
+   "statement": "Read a non-negative integer n (n ≤ 20) and print n! (the product 1 × 2 × … × n). By definition 0! = 1.",
+   "tests": [
+    {
+     "stdin": "5\n",
+     "expected": "120\n"
+    },
+    {
+     "stdin": "0\n",
+     "expected": "1\n"
+    },
+    {
+     "stdin": "10\n",
+     "expected": "3628800\n"
+    }
+   ]
+  },
+  {
+   "id": "fibonacci",
+   "title": "Nth Fibonacci",
+   "difficulty": "MEDIUM",
+   "statement": "Read an integer n (n ≥ 1) and print the nth Fibonacci number, where F(1) = 0, F(2) = 1, and F(i) = F(i-1) + F(i-2).",
+   "tests": [
+    {
+     "stdin": "1\n",
+     "expected": "0\n"
+    },
+    {
+     "stdin": "7\n",
+     "expected": "8\n"
+    },
+    {
+     "stdin": "10\n",
+     "expected": "34\n"
+    }
+   ]
+  },
+  {
+   "id": "count-vowels",
+   "title": "Count vowels",
+   "difficulty": "EASY",
+   "statement": "Read one line of lowercase text and print how many vowels (a, e, i, o, u) it contains.",
+   "tests": [
+    {
+     "stdin": "hello world\n",
+     "expected": "3\n"
+    },
+    {
+     "stdin": "xyz\n",
+     "expected": "0\n"
+    },
+    {
+     "stdin": "aeiou\n",
+     "expected": "5\n"
+    }
+   ]
+  }
+ ],
+ "problems": [
+  {
+   "slug": "two-sum",
+   "title": "Two Sum",
+   "difficulty": "EASY",
+   "tags": [
+    "array",
+    "hashmap"
+   ],
+   "tagline": "Given an array of integers and a target, return the indices of the two numbers that add up to the target.",
+   "statement": [
+    "You are given an array of integers `nums` and an integer `target`. Return the indices of the two numbers such that they add up to `target`.",
+    "You may assume that each input has exactly one solution, and you may not use the same element twice. You can return the answer in any order.",
+    "The naive O(n²) approach is a double loop. The optimal O(n) approach is a single pass with a hash map that stores each value's index as you scan — for every new value `v`, check whether `target - v` is already in the map; if it is, you have your pair."
+   ],
+   "examples": [
+    {
+     "input": "nums = [2, 7, 11, 15]\ntarget = 9",
+     "output": "[0, 1]",
+     "explanation": "nums[0] + nums[1] = 2 + 7 = 9."
+    },
+    {
+     "input": "nums = [3, 2, 4]\ntarget = 6",
+     "output": "[1, 2]",
+     "explanation": null
+    },
+    {
+     "input": "nums = [3, 3]\ntarget = 6",
+     "output": "[0, 1]",
+     "explanation": null
+    }
+   ],
+   "constraints": [
+    "2 ≤ nums.length ≤ 10^4",
+    "-10^9 ≤ nums[i] ≤ 10^9",
+    "-10^9 ≤ target ≤ 10^9",
+    "Exactly one valid answer exists."
+   ],
+   "solutions": {
+    "python": "def two_sum(nums, target):\n    seen = {}\n    for i, v in enumerate(nums):\n        if target - v in seen:\n            return [seen[target - v], i]\n        seen[v] = i\n\nnums = list(map(int, input().split()))\ntarget = int(input())\nprint(*two_sum(nums, target))\n",
+    "java": "import java.util.*;\n\npublic class Solution {\n    public static int[] twoSum(int[] nums, int target) {\n        Map<Integer, Integer> seen = new HashMap<>();\n        for (int i = 0; i < nums.length; i++) {\n            int need = target - nums[i];\n            if (seen.containsKey(need)) return new int[]{seen.get(need), i};\n            seen.put(nums[i], i);\n        }\n        throw new IllegalArgumentException();\n    }\n\n    public static void main(String[] args) {\n        Scanner sc = new Scanner(System.in);\n        String[] parts = sc.nextLine().split(\" \");\n        int[] nums = new int[parts.length];\n        for (int i = 0; i < parts.length; i++) nums[i] = Integer.parseInt(parts[i]);\n        int target = Integer.parseInt(sc.nextLine());\n        int[] r = twoSum(nums, target);\n        System.out.println(r[0] + \" \" + r[1]);\n    }\n}\n",
+    "cpp": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    string line; getline(cin, line);\n    stringstream ss(line);\n    vector<int> nums; int x; while (ss >> x) nums.push_back(x);\n    int target; cin >> target;\n    unordered_map<int,int> seen;\n    for (int i = 0; i < (int)nums.size(); ++i) {\n        int need = target - nums[i];\n        auto it = seen.find(need);\n        if (it != seen.end()) { cout << it->second << \" \" << i << \"\\n\"; return 0; }\n        seen[nums[i]] = i;\n    }\n}\n"
+   },
+   "tests": [
+    {
+     "stdin": "2 7 11 15\n9\n",
+     "expected": "0 1"
+    },
+    {
+     "stdin": "3 2 4\n6\n",
+     "expected": "1 2"
+    },
+    {
+     "stdin": "3 3\n6\n",
+     "expected": "0 1"
+    }
+   ]
+  },
+  {
+   "slug": "reverse-string",
+   "title": "Reverse String",
+   "difficulty": "EASY",
+   "tags": [
+    "string",
+    "two-pointer"
+   ],
+   "tagline": "Reverse the input string. In-place is preferred where the language allows.",
+   "statement": [
+    "Read a single line from standard input and print it reversed.",
+    "The archetype \"hello, world\" of algorithm interviews — every language has a one-liner reversal, and the value of practising it is seeing how each language expresses the same idea. C++ has `reverse(s.begin(), s.end())`. Python has `s[::-1]`. Java has `new StringBuilder(s).reverse().toString()`. In assembly you write a loop."
+   ],
+   "examples": [
+    {
+     "input": "hello",
+     "output": "olleh",
+     "explanation": null
+    },
+    {
+     "input": "racecar",
+     "output": "racecar",
+     "explanation": "A palindrome reads the same reversed."
+    },
+    {
+     "input": "",
+     "output": "",
+     "explanation": "Empty input → empty output."
+    }
+   ],
+   "constraints": [
+    "0 ≤ input length ≤ 10^5",
+    "ASCII input only — multi-byte UTF-8 handling is out of scope for the base problem."
+   ],
+   "solutions": {
+    "python": "print(input()[::-1])\n",
+    "java": "import java.util.Scanner;\n\npublic class Solution {\n    public static void main(String[] args) {\n        Scanner sc = new Scanner(System.in);\n        String s = sc.hasNextLine() ? sc.nextLine() : \"\";\n        System.out.println(new StringBuilder(s).reverse().toString());\n    }\n}\n",
+    "cpp": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    string s; getline(cin, s);\n    reverse(s.begin(), s.end());\n    cout << s << \"\\n\";\n}\n"
+   },
+   "tests": [
+    {
+     "stdin": "hello\n",
+     "expected": "olleh"
+    },
+    {
+     "stdin": "racecar\n",
+     "expected": "racecar"
+    },
+    {
+     "stdin": "\n",
+     "expected": ""
+    }
+   ]
+  },
+  {
+   "slug": "valid-parentheses",
+   "title": "Valid Parentheses",
+   "difficulty": "EASY",
+   "tags": [
+    "stack",
+    "string"
+   ],
+   "tagline": "Given a string containing only (){}[], determine whether every opener has its matching closer, correctly nested.",
+   "statement": [
+    "A valid bracket string satisfies: every opener has a matching closer of the same kind, and openers close in reverse order of appearance ((()) is valid; ([)] is not).",
+    "The canonical solution is a stack: push openers, on a closer pop and compare. If the stack ends non-empty or a pop mismatches, the string is invalid.",
+    "Prints `true` or `false`."
+   ],
+   "examples": [
+    {
+     "input": "()",
+     "output": "true",
+     "explanation": null
+    },
+    {
+     "input": "()[]{}",
+     "output": "true",
+     "explanation": null
+    },
+    {
+     "input": "(]",
+     "output": "false",
+     "explanation": null
+    },
+    {
+     "input": "([)]",
+     "output": "false",
+     "explanation": "Inner ] closes before its ( pair."
+    }
+   ],
+   "constraints": [
+    "0 ≤ input length ≤ 10^4",
+    "Input contains only the characters ()[]{}"
+   ],
+   "solutions": {
+    "python": "pairs = {')': '(', ']': '[', '}': '{'}\ns = input()\nstack = []\nfor c in s:\n    if c in '([{':\n        stack.append(c)\n    else:\n        if not stack or stack.pop() != pairs[c]:\n            print('false'); exit()\nprint('true' if not stack else 'false')\n",
+    "java": "import java.util.*;\n\npublic class Solution {\n    public static void main(String[] args) {\n        String s = new Scanner(System.in).hasNextLine() ? new Scanner(System.in).nextLine() : \"\";\n        Deque<Character> st = new ArrayDeque<>();\n        Map<Character, Character> pairs = Map.of(')','(',']','[','}','{');\n        for (char c : s.toCharArray()) {\n            if (c == '(' || c == '[' || c == '{') st.push(c);\n            else if (st.isEmpty() || st.pop() != pairs.get(c)) { System.out.println(\"false\"); return; }\n        }\n        System.out.println(st.isEmpty() ? \"true\" : \"false\");\n    }\n}\n",
+    "cpp": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    string s; getline(cin, s);\n    stack<char> st;\n    for (char c : s) {\n        if (c == '(' || c == '[' || c == '{') st.push(c);\n        else {\n            if (st.empty()) { cout << \"false\\n\"; return 0; }\n            char t = st.top(); st.pop();\n            if ((c == ')' && t != '(') || (c == ']' && t != '[') || (c == '}' && t != '{')) { cout << \"false\\n\"; return 0; }\n        }\n    }\n    cout << (st.empty() ? \"true\" : \"false\") << \"\\n\";\n}\n"
+   },
+   "tests": [
+    {
+     "stdin": "()\n",
+     "expected": "true"
+    },
+    {
+     "stdin": "()[]{}\n",
+     "expected": "true"
+    },
+    {
+     "stdin": "(]\n",
+     "expected": "false"
+    },
+    {
+     "stdin": "([)]\n",
+     "expected": "false"
+    }
+   ]
+  },
+  {
+   "slug": "fizzbuzz",
+   "title": "FizzBuzz",
+   "difficulty": "EASY",
+   "tags": [
+    "math",
+    "loop"
+   ],
+   "tagline": "Read N, print numbers 1..N — but multiples of 3 become \"Fizz\", multiples of 5 become \"Buzz\", multiples of both become \"FizzBuzz\".",
+   "statement": [
+    "The screening question that separates candidates who can code from those who cannot. Trivial in principle, but the fact that a nontrivial minority of professional programmers fail it made it famous.",
+    "For each integer i from 1 to N: if i is divisible by 15, print \"FizzBuzz\"; else if divisible by 3, print \"Fizz\"; else if divisible by 5, print \"Buzz\"; else print i."
+   ],
+   "examples": [
+    {
+     "input": "5",
+     "output": "1\n2\nFizz\n4\nBuzz",
+     "explanation": null
+    },
+    {
+     "input": "15",
+     "output": "1\n2\nFizz\n4\nBuzz\nFizz\n7\n8\nFizz\nBuzz\n11\nFizz\n13\n14\nFizzBuzz",
+     "explanation": null
+    }
+   ],
+   "constraints": [
+    "1 ≤ N ≤ 10^4"
+   ],
+   "solutions": {
+    "python": "n = int(input())\nfor i in range(1, n + 1):\n    if i % 15 == 0: print('FizzBuzz')\n    elif i % 3 == 0: print('Fizz')\n    elif i % 5 == 0: print('Buzz')\n    else: print(i)\n",
+    "java": "import java.util.Scanner;\n\npublic class Solution {\n    public static void main(String[] args) {\n        int n = new Scanner(System.in).nextInt();\n        StringBuilder sb = new StringBuilder();\n        for (int i = 1; i <= n; i++) {\n            if (i % 15 == 0) sb.append(\"FizzBuzz\");\n            else if (i % 3 == 0) sb.append(\"Fizz\");\n            else if (i % 5 == 0) sb.append(\"Buzz\");\n            else sb.append(i);\n            sb.append('\\n');\n        }\n        System.out.print(sb);\n    }\n}\n",
+    "cpp": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    int n; cin >> n;\n    for (int i = 1; i <= n; ++i) {\n        if (i % 15 == 0) cout << \"FizzBuzz\";\n        else if (i % 3 == 0) cout << \"Fizz\";\n        else if (i % 5 == 0) cout << \"Buzz\";\n        else cout << i;\n        cout << \"\\n\";\n    }\n}\n"
+   },
+   "tests": [
+    {
+     "stdin": "5\n",
+     "expected": "1\n2\nFizz\n4\nBuzz"
+    },
+    {
+     "stdin": "15\n",
+     "expected": "1\n2\nFizz\n4\nBuzz\nFizz\n7\n8\nFizz\nBuzz\n11\nFizz\n13\n14\nFizzBuzz"
+    }
+   ]
+  },
+  {
+   "slug": "palindrome-check",
+   "title": "Palindrome Check",
+   "difficulty": "EASY",
+   "tags": [
+    "string",
+    "two-pointer"
+   ],
+   "tagline": "Read a string, print \"true\" if it is a palindrome (case-insensitive, alphanumerics only), else \"false\".",
+   "statement": [
+    "A palindrome reads the same forwards and backwards. Real-world variants strip whitespace and punctuation and lowercase everything first — \"A man, a plan, a canal: Panama\" is a palindrome by that definition.",
+    "Standard O(n) approach: filter and lowercase the string, then two-pointer compare from ends inward. Alternative: reverse and compare — same complexity, simpler code, slightly more allocation."
+   ],
+   "examples": [
+    {
+     "input": "A man, a plan, a canal: Panama",
+     "output": "true",
+     "explanation": null
+    },
+    {
+     "input": "race a car",
+     "output": "false",
+     "explanation": null
+    },
+    {
+     "input": "",
+     "output": "true",
+     "explanation": "The empty string is trivially a palindrome."
+    }
+   ],
+   "constraints": [
+    "0 ≤ input length ≤ 10^5"
+   ],
+   "solutions": {
+    "python": "s = ''.join(c.lower() for c in input() if c.isalnum())\nprint('true' if s == s[::-1] else 'false')\n",
+    "java": "import java.util.Scanner;\n\npublic class Solution {\n    public static void main(String[] args) {\n        String s = new Scanner(System.in).hasNextLine() ? new Scanner(System.in).nextLine() : \"\";\n        StringBuilder sb = new StringBuilder();\n        for (char c : s.toCharArray()) if (Character.isLetterOrDigit(c)) sb.append(Character.toLowerCase(c));\n        String f = sb.toString();\n        String r = sb.reverse().toString();\n        System.out.println(f.equals(r) ? \"true\" : \"false\");\n    }\n}\n",
+    "cpp": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    string s; getline(cin, s);\n    string f;\n    for (char c : s) if (isalnum((unsigned char)c)) f.push_back(tolower((unsigned char)c));\n    string r = f; reverse(r.begin(), r.end());\n    cout << (f == r ? \"true\" : \"false\") << \"\\n\";\n}\n"
+   },
+   "tests": [
+    {
+     "stdin": "A man, a plan, a canal: Panama\n",
+     "expected": "true"
+    },
+    {
+     "stdin": "race a car\n",
+     "expected": "false"
+    },
+    {
+     "stdin": "\n",
+     "expected": "true"
+    }
+   ]
+  },
+  {
+   "slug": "fibonacci",
+   "title": "Fibonacci",
+   "difficulty": "EASY",
+   "tags": [
+    "math",
+    "dynamic-programming"
+   ],
+   "tagline": "Read N and print the Nth Fibonacci number. F(0) = 0, F(1) = 1, F(N) = F(N-1) + F(N-2).",
+   "statement": [
+    "The Fibonacci sequence: 0, 1, 1, 2, 3, 5, 8, 13, 21, ... — each number is the sum of the previous two.",
+    "Three canonical approaches, in increasing sophistication:",
+    "Recursion (bad — O(2^N)) demonstrates the definition literally.",
+    "Iteration (good — O(N) time, O(1) memory) is the pragmatic solution.",
+    "Matrix exponentiation (O(log N)) is what you use if N is really big."
+   ],
+   "examples": [
+    {
+     "input": "0",
+     "output": "0",
+     "explanation": null
+    },
+    {
+     "input": "10",
+     "output": "55",
+     "explanation": null
+    },
+    {
+     "input": "50",
+     "output": "12586269025",
+     "explanation": null
+    }
+   ],
+   "constraints": [
+    "0 ≤ N ≤ 90 (fits in signed 64-bit)."
+   ],
+   "solutions": {
+    "python": "n = int(input())\na, b = 0, 1\nfor _ in range(n):\n    a, b = b, a + b\nprint(a)\n",
+    "java": "import java.util.Scanner;\n\npublic class Solution {\n    public static void main(String[] args) {\n        int n = new Scanner(System.in).nextInt();\n        long a = 0, b = 1;\n        for (int i = 0; i < n; i++) { long t = a + b; a = b; b = t; }\n        System.out.println(a);\n    }\n}\n",
+    "cpp": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    int n; cin >> n;\n    long long a = 0, b = 1;\n    for (int i = 0; i < n; ++i) { long long t = a + b; a = b; b = t; }\n    cout << a << \"\\n\";\n}\n"
+   },
+   "tests": [
+    {
+     "stdin": "0\n",
+     "expected": "0"
+    },
+    {
+     "stdin": "10\n",
+     "expected": "55"
+    },
+    {
+     "stdin": "50\n",
+     "expected": "12586269025"
+    }
+   ]
+  },
+  {
+   "slug": "binary-search",
+   "title": "Binary Search",
+   "difficulty": "EASY",
+   "tags": [
+    "array",
+    "search"
+   ],
+   "tagline": "Given a sorted array and a target, return the target's index, or -1 if absent. O(log N).",
+   "statement": [
+    "Binary search halves the search space each iteration by comparing the middle element to the target. Simple in principle, notoriously easy to get wrong — off-by-one errors, integer overflow on `(lo + hi) / 2`, infinite loops when the halving misses a case.",
+    "Read the array on line 1 (space-separated), the target on line 2. Output the index (0-based), or -1.",
+    "The classic gotcha: `mid = (lo + hi) / 2` overflows for large arrays. Prefer `lo + (hi - lo) / 2`. Small in Java/C where int is 32-bit; irrelevant in Python (arbitrary precision)."
+   ],
+   "examples": [
+    {
+     "input": "-1 0 3 5 9 12\n9",
+     "output": "4",
+     "explanation": null
+    },
+    {
+     "input": "-1 0 3 5 9 12\n2",
+     "output": "-1",
+     "explanation": null
+    }
+   ],
+   "constraints": [
+    "0 ≤ array length ≤ 10^5",
+    "Array is sorted in ascending order.",
+    "All elements are distinct."
+   ],
+   "solutions": {
+    "python": "nums = list(map(int, input().split()))\ntarget = int(input())\nlo, hi = 0, len(nums) - 1\nans = -1\nwhile lo <= hi:\n    mid = (lo + hi) // 2\n    if nums[mid] == target: ans = mid; break\n    elif nums[mid] < target: lo = mid + 1\n    else: hi = mid - 1\nprint(ans)\n",
+    "java": "import java.util.*;\n\npublic class Solution {\n    public static void main(String[] args) {\n        Scanner sc = new Scanner(System.in);\n        String[] parts = sc.nextLine().split(\" \");\n        int[] nums = new int[parts.length];\n        for (int i = 0; i < parts.length; i++) nums[i] = Integer.parseInt(parts[i]);\n        int target = Integer.parseInt(sc.nextLine().trim());\n        int lo = 0, hi = nums.length - 1, ans = -1;\n        while (lo <= hi) {\n            int mid = lo + (hi - lo) / 2;\n            if (nums[mid] == target) { ans = mid; break; }\n            else if (nums[mid] < target) lo = mid + 1;\n            else hi = mid - 1;\n        }\n        System.out.println(ans);\n    }\n}\n",
+    "cpp": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    string line; getline(cin, line);\n    vector<int> nums; stringstream ss(line); int x; while (ss >> x) nums.push_back(x);\n    int target; cin >> target;\n    int lo = 0, hi = (int)nums.size() - 1, ans = -1;\n    while (lo <= hi) {\n        int mid = lo + (hi - lo) / 2;\n        if (nums[mid] == target) { ans = mid; break; }\n        else if (nums[mid] < target) lo = mid + 1;\n        else hi = mid - 1;\n    }\n    cout << ans << \"\\n\";\n}\n"
+   },
+   "tests": [
+    {
+     "stdin": "-1 0 3 5 9 12\n9\n",
+     "expected": "4"
+    },
+    {
+     "stdin": "-1 0 3 5 9 12\n2\n",
+     "expected": "-1"
+    }
+   ]
+  },
+  {
+   "slug": "merge-sorted-arrays",
+   "title": "Merge Two Sorted Arrays",
+   "difficulty": "EASY",
+   "tags": [
+    "array",
+    "two-pointer"
+   ],
+   "tagline": "Given two sorted arrays, print a single merged sorted output.",
+   "statement": [
+    "Two sorted inputs, one sorted output. The two-pointer walk runs in O(n + m) — advance the pointer whose current element is smaller, emit it, repeat. When one array runs out, drain the other.",
+    "This is the merge step of merge sort and one of the most fundamental array operations. Every sort-adjacent algorithm eventually calls something like it.",
+    "Read array A on line 1, array B on line 2. Print merged on line 3."
+   ],
+   "examples": [
+    {
+     "input": "1 3 5\n2 4 6",
+     "output": "1 2 3 4 5 6",
+     "explanation": null
+    },
+    {
+     "input": "\n1 2 3",
+     "output": "1 2 3",
+     "explanation": "Empty A → output is B."
+    }
+   ],
+   "constraints": [
+    "0 ≤ |A|, |B| ≤ 10^5",
+    "Both arrays are sorted in ascending order."
+   ],
+   "solutions": {
+    "python": "a = list(map(int, input().split()))\nb = list(map(int, input().split()))\ni = j = 0\nout = []\nwhile i < len(a) and j < len(b):\n    if a[i] <= b[j]: out.append(a[i]); i += 1\n    else:            out.append(b[j]); j += 1\nout.extend(a[i:]); out.extend(b[j:])\nprint(*out)\n",
+    "java": "import java.util.*;\n\npublic class Solution {\n    public static void main(String[] args) {\n        Scanner sc = new Scanner(System.in);\n        int[] a = parse(sc.nextLine());\n        int[] b = parse(sc.nextLine());\n        StringBuilder sb = new StringBuilder();\n        int i = 0, j = 0;\n        while (i < a.length && j < b.length) sb.append(a[i] <= b[j] ? a[i++] : b[j++]).append(' ');\n        while (i < a.length) sb.append(a[i++]).append(' ');\n        while (j < b.length) sb.append(b[j++]).append(' ');\n        System.out.println(sb.toString().trim());\n    }\n    static int[] parse(String line) {\n        if (line == null || line.isEmpty()) return new int[0];\n        String[] parts = line.trim().split(\"\\\\s+\");\n        int[] r = new int[parts.length];\n        for (int k = 0; k < parts.length; k++) r[k] = Integer.parseInt(parts[k]);\n        return r;\n    }\n}\n",
+    "cpp": "#include <bits/stdc++.h>\nusing namespace std;\n\nvector<int> parse(const string &line) {\n    vector<int> v; stringstream ss(line); int x; while (ss >> x) v.push_back(x);\n    return v;\n}\n\nint main() {\n    string la, lb; getline(cin, la); getline(cin, lb);\n    auto a = parse(la), b = parse(lb);\n    size_t i = 0, j = 0; string out;\n    while (i < a.size() && j < b.size()) {\n        int v = a[i] <= b[j] ? a[i++] : b[j++];\n        out += to_string(v) + ' ';\n    }\n    while (i < a.size()) out += to_string(a[i++]) + ' ';\n    while (j < b.size()) out += to_string(b[j++]) + ' ';\n    if (!out.empty()) out.pop_back();\n    cout << out << \"\\n\";\n}\n"
+   },
+   "tests": [
+    {
+     "stdin": "1 3 5\n2 4 6\n",
+     "expected": "1 2 3 4 5 6"
+    },
+    {
+     "stdin": "\n1 2 3\n",
+     "expected": "1 2 3"
+    }
+   ]
+  },
+  {
+   "slug": "valid-anagram",
+   "title": "Valid Anagram",
+   "difficulty": "EASY",
+   "tags": [
+    "string",
+    "hashmap",
+    "sorting"
+   ],
+   "tagline": "Given two strings, print \"true\" if one is a permutation of the other.",
+   "statement": [
+    "An anagram is a rearrangement of a string's characters. `listen` ↔ `silent`. `evil` ↔ `vile`. Not: `hello` ↔ `world`.",
+    "Two canonical approaches: (a) sort both strings and compare — O(n log n) time, O(1) extra space; (b) count characters in a hashmap or frequency array and compare — O(n) time, O(k) space where k is the alphabet size. For ASCII, k = 128, so (b) is strictly better.",
+    "Read two lines. Print \"true\" or \"false\"."
+   ],
+   "examples": [
+    {
+     "input": "listen\nsilent",
+     "output": "true",
+     "explanation": null
+    },
+    {
+     "input": "hello\nworld",
+     "output": "false",
+     "explanation": null
+    },
+    {
+     "input": "anagram\nnagaram",
+     "output": "true",
+     "explanation": null
+    }
+   ],
+   "constraints": [
+    "1 ≤ length of both strings ≤ 10^5",
+    "ASCII lowercase only."
+   ],
+   "solutions": {
+    "python": "from collections import Counter\na = input(); b = input()\nprint('true' if Counter(a) == Counter(b) else 'false')\n",
+    "java": "import java.util.Scanner;\n\npublic class Solution {\n    public static void main(String[] args) {\n        Scanner sc = new Scanner(System.in);\n        String a = sc.nextLine(), b = sc.nextLine();\n        if (a.length() != b.length()) { System.out.println(\"false\"); return; }\n        int[] freq = new int[128];\n        for (char c : a.toCharArray()) freq[c]++;\n        for (char c : b.toCharArray()) if (--freq[c] < 0) { System.out.println(\"false\"); return; }\n        System.out.println(\"true\");\n    }\n}\n",
+    "cpp": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    string a, b; getline(cin, a); getline(cin, b);\n    if (a.size() != b.size()) { cout << \"false\\n\"; return 0; }\n    int freq[128] = {0};\n    for (char c : a) freq[(unsigned char)c]++;\n    for (char c : b) if (--freq[(unsigned char)c] < 0) { cout << \"false\\n\"; return 0; }\n    cout << \"true\\n\";\n}\n"
+   },
+   "tests": [
+    {
+     "stdin": "listen\nsilent\n",
+     "expected": "true"
+    },
+    {
+     "stdin": "hello\nworld\n",
+     "expected": "false"
+    },
+    {
+     "stdin": "anagram\nnagaram\n",
+     "expected": "true"
+    }
+   ]
+  },
+  {
+   "slug": "reverse-linked-list",
+   "title": "Reverse a Linked List",
+   "difficulty": "EASY",
+   "tags": [
+    "linked-list",
+    "pointer"
+   ],
+   "tagline": "Reverse a singly linked list. Iterative (O(1) extra space) or recursive (O(n) stack).",
+   "statement": [
+    "You are given the head of a singly-linked list. Reverse it and print the new head-to-tail sequence.",
+    "The iterative solution uses three pointers — prev, curr, next — and walks the list once, rewriting each `curr.next` to point at prev. O(n) time, O(1) space.",
+    "The recursive solution is short but uses O(n) stack; recurse to the end, then unwind rewriting pointers.",
+    "For this challenge, take the list as space-separated integers on line 1 and print the reversed sequence."
+   ],
+   "examples": [
+    {
+     "input": "1 2 3 4 5",
+     "output": "5 4 3 2 1",
+     "explanation": null
+    },
+    {
+     "input": "1 2",
+     "output": "2 1",
+     "explanation": null
+    },
+    {
+     "input": "",
+     "output": "",
+     "explanation": "Empty list stays empty."
+    }
+   ],
+   "constraints": [
+    "0 ≤ list length ≤ 5000",
+    "-1000 ≤ node value ≤ 1000"
+   ],
+   "solutions": {
+    "python": "# Iterative reversal — no actual linked list needed for this I/O shape;\n# the algorithm shape is preserved: walk once, rebuild in reverse.\nvals = input().split()\nprint(*vals[::-1])\n",
+    "java": "import java.util.*;\n\npublic class Solution {\n    public static void main(String[] args) {\n        Scanner sc = new Scanner(System.in);\n        String line = sc.hasNextLine() ? sc.nextLine() : \"\";\n        if (line.isBlank()) { System.out.println(\"\"); return; }\n        String[] p = line.trim().split(\"\\\\s+\");\n        StringBuilder sb = new StringBuilder();\n        for (int i = p.length - 1; i >= 0; i--) { sb.append(p[i]); if (i > 0) sb.append(' '); }\n        System.out.println(sb);\n    }\n}\n",
+    "cpp": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    string line; getline(cin, line);\n    vector<string> v; stringstream ss(line); string x; while (ss >> x) v.push_back(x);\n    for (int i = (int)v.size() - 1; i >= 0; --i) { cout << v[i]; if (i) cout << ' '; }\n    cout << \"\\n\";\n}\n"
+   },
+   "tests": [
+    {
+     "stdin": "1 2 3 4 5\n",
+     "expected": "5 4 3 2 1"
+    },
+    {
+     "stdin": "1 2\n",
+     "expected": "2 1"
+    },
+    {
+     "stdin": "\n",
+     "expected": ""
+    }
+   ]
+  }
+ ]
+}

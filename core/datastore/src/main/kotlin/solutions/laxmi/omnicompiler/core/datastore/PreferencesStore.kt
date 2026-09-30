@@ -1,0 +1,161 @@
+package solutions.laxmi.omnicompiler.core.datastore
+
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.stringPreferencesKey
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
+import solutions.laxmi.omnicompiler.core.model.CodeFont
+import solutions.laxmi.omnicompiler.core.model.EditorSettings
+import solutions.laxmi.omnicompiler.core.model.EditorTheme
+import solutions.laxmi.omnicompiler.core.model.LineSpacing
+import solutions.laxmi.omnicompiler.core.model.Limits
+import solutions.laxmi.omnicompiler.core.model.RunSettings
+import javax.inject.Inject
+import javax.inject.Singleton
+
+/** Non-sensitive user preferences. */
+interface PreferencesStore {
+    val editorSettings: Flow<EditorSettings>
+    val runSettings: Flow<RunSettings>
+    val recentRuntimeIds: Flow<List<String>>
+    val lastProjectId: Flow<String?>
+
+    suspend fun updateEditor(transform: (EditorSettings) -> EditorSettings)
+    suspend fun updateRun(transform: (RunSettings) -> RunSettings)
+    suspend fun markRuntimeUsed(runtimeId: String)
+    suspend fun setLastProjectId(id: String?)
+    suspend fun clearUserScoped()
+}
+
+@Singleton
+internal class DataStorePreferencesStore @Inject constructor(
+    private val dataStore: DataStore<Preferences>,
+) : PreferencesStore {
+
+    override val editorSettings: Flow<EditorSettings> = dataStore.data.map { it.toEditorSettings() }.distinctUntilChanged()
+    override val runSettings: Flow<RunSettings> = dataStore.data.map { it.toRunSettings() }.distinctUntilChanged()
+    override val recentRuntimeIds: Flow<List<String>> = dataStore.data
+        .map { prefs -> prefs[Keys.RECENT_RUNTIMES]?.split(SEPARATOR)?.filter(String::isNotBlank).orEmpty() }
+        .distinctUntilChanged()
+    override val lastProjectId: Flow<String?> = dataStore.data.map { it[Keys.LAST_PROJECT] }.distinctUntilChanged()
+
+    override suspend fun updateEditor(transform: (EditorSettings) -> EditorSettings) {
+        dataStore.edit { prefs -> prefs.write(transform(prefs.toEditorSettings())) }
+    }
+
+    override suspend fun updateRun(transform: (RunSettings) -> RunSettings) {
+        dataStore.edit { prefs -> prefs.write(transform(prefs.toRunSettings())) }
+    }
+
+    override suspend fun markRuntimeUsed(runtimeId: String) {
+        dataStore.edit { prefs ->
+            val current = prefs[Keys.RECENT_RUNTIMES]?.split(SEPARATOR).orEmpty()
+            val updated = (listOf(runtimeId) + current.filter { it != runtimeId && it.isNotBlank() }).take(MAX_RECENTS)
+            prefs[Keys.RECENT_RUNTIMES] = updated.joinToString(SEPARATOR)
+        }
+    }
+
+    override suspend fun setLastProjectId(id: String?) {
+        dataStore.edit { prefs -> if (id == null) prefs.remove(Keys.LAST_PROJECT) else prefs[Keys.LAST_PROJECT] = id }
+    }
+
+    override suspend fun clearUserScoped() {
+        dataStore.edit { prefs ->
+            prefs.remove(Keys.LAST_PROJECT)
+            prefs.remove(Keys.RECENT_RUNTIMES)
+        }
+    }
+
+    private fun Preferences.toEditorSettings(): EditorSettings {
+        val d = EditorSettings()
+        return EditorSettings(
+            theme = enumOr(this[Keys.THEME], d.theme),
+            font = enumOr(this[Keys.FONT], d.font),
+            fontSizeSp = (this[Keys.FONT_SIZE] ?: d.fontSizeSp).coerceIn(EditorSettings.MIN_FONT_SP, EditorSettings.MAX_FONT_SP),
+            ligatures = this[Keys.LIGATURES] ?: d.ligatures,
+            indentGuides = this[Keys.INDENT_GUIDES] ?: d.indentGuides,
+            lineSpacing = enumOr(this[Keys.LINE_SPACING], d.lineSpacing),
+            minimap = this[Keys.MINIMAP] ?: d.minimap,
+            symbolRow = this[Keys.SYMBOL_ROW] ?: d.symbolRow,
+            autocomplete = this[Keys.AUTOCOMPLETE] ?: d.autocomplete,
+            wordWrap = this[Keys.WORD_WRAP] ?: d.wordWrap,
+            tabSize = this[Keys.TAB_SIZE] ?: d.tabSize,
+        )
+    }
+
+    private fun androidx.datastore.preferences.core.MutablePreferences.write(s: EditorSettings) {
+        this[Keys.THEME] = s.theme.name
+        this[Keys.FONT] = s.font.name
+        this[Keys.FONT_SIZE] = s.fontSizeSp
+        this[Keys.LIGATURES] = s.ligatures
+        this[Keys.INDENT_GUIDES] = s.indentGuides
+        this[Keys.LINE_SPACING] = s.lineSpacing.name
+        this[Keys.MINIMAP] = s.minimap
+        this[Keys.SYMBOL_ROW] = s.symbolRow
+        this[Keys.AUTOCOMPLETE] = s.autocomplete
+        this[Keys.WORD_WRAP] = s.wordWrap
+        this[Keys.TAB_SIZE] = s.tabSize
+    }
+
+    private fun Preferences.toRunSettings(): RunSettings {
+        val d = RunSettings()
+        return RunSettings(
+            defaultRuntimeId = this[Keys.DEFAULT_RUNTIME],
+            defaultLimits = Limits(
+                timeMs = this[Keys.DEFAULT_TIME_MS] ?: d.defaultLimits.timeMs,
+                memMb = this[Keys.DEFAULT_MEM_MB] ?: d.defaultLimits.memMb,
+            ),
+            runOnCtrlEnter = this[Keys.CTRL_ENTER] ?: d.runOnCtrlEnter,
+            bypassCache = this[Keys.BYPASS_CACHE] ?: d.bypassCache,
+            sendQueuedWhenOnline = this[Keys.SEND_WHEN_ONLINE] ?: d.sendQueuedWhenOnline,
+            benchmarkCopies = this[Keys.BENCHMARK_COPIES] ?: d.benchmarkCopies,
+        )
+    }
+
+    private fun androidx.datastore.preferences.core.MutablePreferences.write(s: RunSettings) {
+        val runtimeId = s.defaultRuntimeId
+        if (runtimeId == null) remove(Keys.DEFAULT_RUNTIME) else this[Keys.DEFAULT_RUNTIME] = runtimeId
+        this[Keys.DEFAULT_TIME_MS] = s.defaultLimits.timeMs
+        this[Keys.DEFAULT_MEM_MB] = s.defaultLimits.memMb
+        this[Keys.CTRL_ENTER] = s.runOnCtrlEnter
+        this[Keys.BYPASS_CACHE] = s.bypassCache
+        this[Keys.SEND_WHEN_ONLINE] = s.sendQueuedWhenOnline
+        this[Keys.BENCHMARK_COPIES] = s.benchmarkCopies
+    }
+
+    private inline fun <reified E : Enum<E>> enumOr(value: String?, fallback: E): E =
+        value?.let { v -> enumValues<E>().firstOrNull { it.name == v } } ?: fallback
+
+    private object Keys {
+        val THEME = stringPreferencesKey("editor_theme")
+        val FONT = stringPreferencesKey("editor_font")
+        val FONT_SIZE = intPreferencesKey("editor_font_size")
+        val LIGATURES = booleanPreferencesKey("editor_ligatures")
+        val INDENT_GUIDES = booleanPreferencesKey("editor_indent_guides")
+        val LINE_SPACING = stringPreferencesKey("editor_line_spacing")
+        val MINIMAP = booleanPreferencesKey("editor_minimap")
+        val SYMBOL_ROW = booleanPreferencesKey("editor_symbol_row")
+        val AUTOCOMPLETE = booleanPreferencesKey("editor_autocomplete")
+        val WORD_WRAP = booleanPreferencesKey("editor_word_wrap")
+        val TAB_SIZE = intPreferencesKey("editor_tab_size")
+        val DEFAULT_RUNTIME = stringPreferencesKey("run_default_runtime")
+        val DEFAULT_TIME_MS = intPreferencesKey("run_default_time_ms")
+        val DEFAULT_MEM_MB = intPreferencesKey("run_default_mem_mb")
+        val CTRL_ENTER = booleanPreferencesKey("run_ctrl_enter")
+        val BYPASS_CACHE = booleanPreferencesKey("run_bypass_cache")
+        val SEND_WHEN_ONLINE = booleanPreferencesKey("run_send_when_online")
+        val BENCHMARK_COPIES = intPreferencesKey("run_benchmark_copies")
+        val RECENT_RUNTIMES = stringPreferencesKey("recent_runtimes")
+        val LAST_PROJECT = stringPreferencesKey("last_project")
+    }
+
+    private companion object {
+        const val SEPARATOR = ","
+        const val MAX_RECENTS = 8
+    }
+}

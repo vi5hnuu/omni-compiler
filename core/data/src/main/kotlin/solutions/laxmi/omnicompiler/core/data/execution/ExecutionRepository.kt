@@ -1,0 +1,403 @@
+package solutions.laxmi.omnicompiler.core.data.execution
+
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.lastOrNull
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
+import kotlinx.serialization.json.Json
+import solutions.laxmi.omnicompiler.core.common.ApplicationScope
+import solutions.laxmi.omnicompiler.core.common.IdGenerator
+import solutions.laxmi.omnicompiler.core.common.TimeSource
+import solutions.laxmi.omnicompiler.core.data.connectivity.ConnectivityObserver
+import solutions.laxmi.omnicompiler.core.data.project.ProjectRepository
+import solutions.laxmi.omnicompiler.core.data.runtime.RuntimeRepository
+import solutions.laxmi.omnicompiler.core.database.dao.PendingRunDao
+import solutions.laxmi.omnicompiler.core.database.dao.RunDao
+import solutions.laxmi.omnicompiler.core.database.entity.PendingRunEntity
+import solutions.laxmi.omnicompiler.core.datastore.PreferencesStore
+import solutions.laxmi.omnicompiler.core.model.AppError
+import solutions.laxmi.omnicompiler.core.model.BenchmarkResult
+import solutions.laxmi.omnicompiler.core.model.BenchmarkRun
+import solutions.laxmi.omnicompiler.core.model.CompileDiagnostic
+import solutions.laxmi.omnicompiler.core.model.ExecutionRequest
+import solutions.laxmi.omnicompiler.core.model.Job as JudgeJob
+import solutions.laxmi.omnicompiler.core.model.JobEvent
+import solutions.laxmi.omnicompiler.core.model.JobStatus
+import solutions.laxmi.omnicompiler.core.model.NamedSource
+import solutions.laxmi.omnicompiler.core.model.Outcome
+import solutions.laxmi.omnicompiler.core.model.PendingRun
+import solutions.laxmi.omnicompiler.core.model.RateLimitSnapshot
+import solutions.laxmi.omnicompiler.core.model.ReplayProof
+import solutions.laxmi.omnicompiler.core.model.RunMode
+import solutions.laxmi.omnicompiler.core.model.RunPhase
+import solutions.laxmi.omnicompiler.core.model.RunRecord
+import solutions.laxmi.omnicompiler.core.model.TestCaseDraft
+import solutions.laxmi.omnicompiler.core.model.TestResult
+import solutions.laxmi.omnicompiler.core.model.Verdict
+import solutions.laxmi.omnicompiler.core.model.getOrNull
+import solutions.laxmi.omnicompiler.core.network.RateLimitTracker
+import solutions.laxmi.omnicompiler.core.network.source.JudgeNetworkDataSource
+import java.io.IOException
+import java.util.concurrent.ConcurrentHashMap
+import javax.inject.Inject
+import javax.inject.Singleton
+import kotlin.time.Instant
+
+/** What to run. [testIds] limits a TESTS run to some cases ("Run only this"); [stdin] feeds a STDIN_ONLY run. */
+data class RunOptions(
+    val mode: RunMode = RunMode.TESTS,
+    val testIds: Set<String>? = null,
+    val stdin: String? = null,
+)
+
+/**
+ * Runs projects on ls-judge and keeps a per-project console. Live runs are tracked in the
+ * application scope, so leaving the editor never loses a result; finished runs are persisted.
+ */
+interface ExecutionRepository {
+    fun observeConsole(projectId: String): Flow<List<RunRecord>>
+    val pendingRuns: Flow<List<PendingRun>>
+    val rateLimit: StateFlow<RateLimitSnapshot?>
+
+    /** Validates and submits; returns once the judge accepted the job (or it was queued offline). */
+    suspend fun run(projectId: String, options: RunOptions): Outcome<Unit>
+
+    /** Cancels a queued job, or stops listening to one a worker already picked up. */
+    suspend fun stop(projectId: String)
+
+    suspend fun clearConsole(projectId: String)
+
+    /** Sends offline-queued runs; returns false when connectivity is still missing (retry later). */
+    suspend fun sendPendingRuns(force: Boolean = false): Boolean
+    suspend fun cancelPending(runId: String)
+
+    suspend fun benchmark(projectId: String, copies: Int): Outcome<BenchmarkResult>
+    suspend fun replay(jobId: String): Outcome<ReplayProof>
+    suspend fun job(jobId: String): Outcome<JudgeJob>
+}
+
+@Singleton
+internal class DefaultExecutionRepository @Inject constructor(
+    private val network: JudgeNetworkDataSource,
+    private val projects: ProjectRepository,
+    private val runtimes: RuntimeRepository,
+    private val runDao: RunDao,
+    private val pendingDao: PendingRunDao,
+    private val preferences: PreferencesStore,
+    private val connectivity: ConnectivityObserver,
+    private val scheduler: RunQueueScheduler,
+    private val rateLimitTracker: RateLimitTracker,
+    private val ids: IdGenerator,
+    private val time: TimeSource,
+    @ApplicationScope private val scope: CoroutineScope,
+) : ExecutionRepository {
+
+    private val json = Json { ignoreUnknownKeys = true }
+    private val live = MutableStateFlow<Map<String, RunRecord>>(emptyMap())
+    private val trackers = ConcurrentHashMap<String, Job>()
+
+    override val rateLimit: StateFlow<RateLimitSnapshot?> = rateLimitTracker.snapshot
+
+    override val pendingRuns: Flow<List<PendingRun>> = pendingDao.observeAll().map { rows ->
+        rows.mapNotNull { row ->
+            val payload = decode(row.payload) ?: return@mapNotNull null
+            PendingRun(row.id, row.projectId, payload.toRequest(), RunMode.valueOf(payload.mode), Instant.fromEpochMilliseconds(row.createdAt))
+        }
+    }
+
+    override fun observeConsole(projectId: String): Flow<List<RunRecord>> {
+        val persisted = runDao.observeRecent(projectId, CONSOLE_SIZE).flatMapLatest { runs ->
+            if (runs.isEmpty()) flowOf(emptyList())
+            else runDao.observeResults(runs.map { it.id }).map { results ->
+                val byRun = results.groupBy { it.runId }
+                runs.map { it.toModel(byRun[it.id].orEmpty(), entryFileName = null) }
+            }
+        }
+        return combine(live.map { it[projectId] }, persisted) { current, saved ->
+            if (current == null) saved else listOf(current) + saved.filter { it.id != current.id }
+        }
+    }
+
+    override suspend fun run(projectId: String, options: RunOptions): Outcome<Unit> {
+        if (live.value[projectId]?.phase?.isActive == true) return Outcome.Failure(AppError.Conflict("A run is already in progress."))
+        val prepared = when (val result = prepare(projectId, options)) {
+            is Outcome.Failure -> return result
+            is Outcome.Success -> result.value
+        }
+        publish(prepared.record)
+        if (!connectivity.isOnline.value) {
+            enqueueOffline(prepared)
+            return Outcome.Success(Unit)
+        }
+        // Submission runs in the app scope so a closing screen can't orphan an accepted job.
+        return scope.async { submitAndTrack(prepared) }.await()
+    }
+
+    override suspend fun stop(projectId: String) {
+        val record = live.value[projectId] ?: return
+        when (record.phase) {
+            RunPhase.QUEUED_OFFLINE -> cancelPending(record.id)
+            RunPhase.SUBMITTING -> finish(record.copy(phase = RunPhase.CANCELLED), diagnostic = null, cancelTracker = true)
+            RunPhase.PENDING -> {
+                val jobId = record.jobId ?: return
+                when (val result = network.cancel(jobId)) {
+                    is Outcome.Success -> finish(record.copy(phase = RunPhase.CANCELLED), diagnostic = null, cancelTracker = true)
+                    // 409: a worker already took it; it can't be cancelled, only detached.
+                    is Outcome.Failure -> if (result.error is AppError.Conflict) detach(record)
+                }
+            }
+            RunPhase.RUNNING -> detach(record)
+            else -> Unit
+        }
+    }
+
+    override suspend fun clearConsole(projectId: String) {
+        if (live.value[projectId]?.phase?.isActive != true) live.update { it - projectId }
+        runDao.clear(projectId)
+    }
+
+    override suspend fun sendPendingRuns(force: Boolean): Boolean {
+        if (!force && !preferences.runSettings.first().sendQueuedWhenOnline) return true
+        for (row in pendingDao.all()) {
+            val payload = decode(row.payload)
+            if (payload == null) {
+                pendingDao.delete(row.id)
+                continue
+            }
+            val record = live.value[row.projectId]?.takeIf { it.id == row.id }
+                ?: newRecord(row.id, row.projectId, payload.runtimeId, RunMode.valueOf(payload.mode), payload.tests.map { it.name }, Instant.fromEpochMilliseconds(row.createdAt))
+            val prepared = Prepared(record.copy(phase = RunPhase.SUBMITTING), payload.toRequest(), payload.entryFileName)
+            publish(prepared.record)
+            val result = submitAndTrack(prepared, fromQueue = true)
+            if (result is Outcome.Failure && result.error.isConnectivity()) return false
+            pendingDao.delete(row.id)
+        }
+        return true
+    }
+
+    override suspend fun cancelPending(runId: String) {
+        pendingDao.delete(runId)
+        live.update { map -> map.filterValues { it.id != runId } }
+    }
+
+    override suspend fun benchmark(projectId: String, copies: Int): Outcome<BenchmarkResult> {
+        val prepared = when (val result = prepare(projectId, RunOptions())) {
+            is Outcome.Failure -> return result
+            is Outcome.Success -> result.value
+        }
+        val count = copies.coerceIn(1, MAX_BATCH)
+        val requests = List(count) { prepared.request.copy(idempotencyKey = ids.newId()) }
+        val batch = when (val result = network.submitBatch(requests)) {
+            is Outcome.Failure -> return result
+            is Outcome.Success -> result.value
+        }
+        // One socket per job keeps us far below the job-poll rate limit; poll only as a fallback.
+        val runs = coroutineScope {
+            batch.accepted.map { accepted ->
+                async {
+                    val job = awaitCompletion(accepted.jobId)
+                    BenchmarkRun(accepted.jobId, job?.verdict, job?.totalTimeMs)
+                }
+            }.awaitAll()
+        }
+        return Outcome.Success(BenchmarkResult(runs, batch.rejected))
+    }
+
+    override suspend fun replay(jobId: String) = network.replay(jobId)
+
+    override suspend fun job(jobId: String) = network.job(jobId)
+
+    // ── Pipeline ────────────────────────────────────────────────────────────────────────────────
+
+    private data class Prepared(val record: RunRecord, val request: ExecutionRequest, val entryFileName: String?)
+
+    private suspend fun prepare(projectId: String, options: RunOptions): Outcome<Prepared> {
+        val workspace = projects.observeWorkspace(projectId).first()
+            ?: return Outcome.Failure(AppError.NotFound("Project not found."))
+        val entry = workspace.entry ?: return Outcome.Failure(AppError.Validation("This project has no entry file."))
+        if (entry.content.isBlank()) return Outcome.Failure(AppError.Validation("Write some code first."))
+        val extras = workspace.files.filter { !it.isEntry }
+        (listOf(entry) + extras).firstOrNull { it.content.encodeToByteArray().size > MAX_SOURCE_BYTES }?.let {
+            return Outcome.Failure(AppError.Validation("${it.name} is larger than 64 KB."))
+        }
+        val selected = when (options.mode) {
+            RunMode.STDIN_ONLY -> listOf(TestCaseDraft(options.stdin.orEmpty(), expected = "", name = "Custom input"))
+            RunMode.TESTS -> workspace.tests
+                .filter { options.testIds == null || it.id in options.testIds }
+                .map { t -> TestCaseDraft(t.stdin, t.expected, t.name.ifBlank { "Test ${t.position + 1}" }) }
+        }
+        if (selected.isEmpty()) return Outcome.Failure(AppError.Validation("Add a test case, or run with custom input."))
+        if (selected.size > MAX_TESTS) return Outcome.Failure(AppError.Validation("A run can have at most $MAX_TESTS test cases."))
+        val runId = ids.newId()
+        val request = ExecutionRequest(
+            runtimeId = workspace.project.runtimeId,
+            code = entry.content,
+            files = extras.map { NamedSource(it.name, it.content) },
+            tests = selected,
+            limits = workspace.project.limits.clamped(),
+            bypassCache = preferences.runSettings.first().bypassCache,
+            idempotencyKey = runId,
+        )
+        val record = newRecord(runId, projectId, request.runtimeId, options.mode, selected.map { it.name }, time.now())
+        return Outcome.Success(Prepared(record, request, entry.name))
+    }
+
+    private fun newRecord(id: String, projectId: String, runtimeId: String, mode: RunMode, testNames: List<String>, startedAt: Instant) = RunRecord(
+        id = id,
+        projectId = projectId,
+        jobId = null,
+        runtimeId = runtimeId,
+        mode = mode,
+        phase = RunPhase.SUBMITTING,
+        verdict = null,
+        totalTimeMs = null,
+        testCount = testNames.size,
+        testNames = testNames,
+        results = emptyList(),
+        compileOutput = null,
+        problems = emptyList(),
+        errorMessage = null,
+        fromCache = false,
+        startedAt = startedAt,
+    )
+
+    private suspend fun submitAndTrack(prepared: Prepared, fromQueue: Boolean = false): Outcome<Unit> {
+        val submitted = when (val result = network.submit(prepared.request)) {
+            is Outcome.Success -> result.value
+            is Outcome.Failure -> {
+                if (result.error.isConnectivity() && !fromQueue) {
+                    enqueueOffline(prepared)
+                    return Outcome.Success(Unit)
+                }
+                if (!(result.error.isConnectivity() && fromQueue)) {
+                    finish(prepared.record.copy(phase = RunPhase.FAILED, errorMessage = result.error.message), diagnostic = null)
+                }
+                return result
+            }
+        }
+        runtimes.markUsed(prepared.request.runtimeId)
+        val accepted = prepared.record.copy(phase = RunPhase.PENDING, jobId = submitted.jobId, fromCache = submitted.servedFromCache)
+        publish(accepted)
+        trackers[accepted.projectId] = scope.launch { track(accepted, prepared.entryFileName) }
+        return Outcome.Success(Unit)
+    }
+
+    private suspend fun track(start: RunRecord, entryFileName: String?) {
+        val jobId = requireNotNull(start.jobId)
+        var current = start
+        var diagnostic: CompileDiagnostic? = null
+        try {
+            network.stream(jobId).collect { event ->
+                when (event) {
+                    is JobEvent.TestFinished -> current = current.withResult(event.result)
+                    is JobEvent.Completed -> {
+                        diagnostic = event.diagnostic
+                        current = current.copy(
+                            verdict = event.verdict ?: current.verdict,
+                            totalTimeMs = event.totalTimeMs ?: current.totalTimeMs,
+                            compileOutput = if (event.verdict == Verdict.CE) event.stderr ?: current.compileOutput else current.compileOutput,
+                        )
+                    }
+                    is JobEvent.Status -> Unit
+                }
+                publish(current)
+            }
+        } catch (e: IOException) {
+            // Socket unavailable or dropped: the job keeps running server-side, so poll instead.
+        }
+        val job = pollUntilDone(jobId) { partial -> current = current.mergeJob(partial); publish(current) }
+        current = if (job != null) current.mergeJob(job).copy(phase = if (job.status == JobStatus.FAILED && job.verdict == null) RunPhase.FAILED else RunPhase.DONE)
+        else current.copy(phase = RunPhase.FAILED, errorMessage = "Lost track of the job. It will appear in run history.")
+        val withProblems = current.copy(problems = CompilerOutputParser.parse(current.compileOutput, diagnostic, entryFileName))
+        finish(withProblems, diagnostic)
+        if (withProblems.mode == RunMode.TESTS) projects.recordVerdict(withProblems.projectId, withProblems.verdict)
+    }
+
+    /** Fetches the job until it is terminal; results from GET carry stdin/expected that frames lack. */
+    private suspend fun pollUntilDone(jobId: String, onProgress: (JudgeJob) -> Unit): JudgeJob? {
+        repeat(MAX_POLLS) { attempt ->
+            val job = network.job(jobId).getOrNull()
+            if (job != null) {
+                if (job.status.isTerminal) return job
+                onProgress(job)
+            }
+            delay(if (attempt < FAST_POLLS) POLL_INTERVAL_MS else SLOW_POLL_INTERVAL_MS)
+        }
+        return null
+    }
+
+    private suspend fun awaitCompletion(jobId: String): JudgeJob? {
+        try {
+            network.stream(jobId).lastOrNull()
+        } catch (e: IOException) {
+            // fall through to polling
+        }
+        return pollUntilDone(jobId) { }
+    }
+
+    private suspend fun detach(record: RunRecord) = finish(record.copy(phase = RunPhase.DETACHED), diagnostic = null, cancelTracker = true)
+
+    private suspend fun finish(record: RunRecord, diagnostic: CompileDiagnostic?, cancelTracker: Boolean = false) {
+        if (cancelTracker) trackers.remove(record.projectId)?.cancel()
+        runDao.save(record.toEntity(diagnostic), record.results.map { it.toEntity(record.id) }, CONSOLE_SIZE)
+        live.update { map -> if (map[record.projectId]?.id == record.id) map - record.projectId else map }
+    }
+
+    private suspend fun enqueueOffline(prepared: Prepared) {
+        val payload = PendingRunPayload.from(prepared.record.id, prepared.record.mode, prepared.request, prepared.entryFileName)
+        pendingDao.insert(
+            PendingRunEntity(prepared.record.id, prepared.record.projectId, json.encodeToString(PendingRunPayload.serializer(), payload), time.now().toEpochMilliseconds()),
+        )
+        publish(prepared.record.copy(phase = RunPhase.QUEUED_OFFLINE))
+        scheduler.schedule()
+    }
+
+    private fun publish(record: RunRecord) {
+        live.update { it + (record.projectId to record) }
+    }
+
+    private fun decode(payload: String): PendingRunPayload? =
+        runCatching { json.decodeFromString(PendingRunPayload.serializer(), payload) }.getOrNull()
+
+    private fun RunRecord.withResult(result: TestResult) = copy(
+        phase = RunPhase.RUNNING,
+        results = (results.filter { it.index != result.index } + result).sortedBy { it.index },
+    )
+
+    private fun RunRecord.mergeJob(job: JudgeJob): RunRecord {
+        val ce = job.results.firstOrNull { it.verdict == Verdict.CE }
+        return copy(
+            phase = if (job.status == JobStatus.RUNNING) RunPhase.RUNNING else phase,
+            verdict = job.verdict ?: verdict,
+            totalTimeMs = job.totalTimeMs ?: totalTimeMs,
+            results = if (job.results.isEmpty()) results else job.results,
+            compileOutput = ce?.stderr ?: compileOutput,
+        )
+    }
+
+    private fun AppError.isConnectivity() = this is AppError.Offline || this is AppError.Timeout
+
+    private companion object {
+        const val CONSOLE_SIZE = 20
+        const val MAX_BATCH = 20
+        const val MAX_TESTS = 100
+        const val MAX_SOURCE_BYTES = 64 * 1024
+        const val MAX_POLLS = 600
+        const val FAST_POLLS = 40
+        const val POLL_INTERVAL_MS = 800L
+        const val SLOW_POLL_INTERVAL_MS = 2_000L
+    }
+}

@@ -1,0 +1,35 @@
+package solutions.laxmi.omnicompiler.core.navigation
+
+import androidx.navigation3.runtime.NavKey
+import kotlinx.serialization.Serializable
+
+/**
+ * Every destination in the app. Features depend on these keys, never on each other; the app module
+ * maps keys to feature screens. Keys are serializable so the back stack survives process death.
+ */
+@Serializable sealed interface Route : NavKey
+
+// Auth
+@Serializable data object WelcomeRoute : Route
+@Serializable data object SignInRoute : Route
+@Serializable data class SignUpRoute(val convertGuest: Boolean = false) : Route
+@Serializable data class CheckInboxRoute(val email: String) : Route
+@Serializable data class ForgotPasswordRoute(val email: String = "") : Route
+
+// Workspace
+@Serializable data class EditorRoute(val projectId: String? = null) : Route
+@Serializable data class LanguagePickerRoute(val projectId: String) : Route
+@Serializable data object ProjectsRoute : Route
+@Serializable data object ExamplesRoute : Route
+@Serializable data class ProblemRoute(val slug: String) : Route
+
+// History
+@Serializable data object HistoryRoute : Route
+@Serializable data class JobDetailRoute(val jobId: String) : Route
+
+// Account + developer + settings
+@Serializable data object UsageRoute : Route
+@Serializable data object ProfileRoute : Route
+@Serializable data object DeveloperRoute : Route
+@Serializable data object SettingsRoute : Route
+@Serializable data object AppearanceRoute : Route

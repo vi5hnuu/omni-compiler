@@ -1,0 +1,24 @@
+# Build output (every module, including build-logic)
+build/
+.gradle/
+.kotlin/
+.externalNativeBuild
+.cxx
+/captures
+
+# IDE and tooling state
+.idea/
+*.iml
+.DS_Store
+.claude/
+
+# Machine-specific config and secrets — never commit
+local.properties
+*.jks
+*.keystore
+*.p12
+*.pem
+keystore.properties
+google-services.json
+.env
+.env.*

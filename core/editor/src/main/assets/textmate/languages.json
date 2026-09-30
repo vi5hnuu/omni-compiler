@@ -1,0 +1,280 @@
+{
+ "languages": [
+  {
+   "grammar": "textmate/grammars/awk.json",
+   "name": "awk",
+   "scopeName": "source.awk",
+   "languageConfiguration": "textmate/config/hash.json"
+  },
+  {
+   "grammar": "textmate/grammars/shellscript.json",
+   "name": "shellscript",
+   "scopeName": "source.shell",
+   "languageConfiguration": "textmate/config/hash-sq.json"
+  },
+  {
+   "grammar": "textmate/grammars/fish.json",
+   "name": "fish",
+   "scopeName": "source.fish",
+   "languageConfiguration": "textmate/config/hash-sq.json"
+  },
+  {
+   "grammar": "textmate/grammars/c.json",
+   "name": "c",
+   "scopeName": "source.c",
+   "languageConfiguration": "textmate/config/slash.json"
+  },
+  {
+   "grammar": "textmate/grammars/clojure.json",
+   "name": "clojure",
+   "scopeName": "source.clojure",
+   "languageConfiguration": "textmate/config/semicolon.json"
+  },
+  {
+   "grammar": "textmate/grammars/cobol.json",
+   "name": "cobol",
+   "scopeName": "source.cobol",
+   "languageConfiguration": "textmate/config/none.json"
+  },
+  {
+   "grammar": "textmate/grammars/coffee.json",
+   "name": "coffee",
+   "scopeName": "source.coffee",
+   "languageConfiguration": "textmate/config/hash-sq.json"
+  },
+  {
+   "grammar": "textmate/grammars/cpp.json",
+   "name": "cpp",
+   "scopeName": "source.cpp",
+   "languageConfiguration": "textmate/config/slash.json"
+  },
+  {
+   "grammar": "textmate/grammars/crystal.json",
+   "name": "crystal",
+   "scopeName": "source.crystal",
+   "languageConfiguration": "textmate/config/hash.json"
+  },
+  {
+   "grammar": "textmate/grammars/csharp.json",
+   "name": "csharp",
+   "scopeName": "source.cs",
+   "languageConfiguration": "textmate/config/slash.json"
+  },
+  {
+   "grammar": "textmate/grammars/d.json",
+   "name": "d",
+   "scopeName": "source.d",
+   "languageConfiguration": "textmate/config/slash.json"
+  },
+  {
+   "grammar": "textmate/grammars/dart.json",
+   "name": "dart",
+   "scopeName": "source.dart",
+   "languageConfiguration": "textmate/config/slash-sq.json"
+  },
+  {
+   "grammar": "textmate/grammars/erlang.json",
+   "name": "erlang",
+   "scopeName": "source.erlang",
+   "languageConfiguration": "textmate/config/percent.json"
+  },
+  {
+   "grammar": "textmate/grammars/fortran-free-form.json",
+   "name": "fortran-free-form",
+   "scopeName": "source.fortran.free",
+   "languageConfiguration": "textmate/config/bang.json"
+  },
+  {
+   "grammar": "textmate/grammars/fsharp.json",
+   "name": "fsharp",
+   "scopeName": "source.fsharp",
+   "languageConfiguration": "textmate/config/slash.json"
+  },
+  {
+   "grammar": "textmate/grammars/go.json",
+   "name": "go",
+   "scopeName": "source.go",
+   "languageConfiguration": "textmate/config/slash.json"
+  },
+  {
+   "grammar": "textmate/grammars/groovy.json",
+   "name": "groovy",
+   "scopeName": "source.groovy",
+   "languageConfiguration": "textmate/config/slash-sq.json"
+  },
+  {
+   "grammar": "textmate/grammars/scheme.json",
+   "name": "scheme",
+   "scopeName": "source.scheme",
+   "languageConfiguration": "textmate/config/semicolon.json"
+  },
+  {
+   "grammar": "textmate/grammars/haskell.json",
+   "name": "haskell",
+   "scopeName": "source.haskell",
+   "languageConfiguration": "textmate/config/dash.json"
+  },
+  {
+   "grammar": "textmate/grammars/java.json",
+   "name": "java",
+   "scopeName": "source.java",
+   "languageConfiguration": "textmate/config/slash.json"
+  },
+  {
+   "grammar": "textmate/grammars/javascript.json",
+   "name": "javascript",
+   "scopeName": "source.js",
+   "languageConfiguration": "textmate/config/slash-sq.json"
+  },
+  {
+   "grammar": "textmate/grammars/julia.json",
+   "name": "julia",
+   "scopeName": "source.julia",
+   "languageConfiguration": "textmate/config/hash.json"
+  },
+  {
+   "grammar": "textmate/grammars/kotlin.json",
+   "name": "kotlin",
+   "scopeName": "source.kotlin",
+   "languageConfiguration": "textmate/config/slash.json"
+  },
+  {
+   "grammar": "textmate/grammars/common-lisp.json",
+   "name": "common-lisp",
+   "scopeName": "source.commonlisp",
+   "languageConfiguration": "textmate/config/semicolon.json"
+  },
+  {
+   "grammar": "textmate/grammars/lua.json",
+   "name": "lua",
+   "scopeName": "source.lua",
+   "languageConfiguration": "textmate/config/dash-sq.json"
+  },
+  {
+   "grammar": "textmate/grammars/asm.json",
+   "name": "asm",
+   "scopeName": "source.asm.x86_64",
+   "languageConfiguration": "textmate/config/semicolon.json"
+  },
+  {
+   "grammar": "textmate/grammars/ocaml.json",
+   "name": "ocaml",
+   "scopeName": "source.ocaml",
+   "languageConfiguration": "textmate/config/ml.json"
+  },
+  {
+   "grammar": "textmate/grammars/pascal.json",
+   "name": "pascal",
+   "scopeName": "source.pascal",
+   "languageConfiguration": "textmate/config/slash-sq.json"
+  },
+  {
+   "grammar": "textmate/grammars/perl.json",
+   "name": "perl",
+   "scopeName": "source.perl",
+   "languageConfiguration": "textmate/config/hash-sq.json"
+  },
+  {
+   "grammar": "textmate/grammars/php.json",
+   "name": "php",
+   "scopeName": "source.php",
+   "languageConfiguration": "textmate/config/slash-sq.json"
+  },
+  {
+   "grammar": "textmate/grammars/powershell.json",
+   "name": "powershell",
+   "scopeName": "source.powershell",
+   "languageConfiguration": "textmate/config/hash-sq.json"
+  },
+  {
+   "grammar": "textmate/grammars/prolog.json",
+   "name": "prolog",
+   "scopeName": "source.prolog",
+   "languageConfiguration": "textmate/config/percent-sq.json"
+  },
+  {
+   "grammar": "textmate/grammars/python.json",
+   "name": "python",
+   "scopeName": "source.python",
+   "languageConfiguration": "textmate/config/hash-sq.json"
+  },
+  {
+   "grammar": "textmate/grammars/r.json",
+   "name": "r",
+   "scopeName": "source.r",
+   "languageConfiguration": "textmate/config/hash-sq.json"
+  },
+  {
+   "grammar": "textmate/grammars/raku.json",
+   "name": "raku",
+   "scopeName": "source.perl.6",
+   "languageConfiguration": "textmate/config/hash-sq.json"
+  },
+  {
+   "grammar": "textmate/grammars/ruby.json",
+   "name": "ruby",
+   "scopeName": "source.ruby",
+   "languageConfiguration": "textmate/config/hash-sq.json"
+  },
+  {
+   "grammar": "textmate/grammars/rust.json",
+   "name": "rust",
+   "scopeName": "source.rust",
+   "languageConfiguration": "textmate/config/slash.json"
+  },
+  {
+   "grammar": "textmate/grammars/scala.json",
+   "name": "scala",
+   "scopeName": "source.scala",
+   "languageConfiguration": "textmate/config/slash.json"
+  },
+  {
+   "grammar": "textmate/grammars/smalltalk.json",
+   "name": "smalltalk",
+   "scopeName": "source.smalltalk.gnu",
+   "languageConfiguration": "textmate/config/none.json"
+  },
+  {
+   "grammar": "textmate/grammars/sql.json",
+   "name": "sql",
+   "scopeName": "source.sql",
+   "languageConfiguration": "textmate/config/dash-sq.json"
+  },
+  {
+   "grammar": "textmate/grammars/swift.json",
+   "name": "swift",
+   "scopeName": "source.swift",
+   "languageConfiguration": "textmate/config/slash.json"
+  },
+  {
+   "grammar": "textmate/grammars/typescript.json",
+   "name": "typescript",
+   "scopeName": "source.ts",
+   "languageConfiguration": "textmate/config/slash-sq.json"
+  },
+  {
+   "grammar": "textmate/grammars/v.json",
+   "name": "v",
+   "scopeName": "source.v",
+   "languageConfiguration": "textmate/config/slash-sq.json"
+  },
+  {
+   "grammar": "textmate/grammars/wasm.json",
+   "name": "wasm",
+   "scopeName": "source.wat",
+   "languageConfiguration": "textmate/config/wasm.json"
+  },
+  {
+   "grammar": "textmate/grammars/zig.json",
+   "name": "zig",
+   "scopeName": "source.zig",
+   "languageConfiguration": "textmate/config/slash.json"
+  },
+  {
+   "grammar": "textmate/grammars/regexp.json",
+   "name": "regexp",
+   "scopeName": "source.regexp.python",
+   "languageConfiguration": "textmate/config/none.json"
+  }
+ ]
+}
