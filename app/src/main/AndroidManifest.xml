@@ -5,6 +5,13 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
+    <!-- Merged in by libraries but never used here; removed so the store listing only shows what the app needs. -->
+    <!-- androidx.credentials: no biometric sign-in in this app. -->
+    <uses-permission android:name="android.permission.USE_BIOMETRIC" tools:node="remove" />
+    <uses-permission android:name="android.permission.USE_FINGERPRINT" tools:node="remove" />
+    <!-- WorkManager: queued runs are plain background work, never a foreground service. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" tools:node="remove" />
+
     <application
         android:name=".OmniApplication"
         android:allowBackup="true"
@@ -41,6 +48,10 @@
         <meta-data
             android:name="com.google.android.gms.ads.APPLICATION_ID"
             android:value="${admobAppId}" />
+
+        <service
+            android:name="androidx.work.impl.foreground.SystemForegroundService"
+            tools:node="remove" />
 
         <!-- WorkManager is initialised on demand by OmniApplication (Hilt worker factory). -->
         <provider
