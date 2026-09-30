@@ -1,5 +1,9 @@
 package solutions.laxmi.omnicompiler.feature.auth
 
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.res.stringResource
 import android.content.ActivityNotFoundException
 import android.content.Context
@@ -53,16 +57,35 @@ internal fun Wordmark() {
 internal fun AuthScaffold(
     snackbar: SnackbarHostState,
     topBar: @Composable () -> Unit,
+    /** Pinned under the scrolling content at the bottom of the screen (design A1's legal row). */
+    footer: (@Composable () -> Unit)? = null,
+    /** How content sits when it's shorter than the screen; e.g. SpaceBetween pushes the last block down. */
+    contentArrangement: Arrangement.Vertical = Arrangement.spacedBy(14.dp),
     content: @Composable ColumnScope.() -> Unit,
 ) {
     Box(Modifier.fillMaxSize().background(OmniTheme.colors.background)) {
         Column(Modifier.fillMaxSize().navigationBarsPadding().imePadding()) {
             topBar()
-            Column(
-                Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = OmniDimens.screenPadding),
-                verticalArrangement = Arrangement.spacedBy(14.dp),
-                content = content,
-            )
+            BoxWithConstraints(Modifier.weight(1f)) {
+                // At least viewport-tall so the arrangement can use the whole screen; scrolls when taller.
+                Column(
+                    Modifier
+                        .verticalScroll(rememberScrollState())
+                        .heightIn(min = maxHeight)
+                        .padding(horizontal = OmniDimens.screenPadding),
+                    verticalArrangement = contentArrangement,
+                    content = content,
+                )
+            }
+            if (footer != null) {
+                val divider = OmniTheme.colors.divider
+                Box(
+                    Modifier
+                        .fillMaxWidth()
+                        .drawBehind { drawLine(divider, Offset(0f, 0.5f), Offset(size.width, 0.5f), 1f) }
+                        .padding(horizontal = OmniDimens.screenPadding),
+                ) { footer() }
+            }
         }
         SnackbarHost(snackbar, Modifier.align(Alignment.BottomCenter).navigationBarsPadding())
     }

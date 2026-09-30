@@ -67,25 +67,38 @@ fun WelcomeScreen(navigator: Navigator, appVersion: String) {
                 OmniTextButton(stringResource(R.string.welcome_skip), viewModel::continueAsGuest, enabled = busy == null, color = colors.textSecondary)
             }
         },
+        footer = {
+            Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                OmniTextButton(stringResource(R.string.welcome_terms), { context.openUrl(viewModel.config.termsUrl) }, color = colors.textTertiary)
+                Text(" · ", color = colors.textTertiary)
+                OmniTextButton(stringResource(R.string.welcome_privacy), { context.openUrl(viewModel.config.privacyPolicyUrl) }, color = colors.textTertiary)
+                Box(Modifier.weight(1f))
+                Text(stringResource(R.string.welcome_version, appVersion), style = OmniTheme.typography.monoSmall, color = colors.textTertiary)
+            }
+        },
+        // Hero at the top, sign-in choices just above the footer on tall screens (design A1).
+        contentArrangement = Arrangement.SpaceBetween,
     ) {
-        if (viewModel.sessionExpired) InfoBanner(stringResource(R.string.welcome_session_expired), icon = OmniIcons.Info)
-        DemoCard()
-        Text(
-            (
-                pluralStringResource(R.plurals.welcome_languages, counts.languages, counts.languages).let { languages ->
-                    if (counts.runtimes > 0) stringResource(R.string.welcome_counts, languages, pluralStringResource(R.plurals.welcome_runtimes, counts.runtimes, counts.runtimes)) else languages
-                }
-            ).uppercase(),
-            style = OmniTheme.typography.overline,
-            color = colors.accentText,
-        )
-        Text(stringResource(R.string.welcome_headline), style = OmniTheme.typography.display, color = colors.textPrimary)
-        Text(
-            stringResource(R.string.welcome_subtitle),
-            style = OmniTheme.typography.body,
-            color = colors.textSecondary,
-        )
-        Column(Modifier.padding(top = 8.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            if (viewModel.sessionExpired) InfoBanner(stringResource(R.string.welcome_session_expired), icon = OmniIcons.Info)
+            DemoCard()
+            Text(
+                (
+                    pluralStringResource(R.plurals.welcome_languages, counts.languages, counts.languages).let { languages ->
+                        if (counts.runtimes > 0) stringResource(R.string.welcome_counts, languages, pluralStringResource(R.plurals.welcome_runtimes, counts.runtimes, counts.runtimes)) else languages
+                    }
+                ).uppercase(),
+                style = OmniTheme.typography.overline,
+                color = colors.accentText,
+            )
+            Text(stringResource(R.string.welcome_headline), style = OmniTheme.typography.display, color = colors.textPrimary)
+            Text(
+                stringResource(R.string.welcome_subtitle),
+                style = OmniTheme.typography.body,
+                color = colors.textSecondary,
+            )
+        }
+        Column(Modifier.padding(top = 24.dp, bottom = 16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             if (viewModel.googleAvailable) {
                 GoogleButton(stringResource(R.string.welcome_google), loading = busy == AuthAction.Google, enabled = busy == null) {
                     viewModel.signInWithGoogle(context.findActivityContext())
@@ -103,13 +116,6 @@ fun WelcomeScreen(navigator: Navigator, appVersion: String) {
                 OmniTextButton(stringResource(if (busy == AuthAction.Guest) R.string.welcome_guest_starting else R.string.welcome_guest), viewModel::continueAsGuest, enabled = busy == null)
                 Text(stringResource(R.string.welcome_guest_note), style = OmniTheme.typography.bodySmall, color = colors.textTertiary)
             }
-        }
-        Row(Modifier.fillMaxWidth().padding(vertical = 16.dp), verticalAlignment = Alignment.CenterVertically) {
-            OmniTextButton(stringResource(R.string.welcome_terms), { context.openUrl(viewModel.config.termsUrl) }, color = colors.textTertiary)
-            Text(" · ", color = colors.textTertiary)
-            OmniTextButton(stringResource(R.string.welcome_privacy), { context.openUrl(viewModel.config.privacyPolicyUrl) }, color = colors.textTertiary)
-            Box(Modifier.weight(1f))
-            Text(stringResource(R.string.welcome_version, appVersion), style = OmniTheme.typography.monoSmall, color = colors.textTertiary)
         }
     }
 }
