@@ -2,7 +2,7 @@ package solutions.laxmi.omnicompiler.core.catalog
 
 import kotlinx.serialization.Serializable
 
-/** Mirrors `catalog.json` produced by `scripts/gen-catalog.mjs`. */
+/** Mirrors the bundled `catalog.json`, generated from ls-judge's web catalog and runtime definitions. */
 @Serializable
 internal data class CatalogJson(
     val version: Int,
