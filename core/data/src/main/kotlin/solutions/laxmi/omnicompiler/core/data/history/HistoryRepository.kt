@@ -37,8 +37,8 @@ interface HistoryRepository {
     fun submissions(verdict: Verdict?): Flow<PagingData<Submission>>
     val summary: Flow<CachedHistorySummary>
 
-    /** Last 7 local days, oldest first, from cached submissions. */
-    val lastWeek: Flow<List<DayActivity>>
+    /** Last 7 local days, oldest first, from cached submissions. The window is fixed when collection starts. */
+    fun observeLastWeek(): Flow<List<DayActivity>>
 
     suspend fun stats(): Outcome<UsageStats>
 }
@@ -66,14 +66,18 @@ internal class DefaultHistoryRepository @Inject constructor(
         )
     }
 
-    override val lastWeek: Flow<List<DayActivity>> = dao.observeSince((time.now() - 8.days).toEpochMilliseconds()).map { rows ->
-        val days = (6 downTo 0).map { startOfDay(time.now().toEpochMilliseconds(), daysAgo = it) }
+    override fun observeLastWeek(): Flow<List<DayActivity>> {
+        val now = time.now().toEpochMilliseconds()
+        val days = (6 downTo 0).map { startOfDay(now, daysAgo = it) }
+        return dao.observeSince(days.first()).map { rows -> weekOf(days, rows) }
+    }
+
+    private fun weekOf(days: List<Long>, rows: List<SubmissionEntity>): List<DayActivity> =
         days.map { start ->
             val end = start + 1.days.inWholeMilliseconds
             val inDay = rows.filter { it.createdAt in start until end }
             DayActivity(start, inDay.size, inDay.count { it.verdict == Verdict.AC.code })
         }
-    }
 
     override suspend fun stats() = network.stats()
 

@@ -48,6 +48,9 @@ interface ProjectDao {
     @Query("UPDATE projects SET updated_at = :at WHERE id = :id")
     suspend fun touch(id: String, at: Long)
 
+    @Query("UPDATE projects SET updated_at = :at WHERE id = (SELECT project_id FROM files WHERE id = :fileId)")
+    suspend fun touchForFile(fileId: String, at: Long)
+
     @Query("UPDATE projects SET last_verdict = :verdict, updated_at = :at WHERE id = :id")
     suspend fun setLastVerdict(id: String, verdict: String?, at: Long)
 

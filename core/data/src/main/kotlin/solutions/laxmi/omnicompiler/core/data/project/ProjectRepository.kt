@@ -207,7 +207,11 @@ internal class LocalProjectRepository @Inject constructor(
     }
 
     override suspend fun updateFileContent(fileId: String, content: String) {
-        files.updateContent(fileId, content)
+        // Edits count as activity: Projects ordering and "open most recent" follow them.
+        db.withTransaction {
+            files.updateContent(fileId, content)
+            projects.touchForFile(fileId, time.now().toEpochMilliseconds())
+        }
     }
 
     override suspend fun addFile(projectId: String, name: String, content: String): Outcome<SourceFile> {

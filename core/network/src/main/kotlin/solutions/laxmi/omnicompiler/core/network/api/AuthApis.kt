@@ -43,15 +43,19 @@ internal interface AuthPublicApi {
     @POST("auth/forgot-password")
     suspend fun forgotPassword(@Body body: EmailRequestDto): AuthEnvelope<JsonElement>
 
+    /**
+     * Revokes a refresh token. Called after the local session is already cleared, so the caller passes the
+     * captured access token explicitly instead of going through the refreshing client.
+     */
+    @POST("auth/logout")
+    suspend fun logout(@Header("Authorization") bearer: String, @Body body: RefreshRequestDto): AuthEnvelope<JsonElement>
+
     @POST("auth/refresh")
     suspend fun refresh(@Header(AUDIENCE_HEADER) audience: String, @Body body: RefreshRequestDto): AuthEnvelope<AuthTokensDto>
 }
 
 /** Auth endpoints that require the current access token. */
 internal interface AuthAccountApi {
-    @POST("auth/logout")
-    suspend fun logout(@Body body: RefreshRequestDto): AuthEnvelope<JsonElement>
-
     @POST("auth/convert")
     suspend fun convertGuest(@Body body: RegisterRequestDto): AuthEnvelope<AuthUserDto>
 

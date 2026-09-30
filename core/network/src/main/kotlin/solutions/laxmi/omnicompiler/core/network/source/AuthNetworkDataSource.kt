@@ -38,7 +38,7 @@ interface AuthNetworkDataSource {
     suspend fun register(form: RegistrationForm): Outcome<String>
     suspend fun resendVerification(email: String): Outcome<String>
     suspend fun forgotPassword(email: String): Outcome<String>
-    suspend fun logout(refreshToken: String): Outcome<Unit>
+    suspend fun logout(accessToken: String, refreshToken: String): Outcome<Unit>
     suspend fun convertGuest(form: RegistrationForm): Outcome<User>
     suspend fun me(): Outcome<User>
     suspend fun updateProfile(firstName: String?, lastName: String?, profileUrl: String?): Outcome<User>
@@ -72,8 +72,8 @@ internal class RetrofitAuthNetworkDataSource @Inject constructor(
     override suspend fun forgotPassword(email: String) =
         runner.auth { public.forgotPassword(EmailRequestDto(email.trim())).message.orEmpty() }
 
-    override suspend fun logout(refreshToken: String) =
-        runner.auth { account.logout(RefreshRequestDto(refreshToken)) }.map { }
+    override suspend fun logout(accessToken: String, refreshToken: String) =
+        runner.auth { public.logout("Bearer $accessToken", RefreshRequestDto(refreshToken)) }.map { }
 
     override suspend fun convertGuest(form: RegistrationForm) =
         runner.auth { account.convertGuest(form.toDto()).requireData().toModel() }

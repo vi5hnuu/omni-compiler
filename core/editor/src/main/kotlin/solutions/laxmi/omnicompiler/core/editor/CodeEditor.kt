@@ -1,5 +1,6 @@
 package solutions.laxmi.omnicompiler.core.editor
 
+import androidx.compose.runtime.SideEffect
 import android.content.Context
 import android.graphics.Typeface
 import android.view.KeyEvent
@@ -92,7 +93,7 @@ fun CodeEditor(
         withContext(Dispatchers.IO) { EditorLanguages.ensureInitialized(context) }
         ready = true
     }
-    state.onTextChanged = { id, text -> currentOnTextChange(id, text) }
+    SideEffect { state.onTextChanged = { id, text -> currentOnTextChange(id, text) } }
 
     Row(modifier.background(palette.background)) {
         Box(Modifier.weight(1f).fillMaxHeight()) {

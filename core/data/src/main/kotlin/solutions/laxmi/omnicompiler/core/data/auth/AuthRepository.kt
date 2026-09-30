@@ -112,7 +112,7 @@ internal class DefaultAuthRepository @Inject constructor(
         val current = store.current()
         clearLocalSession()
         // Revoke server-side too, but never block or fail sign-out on it.
-        if (current != null) scope.launch { network.logout(current.refreshToken) }
+        if (current != null) scope.launch { network.logout(current.accessToken, current.refreshToken) }
     }
 
     override suspend fun deleteAccount(): Outcome<Unit> {

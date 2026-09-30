@@ -1,5 +1,7 @@
 package solutions.laxmi.omnicompiler.feature.workspace.editor
 
+import solutions.laxmi.omnicompiler.core.data.project.SharedFile
+import solutions.laxmi.omnicompiler.core.data.project.ProjectExporter
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.assisted.Assisted
@@ -56,12 +58,14 @@ data class EditorUiState(
 sealed interface EditorEvent {
     data class Message(val text: UiText) : EditorEvent
     data class OpenProject(val projectId: String) : EditorEvent
+    data class Share(val file: SharedFile) : EditorEvent
 }
 
 @HiltViewModel(assistedFactory = EditorViewModel.Factory::class)
 class EditorViewModel @AssistedInject constructor(
     @Assisted private val route: EditorRoute,
     private val projects: ProjectRepository,
+    private val exporter: ProjectExporter,
     private val runtimes: RuntimeRepository,
     private val settingsRepository: SettingsRepository,
     auth: AuthRepository,
@@ -203,6 +207,20 @@ class EditorViewModel @AssistedInject constructor(
         viewModelScope.launch {
             if (activeFileId.value == fileId) activeFileId.value = null
             projects.deleteFile(fileId)
+        }
+    }
+
+    fun shareFile(fileId: String) = share { id -> exporter.exportFile(id, fileId) }
+
+    fun shareProject() = share { id -> exporter.exportZip(id) }
+
+    private fun share(export: suspend (projectId: String) -> Outcome<SharedFile>) {
+        val id = projectId.value ?: return
+        viewModelScope.launch {
+            when (val result = export(id)) {
+                is Outcome.Success -> events.send(EditorEvent.Share(result.value))
+                is Outcome.Failure -> events.send(EditorEvent.Message(result.error.toUiText()))
+            }
         }
     }
 

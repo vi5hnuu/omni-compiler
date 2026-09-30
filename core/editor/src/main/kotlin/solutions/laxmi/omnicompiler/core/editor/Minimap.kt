@@ -34,7 +34,7 @@ internal fun Minimap(
             .width(34.dp)
             .fillMaxHeight()
             .semantics { contentDescription = description }
-            .pointerInput(state) { detectTapGestures { state.scrollToFraction(it.y / size.height - viewport.height / 2) } }
+            .pointerInput(state) { detectTapGestures { state.scrollToFraction(it.y / size.height - state.viewport.height / 2) } }
             .pointerInput(state) {
                 detectVerticalDragGestures { change, _ -> state.scrollToFraction(change.position.y / size.height - state.viewport.height / 2) }
             },

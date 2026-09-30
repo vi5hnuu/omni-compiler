@@ -1,5 +1,8 @@
 package solutions.laxmi.omnicompiler.feature.workspace.editor
 
+import solutions.laxmi.omnicompiler.core.designsystem.component.OmniListRow
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.Icon
 import solutions.laxmi.omnicompiler.core.ui.R as CommonR
 import androidx.annotation.StringRes
 import solutions.laxmi.omnicompiler.feature.workspace.R
@@ -162,4 +165,50 @@ internal fun ConfirmDialog(title: String, message: String, confirmLabel: String,
         confirmButton = { OmniTextButton(confirmLabel, onConfirm) },
         dismissButton = { OmniTextButton(stringResource(CommonR.string.common_cancel), onDismiss, color = OmniTheme.colors.textSecondary) },
     )
+}
+
+/** Long-press actions for an extra file (the entry file is named by its runtime and can't be renamed or deleted). */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+internal fun FileActionsSheet(
+    file: solutions.laxmi.omnicompiler.core.model.SourceFile,
+    onDismiss: () -> Unit,
+    onRename: () -> Unit,
+    onShare: () -> Unit,
+    onDelete: () -> Unit,
+) {
+    val colors = OmniTheme.colors
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        shape = RectangleShape,
+        containerColor = colors.surface,
+        scrimColor = colors.scrim,
+        dragHandle = { SheetHandle() },
+    ) {
+        Column(Modifier.fillMaxWidth().navigationBarsPadding().padding(bottom = 8.dp)) {
+            Text(
+                file.name,
+                style = OmniTheme.typography.title,
+                color = colors.textPrimary,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+            )
+            listOf(
+                Triple(R.string.editor_rename, OmniIcons.Edit, onRename),
+                Triple(R.string.editor_share_file, OmniIcons.Share, onShare),
+                Triple(CommonR.string.common_delete, OmniIcons.Trash, onDelete),
+            ).forEach { (labelRes, icon, action) ->
+                val destructive = labelRes == CommonR.string.common_delete
+                OmniListRow(
+                    title = stringResource(labelRes),
+                    titleColor = if (destructive) colors.accentText else colors.textPrimary,
+                    leading = { Icon(icon, null, tint = if (destructive) colors.accentText else colors.textSecondary, modifier = Modifier.size(16.dp)) },
+                    onClick = {
+                        onDismiss()
+                        action()
+                    },
+                )
+            }
+        }
+    }
 }

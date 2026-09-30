@@ -1,5 +1,8 @@
 package solutions.laxmi.omnicompiler.core.data.execution
 
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
@@ -117,6 +120,18 @@ internal class DefaultExecutionRepository @Inject constructor(
     private val stoppedWhileSubmitting: MutableSet<String> = ConcurrentHashMap.newKeySet()
 
     override val rateLimit: StateFlow<RateLimitSnapshot?> = rateLimitTracker.snapshot
+
+    init {
+        // Queued runs stay put while "send when back online" is off; turning it on must send them.
+        scope.launch {
+            preferences.runSettings
+                .map { it.sendQueuedWhenOnline }
+                .distinctUntilChanged()
+                .drop(1)
+                .filter { it }
+                .collect { if (pendingDao.all().isNotEmpty()) scheduler.schedule() }
+        }
+    }
 
     override val pendingRuns: Flow<List<PendingRun>> = pendingDao.observeAll().map { rows ->
         rows.mapNotNull { row ->

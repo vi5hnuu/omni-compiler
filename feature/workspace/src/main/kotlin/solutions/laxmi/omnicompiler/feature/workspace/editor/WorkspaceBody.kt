@@ -157,6 +157,7 @@ internal fun ColumnScope.WorkspaceBody(
                         stringResource(R.string.editor_menu_limits) to { showLimits = true },
                         stringResource(R.string.editor_new_file) to onShowNewFile,
                         stringResource(R.string.editor_menu_rename_project) to onRenameProject,
+                        stringResource(R.string.editor_menu_share_project) to actions.onShareProject,
                         stringResource(R.string.editor_menu_change_language) to actions.onPickRuntime,
                         stringResource(if (state.settings.wordWrap) R.string.editor_menu_wrap_off else R.string.editor_menu_wrap_on) to actions.onToggleWordWrap,
                         stringResource(R.string.editor_menu_reset) to onConfirmReset,

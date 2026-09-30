@@ -68,7 +68,7 @@ class HistoryViewModel @Inject constructor(
         auth.session,
         filter,
         history.summary,
-        history.lastWeek,
+        history.observeLastWeek(),
         stats,
     ) { session, f, summary, week, s ->
         HistoryUiState(signedIn = session is Session.Active, filter = f, summary = summary, week = week, stats = s)

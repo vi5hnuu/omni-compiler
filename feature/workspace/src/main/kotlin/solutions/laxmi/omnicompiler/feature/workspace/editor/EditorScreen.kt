@@ -1,5 +1,8 @@
 package solutions.laxmi.omnicompiler.feature.workspace.editor
 
+import solutions.laxmi.omnicompiler.core.ui.R as CommonR
+import solutions.laxmi.omnicompiler.core.ui.shareFile
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -71,12 +74,14 @@ fun EditorScreen(route: EditorRoute, navigator: Navigator) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
     val resources = LocalResources.current
+    val context = LocalContext.current
 
     LaunchedEffect(viewModel) {
         viewModel.eventFlow.collect { event ->
             when (event) {
                 is EditorEvent.Message -> snackbar.showSnackbar(event.text.asString(resources))
                 is EditorEvent.OpenProject -> navigator.replace(EditorRoute(event.projectId))
+                is EditorEvent.Share -> context.shareFile(event.file.uri, event.file.mimeType, resources.getString(R.string.editor_share_title, event.file.displayName))
             }
         }
     }
@@ -94,6 +99,8 @@ fun EditorScreen(route: EditorRoute, navigator: Navigator) {
             onAddHeaderPair = viewModel::addHeaderPair,
             onRenameFile = viewModel::renameFile,
             onDeleteFile = viewModel::deleteFile,
+            onShareFile = viewModel::shareFile,
+            onShareProject = viewModel::shareProject,
             onRenameProject = viewModel::renameProject,
             onResetToStarter = viewModel::resetToStarter,
             onNewProject = viewModel::newProject,
@@ -128,6 +135,8 @@ internal class EditorActions(
     val onAddHeaderPair: (String, String, () -> Unit) -> Unit,
     val onRenameFile: (String, String) -> Unit,
     val onDeleteFile: (String) -> Unit,
+    val onShareFile: (String) -> Unit,
+    val onShareProject: () -> Unit,
     val onRenameProject: (String) -> Unit,
     val onResetToStarter: () -> Unit,
     val onNewProject: () -> Unit,
@@ -152,6 +161,7 @@ private fun EditorContent(state: EditorUiState, snackbar: SnackbarHostState, act
     var confirmReset by rememberSaveable { mutableStateOf(false) }
     var fileMenuFor by remember { mutableStateOf<SourceFile?>(null) }
     var renamingFile by remember { mutableStateOf<SourceFile?>(null) }
+    var deletingFile by remember { mutableStateOf<SourceFile?>(null) }
 
     val workspace = state.workspace
     val activeFile = state.activeFile
@@ -246,14 +256,23 @@ private fun EditorContent(state: EditorUiState, snackbar: SnackbarHostState, act
         )
     }
     fileMenuFor?.let { file ->
-        ConfirmDialog(
-            title = file.name,
-            message = stringResource(R.string.editor_file_actions_message),
-            confirmLabel = stringResource(R.string.editor_rename),
+        FileActionsSheet(
+            file = file,
             onDismiss = { fileMenuFor = null },
+            onRename = { renamingFile = file },
+            onShare = { actions.onShareFile(file.id) },
+            onDelete = { deletingFile = file },
+        )
+    }
+    deletingFile?.let { file ->
+        ConfirmDialog(
+            title = stringResource(R.string.editor_delete_file_title, file.name),
+            message = stringResource(R.string.editor_delete_file_message),
+            confirmLabel = stringResource(CommonR.string.common_delete),
+            onDismiss = { deletingFile = null },
             onConfirm = {
-                renamingFile = file
-                fileMenuFor = null
+                actions.onDeleteFile(file.id)
+                deletingFile = null
             },
         )
     }

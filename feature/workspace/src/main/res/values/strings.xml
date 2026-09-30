@@ -42,7 +42,9 @@
     <!-- Dialogs -->
     <string name="editor_rename_project_title">Rename project</string>
     <string name="editor_rename_file_title">Rename file</string>
-    <string name="editor_file_actions_message">Rename or delete this file.</string>
+    <string name="editor_share_file">Share file</string>
+    <string name="editor_share_title">Share %1$s</string>
+    <string name="editor_menu_share_project">Share project (.zip)</string>
     <string name="editor_rename">Rename</string>
     <string name="editor_reset_title">Reset to starter?</string>
     <string name="editor_reset_message">The entry file and test cases are replaced with %1$s\'s reference sample. Extra files are kept.</string>
