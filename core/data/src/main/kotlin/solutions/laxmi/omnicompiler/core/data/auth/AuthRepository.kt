@@ -35,6 +35,10 @@ data class SignUpForm(
 interface AuthRepository {
     val session: StateFlow<Session>
 
+    /** The server ended the last session (see [SessionStore.expired]); cleared by [acknowledgeSessionExpired]. */
+    val sessionExpired: StateFlow<Boolean>
+    fun acknowledgeSessionExpired()
+
     suspend fun signIn(identifier: String, password: String): Outcome<User>
     suspend fun signInWithGoogle(idToken: String): Outcome<User>
     suspend fun continueAsGuest(): Outcome<User>
@@ -73,6 +77,10 @@ internal class DefaultAuthRepository @Inject constructor(
     override val session: StateFlow<Session> = store.session
         .map { stored -> stored?.user?.let { Session.Active(it.toModel()) } ?: Session.SignedOut }
         .stateIn(scope, SharingStarted.Eagerly, Session.Loading)
+
+    override val sessionExpired: StateFlow<Boolean> = store.expired
+
+    override fun acknowledgeSessionExpired() = store.acknowledgeExpiry()
 
     override suspend fun signIn(identifier: String, password: String) = establish(network.login(identifier, password))
 

@@ -1,5 +1,6 @@
 package solutions.laxmi.omnicompiler.feature.workspace.editor
 
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
@@ -16,7 +17,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -32,6 +35,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import solutions.laxmi.omnicompiler.core.ui.asString
 import solutions.laxmi.omnicompiler.feature.workspace.R
+import kotlinx.coroutines.launch
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import solutions.laxmi.omnicompiler.core.designsystem.component.InfoBanner
 import solutions.laxmi.omnicompiler.core.designsystem.component.OmniCompactButton
@@ -79,6 +83,7 @@ internal fun ColumnScope.WorkspaceBody(
     onRenameProject: () -> Unit,
     onConfirmReset: () -> Unit,
     onFileMenu: (SourceFile) -> Unit,
+    drawerOpen: Boolean,
     snackbar: SnackbarHostState,
     actions: EditorActions,
 ) {
@@ -108,7 +113,16 @@ internal fun ColumnScope.WorkspaceBody(
     LaunchedEffect(console) {
         console.eventFlow.collect { event ->
             when (event) {
-                is ConsoleEvent.Message -> snackbar.showSnackbar(event.text.asString(resources))
+                // Snackbars suspend until dismissed; launched so they never hold back RunStarted.
+                is ConsoleEvent.Message -> launch { snackbar.showSnackbar(event.text.asString(resources)) }
+                is ConsoleEvent.TestDeleted -> launch {
+                    val result = snackbar.showSnackbar(
+                        message = resources.getString(R.string.tests_deleted),
+                        actionLabel = resources.getString(R.string.editor_undo),
+                        duration = SnackbarDuration.Short,
+                    )
+                    if (result == SnackbarResult.ActionPerformed) console.restoreTest(event.test)
+                }
                 is ConsoleEvent.RunStarted -> {
                     consoleOpen = true
                     tab = if (event.mode == RunMode.TESTS) ConsoleTab.Tests else ConsoleTab.Console
@@ -116,6 +130,11 @@ internal fun ColumnScope.WorkspaceBody(
             }
         }
     }
+
+    // Back peels layers top-down: the open drawer handles itself, then the console sheet, then the find bar.
+    val sheetVisible = consoleOpen && !typing
+    BackHandler(enabled = !drawerOpen && sheetVisible) { consoleOpen = false }
+    BackHandler(enabled = !drawerOpen && !sheetVisible && searching) { onSearchChange(false) }
 
     val latest = consoleState.latest
     val running = consoleState.isRunning
@@ -200,7 +219,7 @@ internal fun ColumnScope.WorkspaceBody(
             onRunShortcut = if (consoleState.runSettings.runOnCtrlEnter) runTests else null,
             modifier = Modifier.fillMaxSize(),
         )
-        if (consoleOpen && !typing) {
+        if (sheetVisible) {
             Box(
                 Modifier
                     .fillMaxSize()
@@ -208,7 +227,7 @@ internal fun ColumnScope.WorkspaceBody(
                     .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { consoleOpen = false },
             )
         }
-        SlideUpPanel(visible = consoleOpen && !typing, modifier = Modifier.align(Alignment.BottomCenter)) {
+        SlideUpPanel(visible = sheetVisible, modifier = Modifier.align(Alignment.BottomCenter)) {
             ConsoleSheet(
                 state = consoleState,
                 tab = tab,

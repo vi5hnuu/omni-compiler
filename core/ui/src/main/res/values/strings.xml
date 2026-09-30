@@ -9,6 +9,10 @@
     <string name="common_close">Close</string>
     <string name="common_done">Done</string>
     <string name="common_copy">Copy</string>
+    <plurals name="common_tests_passed_of">
+        <item quantity="one">%1$d of %2$d test passed</item>
+        <item quantity="other">%1$d of %2$d tests passed</item>
+    </plurals>
     <string name="common_ok">OK</string>
     <string name="common_sign_in">Sign in</string>
     <string name="common_back">Back</string>

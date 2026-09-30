@@ -185,6 +185,7 @@
     <string name="tests_run_only_this">Run only this</string>
     <string name="tests_edit">Edit</string>
     <string name="tests_duplicate">Duplicate</string>
+    <string name="tests_deleted">Test deleted</string>
     <string name="tests_use_output">Use output as expected</string>
 
     <!-- Input tab -->

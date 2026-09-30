@@ -40,7 +40,7 @@ class TokenRefresher @Inject internal constructor(
             updated.accessToken
         } catch (e: HttpException) {
             // 401/403/404 mean the refresh token is dead (expired, reused, locked, deleted): sign out.
-            if (e.code() in DEAD_SESSION_CODES) store.clear()
+            if (e.code() in DEAD_SESSION_CODES) store.expire()
             null
         } catch (e: IOException) {
             null

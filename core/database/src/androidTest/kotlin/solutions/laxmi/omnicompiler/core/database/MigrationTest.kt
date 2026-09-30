@@ -35,6 +35,32 @@ class MigrationTest {
         }
     }
 
+    @Test
+    fun migrate2To3_keepsRunsAndAddsTestIds() {
+        helper.createDatabase(DB, 2).use { db ->
+            db.execSQL("INSERT INTO projects VALUES ('p1', 'two-sum', 'cpp-23', 5000, 256, 'AC', 0, 0)")
+            db.execSQL(
+                "INSERT INTO runs (id, project_id, job_id, runtime_id, mode, status, verdict, total_time_ms, test_count, test_names, " +
+                    "compile_output, diag_line, diag_column, diag_message, error_message, from_cache, started_at) " +
+                    "VALUES ('r1', 'p1', 'j1', 'cpp-23', 'TESTS', 'DONE', 'WA', 12, 2, 'a\nb', NULL, NULL, NULL, NULL, NULL, 0, 1)",
+            )
+        }
+
+        helper.runMigrationsAndValidate(DB, 3, true, OmniMigrations.MIGRATION_2_3).use { db ->
+            db.query("SELECT test_names, test_ids FROM runs WHERE id = 'r1'").use { cursor ->
+                assertThat(cursor.moveToFirst()).isTrue()
+                assertThat(cursor.getString(0)).isEqualTo("a\nb")
+                assertThat(cursor.getString(1)).isEmpty()
+            }
+        }
+    }
+
+    @Test
+    fun migrate1To3_runsEveryStep() {
+        helper.createDatabase(DB, 1).close()
+        helper.runMigrationsAndValidate(DB, 3, true, *OmniMigrations.ALL).close()
+    }
+
     private companion object {
         const val DB = "migration-test.db"
     }

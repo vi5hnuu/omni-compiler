@@ -61,6 +61,7 @@ class TokenRefresherTest {
 
         assertThat(refresher.refresh("old-access")).isNull()
         assertThat(store.current()).isNull()
+        assertThat(store.expired.value).isTrue()
     }
 
     @Test
@@ -87,5 +88,8 @@ class TokenRefresherTest {
         override suspend fun save(session: StoredSession) { state.value = session }
         override suspend fun update(transform: (StoredSession) -> StoredSession) { state.value = state.value?.let(transform) }
         override suspend fun clear() { state.value = null }
+        override val expired = MutableStateFlow(false)
+        override suspend fun expire() { clear(); expired.value = true }
+        override fun acknowledgeExpiry() { expired.value = false }
     }
 }

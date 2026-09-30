@@ -7,6 +7,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -30,6 +32,7 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import solutions.laxmi.omnicompiler.core.designsystem.component.InfoBanner
 import solutions.laxmi.omnicompiler.core.designsystem.component.OmniButton
 import solutions.laxmi.omnicompiler.core.designsystem.component.OmniButtonStyle
 import solutions.laxmi.omnicompiler.core.designsystem.component.OmniCompactButton
@@ -45,6 +48,7 @@ import solutions.laxmi.omnicompiler.core.ui.VerdictBadge
 import solutions.laxmi.omnicompiler.core.ui.openUrl
 
 /** Design A1. */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun WelcomeScreen(navigator: Navigator, appVersion: String) {
     val viewModel = hiltViewModel<WelcomeViewModel>()
@@ -64,6 +68,7 @@ fun WelcomeScreen(navigator: Navigator, appVersion: String) {
             }
         },
     ) {
+        if (viewModel.sessionExpired) InfoBanner(stringResource(R.string.welcome_session_expired), icon = OmniIcons.Info)
         DemoCard()
         Text(
             (
@@ -93,9 +98,10 @@ fun WelcomeScreen(navigator: Navigator, appVersion: String) {
                 leadingIcon = OmniIcons.Mail,
                 enabled = busy == null,
             )
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            // Wraps under long translations instead of squeezing the note.
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), itemVerticalAlignment = Alignment.CenterVertically) {
                 OmniTextButton(stringResource(if (busy == AuthAction.Guest) R.string.welcome_guest_starting else R.string.welcome_guest), viewModel::continueAsGuest, enabled = busy == null)
-                Text("  " + stringResource(R.string.welcome_guest_note), style = OmniTheme.typography.bodySmall, color = colors.textTertiary)
+                Text(stringResource(R.string.welcome_guest_note), style = OmniTheme.typography.bodySmall, color = colors.textTertiary)
             }
         }
         Row(Modifier.fillMaxWidth().padding(vertical = 16.dp), verticalAlignment = Alignment.CenterVertically) {

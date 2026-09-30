@@ -21,6 +21,7 @@
     <string name="welcome_guest">Continue as guest</string>
     <string name="welcome_guest_starting">Starting…</string>
     <string name="welcome_guest_note">· projects stay on this device</string>
+    <string name="welcome_session_expired">Your session expired. Sign in again to continue.</string>
     <string name="welcome_terms">Terms</string>
     <string name="welcome_privacy">Privacy</string>
     <string name="welcome_version">v%1$s</string>

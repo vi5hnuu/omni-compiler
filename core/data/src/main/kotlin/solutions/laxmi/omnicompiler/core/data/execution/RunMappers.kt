@@ -26,6 +26,7 @@ internal fun RunRecord.toEntity(diagnostic: CompileDiagnostic?) = RunEntity(
     totalTimeMs = totalTimeMs,
     testCount = testCount,
     testNames = testNames.joinToString("\n"),
+    testIds = testIds.joinToString("\n"),
     compileOutput = compileOutput,
     diagnosticLine = diagnostic?.line,
     diagnosticColumn = diagnostic?.column,
@@ -50,6 +51,7 @@ internal fun RunEntity.toModel(results: List<RunResultEntity>, entryFileName: St
         totalTimeMs = totalTimeMs,
         testCount = testCount,
         testNames = testNames.split('\n'),
+        testIds = if (testIds.isEmpty()) emptyList() else testIds.split('\n'),
         results = results.map { TestResult(it.index, Verdict.fromCode(it.verdict) ?: Verdict.IE, it.timeMs, it.stdin, it.expected, it.stdout, it.stderr) },
         compileOutput = compileOutput,
         problems = CompilerOutputParser.parse(compileOutput, diagnostic, entryFileName),
@@ -88,13 +90,13 @@ internal data class PendingRunPayload(
     )
 
     companion object {
-        fun from(runId: String, mode: RunMode, request: ExecutionRequest, entryFileName: String?) = PendingRunPayload(
+        fun from(runId: String, mode: RunMode, request: ExecutionRequest, testIds: List<String>, entryFileName: String?) = PendingRunPayload(
             runId = runId,
             mode = mode.name,
             runtimeId = request.runtimeId,
             code = request.code,
             files = request.files.map { PendingFile(it.name, it.content) },
-            tests = request.tests.map { PendingTest(it.stdin, it.expected, it.name) },
+            tests = request.tests.mapIndexed { i, t -> PendingTest(t.stdin, t.expected, t.name, testIds.getOrElse(i) { "" }) },
             timeMs = request.limits.timeMs,
             memMb = request.limits.memMb,
             interactive = request.interactive,
@@ -109,4 +111,4 @@ internal data class PendingRunPayload(
 internal data class PendingFile(val name: String, val content: String)
 
 @Serializable
-internal data class PendingTest(val stdin: String, val expected: String, val name: String = "")
+internal data class PendingTest(val stdin: String, val expected: String, val name: String = "", val id: String = "")

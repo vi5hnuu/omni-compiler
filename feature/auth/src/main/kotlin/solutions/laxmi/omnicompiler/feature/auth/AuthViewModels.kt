@@ -102,6 +102,9 @@ class WelcomeViewModel @Inject constructor(
         if (languages.isEmpty()) WelcomeCounts(catalog, 0) else WelcomeCounts(languages.size, languages.sumOf { it.runtimes.size })
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), WelcomeCounts(0, 0))
 
+    /** Why the user landed here, captured once so it survives rotation but isn't shown again later. */
+    val sessionExpired: Boolean = auth.sessionExpired.value.also { if (it) auth.acknowledgeSessionExpired() }
+
     init {
         viewModelScope.launch {
             catalogCount.value = runtimes.allLanguageInfo().size

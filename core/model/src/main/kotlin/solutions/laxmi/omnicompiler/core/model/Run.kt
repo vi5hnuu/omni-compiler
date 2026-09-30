@@ -45,6 +45,8 @@ data class RunRecord(
     val totalTimeMs: Int?,
     val testCount: Int,
     val testNames: List<String>,
+    /** Project test ids in judge order (result `index` 1 is `testIds[0]`); empty for stdin runs and old runs. */
+    val testIds: List<String>,
     val results: List<TestResult>,
     val compileOutput: String?,
     val problems: List<CompileProblem>,

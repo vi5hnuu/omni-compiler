@@ -14,5 +14,12 @@ object OmniMigrations {
         }
     }
 
-    val ALL: Array<Migration> = arrayOf(MIGRATION_1_2)
+    /** v3: runs remember which tests they ran, so a partial run's results land on the right test rows. */
+    val MIGRATION_2_3 = object : Migration(2, 3) {
+        override fun migrate(connection: SQLiteConnection) {
+            connection.execSQL("ALTER TABLE runs ADD COLUMN test_ids TEXT NOT NULL DEFAULT ''")
+        }
+    }
+
+    val ALL: Array<Migration> = arrayOf(MIGRATION_1_2, MIGRATION_2_3)
 }

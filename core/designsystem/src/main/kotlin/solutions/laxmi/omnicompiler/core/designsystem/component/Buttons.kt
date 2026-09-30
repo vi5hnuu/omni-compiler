@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Icon
+import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -130,6 +131,8 @@ fun OmniIconButton(
     val colors = OmniTheme.colors
     Box(
         modifier = modifier
+            // Dense chrome keeps the small visual size; the touch target still meets the 48 dp minimum.
+            .minimumInteractiveComponentSize()
             .size(size)
             .background(if (selected) colors.surfaceRaised else Color.Transparent)
             .clickable(enabled = enabled, role = Role.Button, onClick = onClick),

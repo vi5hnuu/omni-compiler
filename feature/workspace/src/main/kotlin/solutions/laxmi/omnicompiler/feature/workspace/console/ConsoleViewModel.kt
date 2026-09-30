@@ -69,6 +69,7 @@ sealed interface ConsoleOverlay {
 sealed interface ConsoleEvent {
     data class Message(val text: UiText) : ConsoleEvent
     data class RunStarted(val mode: RunMode) : ConsoleEvent
+    data class TestDeleted(val test: TestCase) : ConsoleEvent
 }
 
 @HiltViewModel(assistedFactory = ConsoleViewModel.Factory::class)
@@ -180,8 +181,14 @@ class ConsoleViewModel @AssistedInject constructor(
     }
 
     fun deleteTest(test: TestCase) {
-        viewModelScope.launch { projects.deleteTest(test.id) }
+        viewModelScope.launch {
+            projects.deleteTest(test.id)
+            events.send(ConsoleEvent.TestDeleted(test))
+        }
     }
+
+    /** Undo for [deleteTest]: positions aren't renumbered on delete, so the test returns to its old slot. */
+    fun restoreTest(test: TestCase) = updateTest(test)
 
     fun duplicateTest(test: TestCase) {
         viewModelScope.launch { projects.duplicateTest(test) }

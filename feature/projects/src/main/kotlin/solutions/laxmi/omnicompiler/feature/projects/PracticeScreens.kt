@@ -62,6 +62,7 @@ fun ExamplesScreen(navigator: Navigator) {
     val snackbar = remember { SnackbarHostState() }
     var tab by rememberSaveable { mutableIntStateOf(0) }
     var chosen by remember { mutableStateOf<Example?>(null) }
+    var replacingWith by remember { mutableStateOf<Example?>(null) }
     PracticeEvents(viewModel.eventFlow, navigator, snackbar)
     val colors = OmniTheme.colors
     Box(Modifier.fillMaxSize().background(colors.background)) {
@@ -98,7 +99,20 @@ fun ExamplesScreen(navigator: Navigator) {
             onDismiss = { chosen = null },
             onUse = { newProject ->
                 chosen = null
-                viewModel.useExample(example, newProject)
+                // Using an example in the current project overwrites its tests, so that path asks first.
+                if (newProject) viewModel.useExample(example, inNewProject = true) else replacingWith = example
+            },
+        )
+    }
+    replacingWith?.let { example ->
+        ConfirmPrompt(
+            title = stringResource(R.string.practice_replace_tests_title),
+            message = stringResource(R.string.practice_replace_tests_message),
+            confirm = stringResource(R.string.practice_replace_tests_confirm),
+            onDismiss = { replacingWith = null },
+            onConfirm = {
+                replacingWith = null
+                viewModel.useExample(example, inNewProject = false)
             },
         )
     }
@@ -110,6 +124,7 @@ fun ProblemScreen(route: ProblemRoute, navigator: Navigator) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
     var pickedBase by rememberSaveable { mutableStateOf<String?>(null) }
+    var confirmReplace by rememberSaveable { mutableStateOf(false) }
     PracticeEvents(viewModel.eventFlow, navigator, snackbar)
     val colors = OmniTheme.colors
     val problem = state.problem
@@ -156,11 +171,23 @@ fun ProblemScreen(route: ProblemRoute, navigator: Navigator) {
             }
             val picked: Language? = state.solutionLanguages.firstOrNull { it.base == pickedBase }
             Row(Modifier.padding(16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OmniButton(stringResource(R.string.practice_tests_only), viewModel::useTestsInCurrentProject, Modifier.weight(1f), style = OmniButtonStyle.Secondary, trailingIcon = null)
+                OmniButton(stringResource(R.string.practice_tests_only), { confirmReplace = true }, Modifier.weight(1f), style = OmniButtonStyle.Secondary, trailingIcon = null)
                 OmniButton(picked?.let { stringResource(R.string.practice_solve_in, it.info.name) } ?: stringResource(R.string.practice_solve), { viewModel.solve(picked) }, Modifier.weight(1f), trailingIcon = OmniIcons.ArrowRight)
             }
         }
         SnackbarHost(snackbar, Modifier.align(Alignment.BottomCenter).navigationBarsPadding())
+    }
+    if (confirmReplace) {
+        ConfirmPrompt(
+            title = stringResource(R.string.practice_replace_tests_title),
+            message = stringResource(R.string.practice_replace_tests_message),
+            confirm = stringResource(R.string.practice_replace_tests_confirm),
+            onDismiss = { confirmReplace = false },
+            onConfirm = {
+                confirmReplace = false
+                viewModel.useTestsInCurrentProject()
+            },
+        )
     }
 }
 

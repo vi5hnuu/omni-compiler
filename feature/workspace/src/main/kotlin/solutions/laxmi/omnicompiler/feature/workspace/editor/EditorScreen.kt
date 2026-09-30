@@ -217,6 +217,7 @@ private fun EditorContent(state: EditorUiState, snackbar: SnackbarHostState, act
                         onRenameProject = { renamingProject = true },
                         onConfirmReset = { confirmReset = true },
                         onFileMenu = { fileMenuFor = it },
+                        drawerOpen = drawerState.targetValue == DrawerValue.Open,
                         snackbar = snackbar,
                         actions = actions,
                     )

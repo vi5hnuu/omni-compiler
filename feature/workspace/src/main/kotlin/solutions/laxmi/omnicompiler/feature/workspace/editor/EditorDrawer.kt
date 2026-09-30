@@ -38,7 +38,7 @@ import solutions.laxmi.omnicompiler.core.designsystem.theme.OmniTheme
 import solutions.laxmi.omnicompiler.core.model.ProjectSummary
 import solutions.laxmi.omnicompiler.core.model.SourceFile
 import solutions.laxmi.omnicompiler.core.model.User
-import solutions.laxmi.omnicompiler.core.ui.LanguageTile
+import solutions.laxmi.omnicompiler.core.ui.Avatar
 import solutions.laxmi.omnicompiler.core.ui.VerdictBadge
 import solutions.laxmi.omnicompiler.core.ui.fileBadgeFor
 
@@ -144,7 +144,7 @@ private fun AccountHeader(user: User?, onClick: () -> Unit) {
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        LanguageTile(code = user?.initials ?: "?", size = 36.dp, selected = true)
+        Avatar(imageUrl = user?.profileUrl, initials = user?.initials ?: "?", size = 36.dp)
         Column(Modifier.weight(1f)) {
             Text(user?.displayName ?: stringResource(R.string.drawer_not_signed_in), style = OmniTheme.typography.titleSmall, color = colors.textPrimary, maxLines = 1)
             Text(

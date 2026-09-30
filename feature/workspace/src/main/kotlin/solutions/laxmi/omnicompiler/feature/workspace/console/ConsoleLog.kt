@@ -7,6 +7,8 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.text.selection.DisableSelection
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -45,7 +47,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-/** Console tab (design C1): the newest run expanded as a tagged log, earlier runs collapsed below a dashed rule. */
+/** Console tab (design C1): the newest run expanded as a tagged log, earlier runs collapsed below a dashed rule. Logs are selectable. */
 @Composable
 internal fun ConsoleLog(runs: List<RunRecord>, onVerify: (String) -> Unit, modifier: Modifier = Modifier) {
     if (runs.isEmpty()) {
@@ -53,7 +55,7 @@ internal fun ConsoleLog(runs: List<RunRecord>, onVerify: (String) -> Unit, modif
         return
     }
     LazyColumn(modifier) {
-        item(key = runs.first().id) { RunLog(runs.first(), onVerify) }
+        item(key = runs.first().id) { SelectionContainer { RunLog(runs.first(), onVerify) } }
         items(runs.drop(1), key = { it.id }) { run -> CollapsedRun(run, onVerify) }
     }
 }
@@ -82,7 +84,7 @@ private fun CollapsedRun(run: RunRecord, onVerify: (String) -> Unit) {
                 modifier = Modifier.weight(1f),
             )
         }
-        if (expanded) RunLog(run, onVerify)
+        if (expanded) SelectionContainer { RunLog(run, onVerify) }
     }
 }
 
@@ -126,7 +128,9 @@ private fun RunLog(run: RunRecord, onVerify: (String) -> Unit) {
         if (!run.phase.isActive && run.phase != RunPhase.QUEUED_OFFLINE) {
             LogRow(stringResource(R.string.console_tag_exit), run.exitLine())
             if (run.jobId != null && run.phase == RunPhase.DONE) {
-                OmniTextButton(stringResource(R.string.console_verify), { onVerify(run.jobId!!) }, Modifier.padding(horizontal = 12.dp))
+                DisableSelection {
+                    OmniTextButton(stringResource(R.string.console_verify), { onVerify(run.jobId!!) }, Modifier.padding(horizontal = 12.dp))
+                }
             }
         }
     }

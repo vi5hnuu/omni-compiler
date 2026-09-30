@@ -64,6 +64,8 @@ data class RunEntity(
     @ColumnInfo(name = "test_count") val testCount: Int,
     /** Test labels at run time, newline-separated (tests may be renamed or deleted later). */
     @ColumnInfo(name = "test_names", defaultValue = "") val testNames: String,
+    /** Ids of the project tests this run used, newline-separated, in judge order; empty for stdin runs. */
+    @ColumnInfo(name = "test_ids", defaultValue = "") val testIds: String,
     @ColumnInfo(name = "compile_output") val compileOutput: String?,
     @ColumnInfo(name = "diag_line") val diagnosticLine: Int?,
     @ColumnInfo(name = "diag_column") val diagnosticColumn: Int?,

@@ -44,4 +44,7 @@
         <item quantity="other">%1$d test cases</item>
     </plurals>
     <string name="practice_use_in_current">Use in current</string>
+    <string name="practice_replace_tests_title">Replace tests?</string>
+    <string name="practice_replace_tests_message">The current project\'s tests will be replaced. Your code stays as it is.</string>
+    <string name="practice_replace_tests_confirm">Replace</string>
 </resources>

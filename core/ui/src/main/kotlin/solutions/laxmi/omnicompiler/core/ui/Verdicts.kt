@@ -11,6 +11,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.res.stringResource
@@ -73,7 +75,9 @@ fun VerdictBadge(verdict: Verdict, modifier: Modifier = Modifier) = VerdictBadge
 @Composable
 fun VerdictStrip(states: List<VerdictState>, modifier: Modifier = Modifier) {
     val colors = OmniTheme.colors
-    Row(modifier, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+    val passed = states.count { it is VerdictState.Done && it.verdict == Verdict.AC }
+    val summary = pluralStringResource(R.plurals.common_tests_passed_of, states.size, passed, states.size)
+    Row(modifier.clearAndSetSemantics { contentDescription = summary }, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
         states.forEach { state ->
             val fill = when (state) {
                 is VerdictState.Done -> when (state.verdict) {

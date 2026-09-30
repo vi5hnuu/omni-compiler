@@ -7,6 +7,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -25,6 +26,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -75,8 +77,8 @@ internal fun TestsPanel(
     actions: TestActions,
     modifier: Modifier = Modifier,
 ) {
-    // The latest TESTS run lines up with the current tests only when it ran all of them, in order.
-    val alignedRun = run?.takeIf { it.mode == RunMode.TESTS && it.testCount == tests.size }
+    val testsRun = run?.takeIf { it.mode == RunMode.TESTS }
+    val rowFor = remember(testsRun, tests) { testsRun?.let { resultLocator(it, tests) } }
     Column(modifier) {
         LazyColumn(Modifier.weight(1f)) {
             if (run != null && run.mode == RunMode.TESTS && !run.phase.isActive && run.verdict != null) {
@@ -88,7 +90,14 @@ internal fun TestsPanel(
                 item { EmptyState(stringResource(R.string.tests_empty_title), stringResource(R.string.tests_empty_message), icon = OmniIcons.Check) }
             }
             itemsIndexed(tests, key = { _, t -> t.id }) { index, test ->
-                TestRow(index, test, alignedRun?.results?.firstOrNull { it.index == index + 1 }, alignedRun?.phase?.isActive == true, actions)
+                val judgeIndex = rowFor?.invoke(test, index)
+                TestRow(
+                    index = index,
+                    test = test,
+                    result = judgeIndex?.let { i -> testsRun?.results?.firstOrNull { it.index == i } },
+                    runActive = judgeIndex != null && testsRun?.phase?.isActive == true,
+                    actions = actions,
+                )
             }
         }
         Row(Modifier.fillMaxWidth().padding(12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -238,12 +247,31 @@ private fun TestRow(index: Int, test: TestCase, result: TestResult?, runActive: 
     }
 }
 
+/**
+ * Maps a test row to its 1-based result index in [run], or null when the run didn't include it.
+ * Runs record the ids they used; older runs line up only when they ran every current test, in order.
+ */
+private fun resultLocator(run: RunRecord, tests: List<TestCase>): (TestCase, Int) -> Int? {
+    if (run.testIds.isNotEmpty()) {
+        val indexById = run.testIds.withIndex().associate { (i, id) -> id to i + 1 }
+        return { test, _ -> indexById[test.id] }
+    }
+    val aligned = run.testCount == tests.size
+    return { _, position -> if (aligned) position + 1 else null }
+}
+
 /** Monospace block; lines listed in [highlight] get the design's dark-red diff fill. */
 @Composable
 internal fun CodeBlock(label: String, text: String, highlight: Set<Int>, modifier: Modifier = Modifier, accentLabel: Boolean = false) {
     val colors = OmniTheme.colors
+    val clipboard = LocalClipboardManager.current
     Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Text(label.uppercase(), style = OmniTheme.typography.overline, color = if (accentLabel) colors.accentText else colors.textTertiary)
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(label.uppercase(), style = OmniTheme.typography.overline, color = if (accentLabel) colors.accentText else colors.textTertiary, modifier = Modifier.weight(1f))
+            if (text.isNotEmpty()) {
+                OmniIconButton(OmniIcons.Copy, stringResource(CommonR.string.common_copy), { clipboard.setText(AnnotatedString(text)) }, size = 28.dp, iconSize = 14.dp)
+            }
+        }
         val content = buildAnnotatedString {
             val lines = text.replace("\r\n", "\n").trimEnd('\n').split('\n')
             lines.forEachIndexed { i, line ->
@@ -259,7 +287,9 @@ internal fun CodeBlock(label: String, text: String, highlight: Set<Int>, modifie
                 .horizontalScroll(rememberScrollState())
                 .padding(8.dp),
         ) {
-            Text(if (text.isEmpty()) AnnotatedString(stringResource(R.string.tests_empty_block)) else content, style = OmniTheme.typography.mono, color = if (text.isEmpty()) colors.textTertiary else colors.textPrimary)
+            SelectionContainer {
+                Text(if (text.isEmpty()) AnnotatedString(stringResource(R.string.tests_empty_block)) else content, style = OmniTheme.typography.mono, color = if (text.isEmpty()) colors.textTertiary else colors.textPrimary)
+            }
         }
     }
 }

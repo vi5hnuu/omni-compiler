@@ -214,7 +214,10 @@ internal class DefaultExecutionRepository @Inject constructor(
                 continue
             }
             val record = live.value[row.projectId]?.takeIf { it.id == row.id }
-                ?: newRecord(row.id, row.projectId, payload.runtimeId, RunMode.valueOf(payload.mode), payload.tests.map { it.name }, Instant.fromEpochMilliseconds(row.createdAt))
+                ?: newRecord(
+                    row.id, row.projectId, payload.runtimeId, RunMode.valueOf(payload.mode),
+                    payload.tests.map { it.name }, payload.tests.map { it.id }.filter { it.isNotEmpty() }, Instant.fromEpochMilliseconds(row.createdAt),
+                )
             val prepared = Prepared(record.copy(phase = RunPhase.SUBMITTING), payload.toRequest(), payload.entryFileName)
             publish(prepared.record)
             val result = submitAndTrack(prepared, fromQueue = true)
@@ -273,11 +276,13 @@ internal class DefaultExecutionRepository @Inject constructor(
         (listOf(entry) + extras).firstOrNull { it.content.encodeToByteArray().size > MAX_SOURCE_BYTES }?.let {
             return Outcome.Failure(AppError.Validation(reason = ErrorReason.SourceTooLarge(it.name, MAX_SOURCE_BYTES / 1024)))
         }
+        val chosenTests = when (options.mode) {
+            RunMode.STDIN_ONLY -> emptyList()
+            RunMode.TESTS -> workspace.tests.filter { options.testIds == null || it.id in options.testIds }
+        }
         val selected = when (options.mode) {
             RunMode.STDIN_ONLY -> listOf(TestCaseDraft(options.stdin.orEmpty(), expected = "", name = "Custom input"))
-            RunMode.TESTS -> workspace.tests
-                .filter { options.testIds == null || it.id in options.testIds }
-                .map { t -> TestCaseDraft(t.stdin, t.expected, t.name.ifBlank { "Test ${t.position + 1}" }) }
+            RunMode.TESTS -> chosenTests.map { t -> TestCaseDraft(t.stdin, t.expected, t.name.ifBlank { "Test ${t.position + 1}" }) }
         }
         if (selected.isEmpty()) return Outcome.Failure(AppError.Validation(reason = ErrorReason.NoTests))
         if (selected.size > MAX_TESTS) return Outcome.Failure(AppError.Validation(reason = ErrorReason.TooManyTests(MAX_TESTS)))
@@ -291,11 +296,19 @@ internal class DefaultExecutionRepository @Inject constructor(
             bypassCache = preferences.runSettings.first().bypassCache,
             idempotencyKey = runId,
         )
-        val record = newRecord(runId, projectId, request.runtimeId, options.mode, selected.map { it.name }, time.now())
+        val record = newRecord(runId, projectId, request.runtimeId, options.mode, selected.map { it.name }, chosenTests.map { it.id }, time.now())
         return Outcome.Success(Prepared(record, request, entry.name))
     }
 
-    private fun newRecord(id: String, projectId: String, runtimeId: String, mode: RunMode, testNames: List<String>, startedAt: Instant) = RunRecord(
+    private fun newRecord(
+        id: String,
+        projectId: String,
+        runtimeId: String,
+        mode: RunMode,
+        testNames: List<String>,
+        testIds: List<String>,
+        startedAt: Instant,
+    ) = RunRecord(
         id = id,
         projectId = projectId,
         jobId = null,
@@ -306,6 +319,7 @@ internal class DefaultExecutionRepository @Inject constructor(
         totalTimeMs = null,
         testCount = testNames.size,
         testNames = testNames,
+        testIds = testIds,
         results = emptyList(),
         compileOutput = null,
         problems = emptyList(),
@@ -405,7 +419,7 @@ internal class DefaultExecutionRepository @Inject constructor(
     }
 
     private suspend fun enqueueOffline(prepared: Prepared) {
-        val payload = PendingRunPayload.from(prepared.record.id, prepared.record.mode, prepared.request, prepared.entryFileName)
+        val payload = PendingRunPayload.from(prepared.record.id, prepared.record.mode, prepared.request, prepared.record.testIds, prepared.entryFileName)
         pendingDao.insert(
             PendingRunEntity(prepared.record.id, prepared.record.projectId, json.encodeToString(PendingRunPayload.serializer(), payload), time.now().toEpochMilliseconds()),
         )
