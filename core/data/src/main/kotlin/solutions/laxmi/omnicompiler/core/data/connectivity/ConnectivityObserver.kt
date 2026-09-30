@@ -34,7 +34,8 @@ internal class AndroidConnectivityObserver @Inject constructor(
     override val isOnline: StateFlow<Boolean> = callbackFlow {
         val callback = object : ConnectivityManager.NetworkCallback() {
             override fun onAvailable(network: Network) { trySend(currentlyOnline()) }
-            override fun onLost(network: Network) { trySend(currentlyOnline()) }
+            // During onLost the lost network can still be reported as active; don't count it.
+            override fun onLost(network: Network) { trySend(currentlyOnline(excluding = network)) }
             override fun onCapabilitiesChanged(network: Network, capabilities: NetworkCapabilities) { trySend(currentlyOnline()) }
         }
         val request = NetworkRequest.Builder().addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET).build()
@@ -46,8 +47,9 @@ internal class AndroidConnectivityObserver @Inject constructor(
         .distinctUntilChanged()
         .stateIn(scope, SharingStarted.Eagerly, currentlyOnline())
 
-    private fun currentlyOnline(): Boolean {
-        val capabilities = manager.activeNetwork?.let(manager::getNetworkCapabilities) ?: return false
+    private fun currentlyOnline(excluding: Network? = null): Boolean {
+        val active = manager.activeNetwork?.takeIf { it != excluding } ?: return false
+        val capabilities = manager.getNetworkCapabilities(active) ?: return false
         return capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
             capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
     }

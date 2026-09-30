@@ -90,13 +90,7 @@ internal class LocalProjectRepository @Inject constructor(
 
     override fun observeSummaries(query: String, filter: ProjectFilter): Flow<List<ProjectSummary>> =
         projects.observeSummaries(query.trim()).map { rows ->
-            rows.map { it.toModel() }.filter { summary ->
-                when (filter) {
-                    ProjectFilter.ALL -> true
-                    ProjectFilter.MULTI_FILE -> summary.fileNames.size > 1
-                    ProjectFilter.SCRATCH -> summary.fileNames.size <= 1
-                }
-            }
+            rows.map { it.toModel() }.filter(filter::matches)
         }
 
     override fun observeWorkspace(projectId: String): Flow<ProjectWorkspace?> = combine(
@@ -249,7 +243,7 @@ internal class LocalProjectRepository @Inject constructor(
     override suspend fun deleteTest(testId: String) = tests.delete(testId)
 
     override suspend fun duplicateTest(test: TestCase): TestCase =
-        addTest(test.projectId, TestCaseDraft(test.stdin, test.expected, test.name.ifBlank { "" }.let { if (it.isEmpty()) it else "$it copy" }))
+        addTest(test.projectId, TestCaseDraft(test.stdin, test.expected, if (test.name.isBlank()) "" else "${test.name} copy"))
 
     override suspend fun replaceTests(projectId: String, drafts: List<TestCaseDraft>) {
         tests.replaceAll(projectId, drafts.mapIndexed { i, d -> d.toEntity(projectId, i) })
@@ -271,7 +265,7 @@ internal class LocalProjectRepository @Inject constructor(
         TestCaseEntity(ids.newId(), projectId, name, stdin, expected, position)
 
     private suspend fun uniqueName(base: String): String {
-        val taken = projects.observeSummaries("").first().map { it.name }.toSet()
+        val taken = projects.names().toSet()
         if (base !in taken) return base
         return generateSequence(2) { it + 1 }.map { "$base-$it" }.first { it !in taken }
     }

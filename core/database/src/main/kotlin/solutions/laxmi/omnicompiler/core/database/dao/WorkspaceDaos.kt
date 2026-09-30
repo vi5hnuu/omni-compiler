@@ -36,6 +36,9 @@ interface ProjectDao {
     @Query("SELECT * FROM projects ORDER BY updated_at DESC LIMIT 1")
     suspend fun mostRecent(): ProjectEntity?
 
+    @Query("SELECT name FROM projects")
+    suspend fun names(): List<String>
+
     @Query("SELECT COUNT(*) FROM projects")
     suspend fun count(): Int
 

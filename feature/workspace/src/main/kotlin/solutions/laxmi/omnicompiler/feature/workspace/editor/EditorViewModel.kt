@@ -76,14 +76,27 @@ class EditorViewModel @AssistedInject constructor(
 
     /** Content the editor view currently holds per file; a DB value that differs means an external replace. */
     private val knownContent = mutableMapOf<String, String>()
+
+    /**
+     * Saves still being written per file. While one is in flight, a database emission may carry
+     * older text (read before the write landed) and must not be mistaken for an external replace.
+     * Touched only on the main thread (ViewModel callbacks and viewModelScope).
+     */
+    private val savesInFlight = mutableMapOf<String, Int>()
     private val revisions = MutableStateFlow<Map<String, Int>>(emptyMap())
 
     private val events = Channel<EditorEvent>(Channel.BUFFERED)
     val eventFlow = events.receiveAsFlow()
 
-    // Emits null until a project is resolved so startup errors still reach the UI.
-    private val workspace = projectId
-        .flatMapLatest { id -> id?.let(projects::observeWorkspace) ?: flowOf(null) }
+    /**
+     * The workspace paired with the id it was loaded for. Emits (null, null) until a project is
+     * resolved so startup errors still reach the UI; (id, null) means that project no longer exists.
+     */
+    private val loadedWorkspace = projectId.flatMapLatest { id ->
+        if (id == null) flowOf(null to null) else projects.observeWorkspace(id).map { id to it }
+    }
+
+    private val workspace = loadedWorkspace.map { it.second }
 
     private val runtime = workspace.flatMapLatest { ws ->
         ws?.let { runtimes.observeRuntime(it.project.runtimeId) } ?: flowOf(null)
@@ -92,16 +105,19 @@ class EditorViewModel @AssistedInject constructor(
     private val language = runtime.map { it?.language?.let { base -> runtimes.languageInfo(base) } }
 
     val uiState: StateFlow<EditorUiState> = combine(
-        combine(workspace, runtime, language, ::Triple),
+        combine(loadedWorkspace, runtime, language, ::Triple),
         combine(activeFileId, revisions, startupError, ::Triple),
         settingsRepository.editorSettings,
         auth.session,
         projects.observeSummaries("", ProjectFilter.ALL),
-    ) { (ws, rt, lang), (activeId, revs, error), settings, session, summaries ->
+    ) { (loaded, rt, lang), (activeId, revs, error), settings, session, summaries ->
+        val (loadedId, ws) = loaded
         ws?.files?.forEach(::trackExternalChanges)
+        // A resolved project that reads back as null was deleted while open (e.g. from Projects).
+        val shownError = error ?: PROJECT_DELETED.takeIf { loadedId != null && ws == null }
         EditorUiState(
-            loading = ws == null && error == null,
-            error = error,
+            loading = ws == null && shownError == null,
+            error = shownError,
             workspace = ws,
             runtime = rt,
             language = lang,
@@ -130,7 +146,14 @@ class EditorViewModel @AssistedInject constructor(
 
     fun onContentChanged(fileId: String, text: String) {
         knownContent[fileId] = text
-        viewModelScope.launch { projects.updateFileContent(fileId, text) }
+        savesInFlight[fileId] = (savesInFlight[fileId] ?: 0) + 1
+        viewModelScope.launch {
+            try {
+                projects.updateFileContent(fileId, text)
+            } finally {
+                savesInFlight[fileId] = (savesInFlight[fileId] ?: 1) - 1
+            }
+        }
     }
 
     fun toggleMinimap() = updateSettings { it.copy(minimap = !it.minimap) }
@@ -224,6 +247,7 @@ class EditorViewModel @AssistedInject constructor(
     }
 
     private fun trackExternalChanges(file: SourceFile) {
+        if ((savesInFlight[file.id] ?: 0) > 0) return
         val known = knownContent[file.id]
         if (known == null) {
             knownContent[file.id] = file.content
@@ -235,5 +259,9 @@ class EditorViewModel @AssistedInject constructor(
 
     private fun updateSettings(transform: (EditorSettings) -> EditorSettings) {
         viewModelScope.launch { settingsRepository.updateEditor(transform) }
+    }
+
+    private companion object {
+        const val PROJECT_DELETED = "This project was deleted."
     }
 }

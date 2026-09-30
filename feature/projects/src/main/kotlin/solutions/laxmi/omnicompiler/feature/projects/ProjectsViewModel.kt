@@ -66,22 +66,13 @@ class ProjectsViewModel @Inject constructor(
         combine(runtimes.languages, shortCodes, ::Pair),
         projects.lastProjectId,
     ) { all, q, f, (languages, codes), lastId ->
-        val visible = all.filter { summary ->
-            when (f) {
-                ProjectFilter.ALL -> true
-                ProjectFilter.MULTI_FILE -> summary.fileNames.size > 1
-                ProjectFilter.SCRATCH -> summary.fileNames.size <= 1
-            }
-        }
+        // One query feeds both the visible list and every tab's count.
+        val visible = all.filter(f::matches)
         ProjectsUiState(
             query = q,
             filter = f,
             projects = visible.map { ProjectRowUi(it, codes[it.project.runtimeId.substringBefore('-')] ?: it.project.runtimeId.take(2)) },
-            counts = mapOf(
-                ProjectFilter.ALL to all.size,
-                ProjectFilter.MULTI_FILE to all.count { it.fileNames.size > 1 },
-                ProjectFilter.SCRATCH to all.count { it.fileNames.size <= 1 },
-            ),
+            counts = ProjectFilter.entries.associateWith { filter -> all.count(filter::matches) },
             languages = languages,
             currentProjectId = lastId,
             now = time.now(),

@@ -51,4 +51,12 @@ data class ProjectWorkspace(
 }
 
 /** Filters on the projects screen. */
-enum class ProjectFilter { ALL, MULTI_FILE, SCRATCH }
+enum class ProjectFilter {
+    ALL, MULTI_FILE, SCRATCH;
+
+    fun matches(summary: ProjectSummary): Boolean = when (this) {
+        ALL -> true
+        MULTI_FILE -> summary.fileNames.size > 1
+        SCRATCH -> summary.fileNames.size <= 1
+    }
+}

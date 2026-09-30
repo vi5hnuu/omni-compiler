@@ -59,7 +59,9 @@ internal class DefaultRuntimeRepository @Inject constructor(
 
     private val stats = MutableStateFlow<Map<String, LanguageStat>>(emptyMap())
 
-    @Volatile private var inFlight: Deferred<Outcome<Unit>>? = null
+    /** Guards [inFlight] so concurrent callers can't both see "no request" and start two. */
+    private val inFlightLock = Any()
+    private var inFlight: Deferred<Outcome<Unit>>? = null
 
     private val runtimes: Flow<List<Runtime>> = dao.observeAll().map { rows -> rows.map { it.toModel() } }
 
@@ -83,9 +85,10 @@ internal class DefaultRuntimeRepository @Inject constructor(
 
     /** Screens and startup may ask at the same moment; they all share one in-flight request. */
     override suspend fun refresh(): Outcome<Unit> {
-        val existing = inFlight
-        if (existing != null && existing.isActive) return existing.await()
-        return appScope.async { fetch() }.also { inFlight = it }.await()
+        val request = synchronized(inFlightLock) {
+            inFlight?.takeIf { it.isActive } ?: appScope.async { fetch() }.also { inFlight = it }
+        }
+        return request.await()
     }
 
     private suspend fun fetch(): Outcome<Unit> {

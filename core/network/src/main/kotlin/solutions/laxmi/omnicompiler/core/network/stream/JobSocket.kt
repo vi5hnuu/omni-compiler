@@ -1,7 +1,9 @@
 package solutions.laxmi.omnicompiler.core.network.stream
 
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.buffer
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.serialization.json.Json
 import okhttp3.OkHttpClient
@@ -52,7 +54,9 @@ internal class JobSocket @Inject constructor(
             }
         })
         awaitClose { socket.cancel() }
-    }
+        // trySend on the default 64-slot buffer would silently drop frames of a large run; frames are
+        // bounded by the job's test count, so the buffer below is unbounded.
+    }.buffer(Channel.UNLIMITED)
 
     private fun socketUrl(jobId: String): String {
         val base = BuildConfig.API_BASE_URL.trimEnd('/')

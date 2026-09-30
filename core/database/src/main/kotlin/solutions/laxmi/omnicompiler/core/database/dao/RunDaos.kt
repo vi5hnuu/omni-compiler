@@ -24,13 +24,21 @@ interface RunDao {
     @Query("SELECT * FROM run_results WHERE run_id IN (:runIds) ORDER BY test_index")
     fun observeResults(runIds: List<String>): Flow<List<RunResultEntity>>
 
+    /**
+     * Persists a finished run. A run can outlive its project (deleted while the job was still
+     * executing); it is then dropped instead of violating the runs → projects foreign key.
+     */
     @Transaction
     suspend fun save(run: RunEntity, results: List<RunResultEntity>, keepPerProject: Int) {
+        if (!projectExists(run.projectId)) return
         upsertRun(run)
         deleteResults(run.id)
         insertResults(results)
         trim(run.projectId, keepPerProject)
     }
+
+    @Query("SELECT EXISTS(SELECT 1 FROM projects WHERE id = :projectId)")
+    suspend fun projectExists(projectId: String): Boolean
 
     @Upsert
     suspend fun upsertRun(run: RunEntity)
@@ -135,6 +143,9 @@ interface PendingRunDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(run: PendingRunEntity)
+
+    @Query("SELECT EXISTS(SELECT 1 FROM pending_runs WHERE project_id = :projectId)")
+    suspend fun hasPendingFor(projectId: String): Boolean
 
     @Query("DELETE FROM pending_runs WHERE id = :id")
     suspend fun delete(id: String)

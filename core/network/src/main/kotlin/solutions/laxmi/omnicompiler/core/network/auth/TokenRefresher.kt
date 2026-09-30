@@ -2,6 +2,7 @@ package solutions.laxmi.omnicompiler.core.network.auth
 
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.serialization.SerializationException
 import retrofit2.HttpException
 import solutions.laxmi.omnicompiler.core.common.TimeSource
 import solutions.laxmi.omnicompiler.core.datastore.SessionStore
@@ -42,6 +43,10 @@ class TokenRefresher @Inject internal constructor(
             if (e.code() in DEAD_SESSION_CODES) store.clear()
             null
         } catch (e: IOException) {
+            null
+        } catch (e: SerializationException) {
+            // Malformed body (e.g. a proxy's HTML page). Callers run inside OkHttp interceptors,
+            // where an escaping RuntimeException would crash the app; the session is kept.
             null
         }
     }

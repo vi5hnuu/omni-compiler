@@ -17,6 +17,8 @@ import kotlinx.coroutines.flow.lastOrNull
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.json.Json
 import solutions.laxmi.omnicompiler.core.common.ApplicationScope
 import solutions.laxmi.omnicompiler.core.common.IdGenerator
@@ -108,6 +110,10 @@ internal class DefaultExecutionRepository @Inject constructor(
     private val json = Json { ignoreUnknownKeys = true }
     private val live = MutableStateFlow<Map<String, RunRecord>>(emptyMap())
     private val trackers = ConcurrentHashMap<String, Job>()
+    private val sendMutex = Mutex()
+
+    /** Run ids the user stopped while their submit request was still in flight. */
+    private val stoppedWhileSubmitting: MutableSet<String> = ConcurrentHashMap.newKeySet()
 
     override val rateLimit: StateFlow<RateLimitSnapshot?> = rateLimitTracker.snapshot
 
@@ -132,7 +138,11 @@ internal class DefaultExecutionRepository @Inject constructor(
     }
 
     override suspend fun run(projectId: String, options: RunOptions): Outcome<Unit> {
+        // One run per project at a time: an offline-queued run counts, so it can't be overtaken later.
         if (live.value[projectId]?.phase?.isActive == true) return Outcome.Failure(AppError.Conflict("A run is already in progress."))
+        if (pendingDao.hasPendingFor(projectId)) {
+            return Outcome.Failure(AppError.Conflict("A run is waiting to be sent. Send it now or cancel it first."))
+        }
         val prepared = when (val result = prepare(projectId, options)) {
             is Outcome.Failure -> return result
             is Outcome.Success -> result.value
@@ -150,7 +160,11 @@ internal class DefaultExecutionRepository @Inject constructor(
         val record = live.value[projectId] ?: return
         when (record.phase) {
             RunPhase.QUEUED_OFFLINE -> cancelPending(record.id)
-            RunPhase.SUBMITTING -> finish(record.copy(phase = RunPhase.CANCELLED), diagnostic = null, cancelTracker = true)
+            RunPhase.SUBMITTING -> {
+                // The request may still be accepted; submitAndTrack withdraws the job when it returns.
+                stoppedWhileSubmitting += record.id
+                finish(record.copy(phase = RunPhase.CANCELLED), diagnostic = null, cancelTracker = true)
+            }
             RunPhase.PENDING -> {
                 val jobId = record.jobId ?: return
                 when (val result = network.cancel(jobId)) {
@@ -169,9 +183,15 @@ internal class DefaultExecutionRepository @Inject constructor(
         runDao.clear(projectId)
     }
 
-    override suspend fun sendPendingRuns(force: Boolean): Boolean {
+    /** The worker and "Send now" may both fire; sending the same queued run twice must not happen. */
+    override suspend fun sendPendingRuns(force: Boolean): Boolean = sendMutex.withLock { sendQueued(force) }
+
+    private suspend fun sendQueued(force: Boolean): Boolean {
         if (!force && !preferences.runSettings.first().sendQueuedWhenOnline) return true
         for (row in pendingDao.all()) {
+            // A different run already owns this project's console; send this one on the next pass.
+            val current = live.value[row.projectId]
+            if (current != null && current.id != row.id && current.phase.isActive) continue
             val payload = decode(row.payload)
             if (payload == null) {
                 pendingDao.delete(row.id)
@@ -182,7 +202,11 @@ internal class DefaultExecutionRepository @Inject constructor(
             val prepared = Prepared(record.copy(phase = RunPhase.SUBMITTING), payload.toRequest(), payload.entryFileName)
             publish(prepared.record)
             val result = submitAndTrack(prepared, fromQueue = true)
-            if (result is Outcome.Failure && result.error.isConnectivity()) return false
+            if (result is Outcome.Failure && result.error.isConnectivity()) {
+                // Still queued: an active SUBMITTING phase would otherwise block new runs of the project.
+                publish(record.copy(phase = RunPhase.QUEUED_OFFLINE))
+                return false
+            }
             pendingDao.delete(row.id)
         }
         return true
@@ -278,6 +302,8 @@ internal class DefaultExecutionRepository @Inject constructor(
         val submitted = when (val result = network.submit(prepared.request)) {
             is Outcome.Success -> result.value
             is Outcome.Failure -> {
+                // Already recorded as CANCELLED by stop(): neither queue it nor report a failure.
+                if (stoppedWhileSubmitting.remove(prepared.record.id)) return Outcome.Success(Unit)
                 if (result.error.isConnectivity() && !fromQueue) {
                     enqueueOffline(prepared)
                     return Outcome.Success(Unit)
@@ -287,6 +313,11 @@ internal class DefaultExecutionRepository @Inject constructor(
                 }
                 return result
             }
+        }
+        if (stoppedWhileSubmitting.remove(prepared.record.id)) {
+            // Stopped mid-request: withdraw the accepted job (a 409 means a worker already took it).
+            network.cancel(submitted.jobId)
+            return Outcome.Success(Unit)
         }
         runtimes.markUsed(prepared.request.runtimeId)
         val accepted = prepared.record.copy(phase = RunPhase.PENDING, jobId = submitted.jobId, fromCache = submitted.servedFromCache)
