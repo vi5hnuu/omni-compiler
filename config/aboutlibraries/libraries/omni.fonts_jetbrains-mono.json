@@ -1,0 +1,15 @@
+{
+ "uniqueId": "omni.fonts:jetbrains-mono",
+ "name": "JetBrains Mono",
+ "artifactVersion": "",
+ "description": "Code typeface.",
+ "website": "https://github.com/JetBrains/JetBrainsMono",
+ "developers": [
+  {
+   "name": "JetBrains"
+  }
+ ],
+ "licenses": [
+  "OFL-1.1"
+ ]
+}

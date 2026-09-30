@@ -1,12 +1,9 @@
-# Add project specific R8 rules here.
-# AGP will combine all keep rule files in src/main/keepRules to pass to R8
-#
-# For more details, see
-#   https://d.android.com/r/tools/r8/keep-rules
+# LGPL-2.1 §6: users must be able to replace Sora Editor with a modified build and relink the app.
+# Keep the library (and the EPL-2.0 tm4e code it embeds) unobfuscated so its API stays addressable.
+-keep class io.github.rosemoe.sora.** { *; }
+-keep interface io.github.rosemoe.sora.** { *; }
+-keep class org.eclipse.tm4e.** { *; }
 
-# If your project uses WebView with JS, uncomment the following
-# and specify the fully qualified class name to the JavaScript interface
-# class:
-#-keepclassmembers class fqcn.of.javascript.interface.for.webview {
-#   public *;
-#}
+# Kept Sora code references a Kotlin compatibility shim (interface DefaultImpls) that newer
+# stdlibs no longer ship; it is only reachable from Java callers of ShareableData.clone(), which we don't have.
+-dontwarn kotlin.Cloneable$DefaultImpls

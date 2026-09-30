@@ -10,3 +10,7 @@ android {
 dependencies {
     implementation(projects.core.editor)
 }
+
+dependencies {
+    implementation(libs.aboutlibraries.core)
+}

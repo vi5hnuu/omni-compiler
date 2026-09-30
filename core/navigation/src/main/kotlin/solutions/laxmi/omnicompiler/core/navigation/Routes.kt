@@ -33,3 +33,4 @@ import kotlinx.serialization.Serializable
 @Serializable data object DeveloperRoute : Route
 @Serializable data object SettingsRoute : Route
 @Serializable data object AppearanceRoute : Route
+@Serializable data object OpenSourceRoute : Route

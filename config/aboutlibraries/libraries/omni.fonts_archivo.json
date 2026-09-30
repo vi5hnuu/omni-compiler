@@ -1,0 +1,15 @@
+{
+ "uniqueId": "omni.fonts:archivo",
+ "name": "Archivo",
+ "artifactVersion": "",
+ "description": "UI typeface.",
+ "website": "https://github.com/Omnibus-Type/Archivo",
+ "developers": [
+  {
+   "name": "Omnibus-Type"
+  }
+ ],
+ "licenses": [
+  "OFL-1.1"
+ ]
+}

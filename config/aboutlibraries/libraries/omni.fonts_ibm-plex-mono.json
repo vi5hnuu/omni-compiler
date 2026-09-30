@@ -1,0 +1,15 @@
+{
+ "uniqueId": "omni.fonts:ibm-plex-mono",
+ "name": "IBM Plex Mono",
+ "artifactVersion": "",
+ "description": "Code typeface.",
+ "website": "https://github.com/IBM/plex",
+ "developers": [
+  {
+   "name": "IBM"
+  }
+ ],
+ "licenses": [
+  "OFL-1.1"
+ ]
+}

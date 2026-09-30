@@ -1,0 +1,15 @@
+{
+ "uniqueId": "omni.textmate:tm-grammars",
+ "name": "TextMate grammars (tm-grammars)",
+ "artifactVersion": "1.32.22",
+ "description": "Syntax grammars for 46 languages; each keeps its original MIT, BSD or Apache-2.0 license (see NOTICE in the app assets).",
+ "website": "https://github.com/shikijs/textmate-grammars-themes",
+ "developers": [
+  {
+   "name": "Shiki contributors and grammar authors"
+  }
+ ],
+ "licenses": [
+  "MIT"
+ ]
+}

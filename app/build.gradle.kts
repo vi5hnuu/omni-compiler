@@ -2,6 +2,15 @@ plugins {
     alias(libs.plugins.omni.android.application)
     alias(libs.plugins.omni.android.compose)
     alias(libs.plugins.omni.hilt)
+    alias(libs.plugins.aboutlibraries.android)
+}
+
+// Open-source notices are generated from dependency metadata at build time (res/raw/aboutlibraries.json);
+// components Gradle can't see (fonts, embedded tm4e, TextMate grammars) are declared in config/aboutlibraries.
+aboutLibraries {
+    collect {
+        configPath = rootProject.file("config/aboutlibraries")
+    }
 }
 
 android {

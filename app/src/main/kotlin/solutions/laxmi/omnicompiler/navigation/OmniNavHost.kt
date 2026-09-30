@@ -14,6 +14,7 @@ import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
 import solutions.laxmi.omnicompiler.AuthGate
+import solutions.laxmi.omnicompiler.R
 import solutions.laxmi.omnicompiler.core.designsystem.theme.OmniTheme
 import solutions.laxmi.omnicompiler.core.navigation.CheckInboxRoute
 import solutions.laxmi.omnicompiler.core.navigation.EditorRoute
@@ -63,7 +64,7 @@ fun OmniNavHost(gate: AuthGate, appVersion: String) {
             historyEntries(navigator)
             accountEntries(navigator)
             developerEntries(navigator)
-            settingsEntries(navigator, appVersion)
+            settingsEntries(navigator, appVersion, R.raw.aboutlibraries)
         },
     )
 }

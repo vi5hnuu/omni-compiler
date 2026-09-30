@@ -1,0 +1,15 @@
+{
+ "uniqueId": "org.eclipse.tm4e:tm4e",
+ "name": "Eclipse tm4e",
+ "artifactVersion": "embedded in language-textmate 0.24.6",
+ "description": "TextMate grammar engine, embedded in Sora Editor's language-textmate module.",
+ "website": "https://github.com/eclipse/tm4e",
+ "developers": [
+  {
+   "name": "Eclipse Foundation"
+  }
+ ],
+ "licenses": [
+  "EPL-2.0"
+ ]
+}

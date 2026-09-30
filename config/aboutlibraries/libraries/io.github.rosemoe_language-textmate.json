@@ -1,0 +1,18 @@
+{
+ "uniqueId": "io.github.rosemoe:language-textmate",
+ "artifactVersion": "0.24.6",
+ "name": "Sora Editor (language-textmate)",
+ "description": "TextMate language support for Sora Editor. Used unmodified; corresponding source is at the linked tag.",
+ "website": "https://github.com/Rosemoe/sora-editor",
+ "scm": {
+  "url": "https://github.com/Rosemoe/sora-editor/tree/0.24.6"
+ },
+ "developers": [
+  {
+   "name": "Rosemoe and contributors"
+  }
+ ],
+ "licenses": [
+  "LGPL-2.1-only"
+ ]
+}

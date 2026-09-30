@@ -1,0 +1,15 @@
+{
+ "uniqueId": "omni.fonts:fira-code",
+ "name": "Fira Code",
+ "artifactVersion": "",
+ "description": "Code typeface.",
+ "website": "https://github.com/tonsky/FiraCode",
+ "developers": [
+  {
+   "name": "Nikita Prokopov"
+  }
+ ],
+ "licenses": [
+  "OFL-1.1"
+ ]
+}

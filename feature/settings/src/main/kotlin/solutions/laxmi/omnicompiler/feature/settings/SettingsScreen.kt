@@ -39,6 +39,7 @@ import solutions.laxmi.omnicompiler.core.model.EditorSettings
 import solutions.laxmi.omnicompiler.core.model.Limits
 import solutions.laxmi.omnicompiler.core.navigation.AppearanceRoute
 import solutions.laxmi.omnicompiler.core.navigation.Navigator
+import solutions.laxmi.omnicompiler.core.navigation.OpenSourceRoute
 import solutions.laxmi.omnicompiler.core.navigation.ProfileRoute
 import solutions.laxmi.omnicompiler.core.navigation.WelcomeRoute
 import solutions.laxmi.omnicompiler.core.ui.LanguageTile
@@ -52,7 +53,6 @@ fun SettingsScreen(navigator: Navigator, appVersion: String) {
     val context = LocalContext.current
     var pickingDefault by rememberSaveable { mutableStateOf(false) }
     var editingLimits by rememberSaveable { mutableStateOf(false) }
-    var showingLicenses by rememberSaveable { mutableStateOf(false) }
     val colors = OmniTheme.colors
     val editor = state.editor
     val defaultRuntime = state.run.defaultRuntimeId
@@ -106,7 +106,7 @@ fun SettingsScreen(navigator: Navigator, appVersion: String) {
             SectionLabel("About")
             OmniListRow("Privacy policy", trailing = { Icon(OmniIcons.ExternalLink, null, tint = colors.textTertiary) }, onClick = { context.openUrl(viewModel.config.privacyPolicyUrl) })
             OmniListRow("Terms of service", trailing = { Icon(OmniIcons.ExternalLink, null, tint = colors.textTertiary) }, onClick = { context.openUrl(viewModel.config.termsUrl) })
-            OmniListRow("Open-source notices", trailing = { Chevron() }, onClick = { showingLicenses = true })
+            OmniListRow("Open-source licenses", trailing = { Chevron() }, onClick = { navigator.navigate(OpenSourceRoute) })
             OmniListRow("Version", trailing = { Text(appVersion, style = OmniTheme.typography.mono, color = colors.textTertiary) })
         }
     }
@@ -148,23 +148,6 @@ fun SettingsScreen(navigator: Navigator, appVersion: String) {
             editingLimits = false
         }
     }
-    if (showingLicenses) {
-        AlertDialog(
-            onDismissRequest = { showingLicenses = false },
-            shape = RectangleShape,
-            containerColor = colors.surfaceRaised,
-            title = { Text("Open-source notices", style = OmniTheme.typography.title, color = colors.textPrimary) },
-            text = {
-                Text(
-                    OPEN_SOURCE_NOTICES,
-                    style = OmniTheme.typography.bodySmall,
-                    color = colors.textSecondary,
-                    modifier = Modifier.verticalScroll(rememberScrollState()),
-                )
-            },
-            confirmButton = { OmniTextButton("Close", { showingLicenses = false }, color = colors.textSecondary) },
-        )
-    }
 }
 
 @Composable
@@ -197,13 +180,3 @@ private fun LimitsDialog(current: Limits, onDismiss: () -> Unit, onSave: (Limits
         dismissButton = { OmniTextButton("Cancel", onDismiss, color = OmniTheme.colors.textSecondary) },
     )
 }
-
-private val OPEN_SOURCE_NOTICES = """
-    Fonts: Archivo, JetBrains Mono, Fira Code and IBM Plex Mono are licensed under the SIL Open Font License 1.1.
-
-    Code editor: Sora Editor (LGPL-2.1) with TextMate support from Eclipse tm4e (EPL-2.0).
-
-    Syntax grammars: from the tm-grammars collection; each grammar keeps its original MIT, BSD or Apache-2.0 license.
-
-    Libraries: AndroidX, Jetpack Compose, Kotlin, kotlinx, OkHttp, Retrofit, Dagger/Hilt, Tink and Coil are licensed under Apache-2.0.
-""".trimIndent()
