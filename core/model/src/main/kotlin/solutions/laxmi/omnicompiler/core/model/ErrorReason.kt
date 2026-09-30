@@ -25,6 +25,12 @@ sealed interface ErrorReason {
 
     // Projects and files
     data object ProjectNotFound : ErrorReason
+    /** The projects folder on device storage can't be reached (access revoked, folder deleted, storage error). */
+    data object ProjectsFolderUnavailable : ErrorReason
+    /** An imported folder or file had nothing that can be edited as source (empty, binary, too large). */
+    data object NothingToImport : ErrorReason
+    /** No runtime matches the imported file's extension. */
+    data class UnknownFileLanguage(val fileName: String) : ErrorReason
     data object FileNotFound : ErrorReason
     data object EntryFileMissing : ErrorReason
     data object EntryNamedByRuntime : ErrorReason

@@ -35,6 +35,12 @@ interface ProjectDao {
     @Query("SELECT * FROM projects WHERE id = :id")
     suspend fun get(id: String): ProjectEntity?
 
+    @Query("SELECT * FROM projects")
+    suspend fun all(): List<ProjectEntity>
+
+    @Query("UPDATE projects SET folder_doc_id = :folderDocId WHERE id = :id")
+    suspend fun setFolder(id: String, folderDocId: String)
+
     @Query("SELECT * FROM projects ORDER BY updated_at DESC LIMIT 1")
     suspend fun mostRecent(): ProjectEntity?
 
@@ -68,6 +74,9 @@ interface FileDao {
     @Query("SELECT * FROM files WHERE project_id = :projectId ORDER BY is_entry DESC, position")
     suspend fun list(projectId: String): List<FileEntity>
 
+    @Query("SELECT * FROM files WHERE id = :id")
+    suspend fun get(id: String): FileEntity?
+
     @Query("SELECT COALESCE(MAX(position), -1) + 1 FROM files WHERE project_id = :projectId")
     suspend fun nextPosition(projectId: String): Int
 
@@ -85,6 +94,16 @@ interface FileDao {
     @Query("UPDATE files SET content = :content, content_version = content_version + 1 WHERE id = :id")
     suspend fun replaceContent(id: String, content: String)
 
+    /** Records what the file looks like on disk after the app wrote it (or found it unchanged). */
+    @Query("UPDATE files SET doc_id = :docId, last_modified = :lastModified, size = :size WHERE id = :id")
+    suspend fun setDiskState(id: String, docId: String, lastModified: Long, size: Long)
+
+    @Upsert
+    suspend fun upsertAll(files: List<FileEntity>)
+
+    @Query("DELETE FROM files WHERE id IN (:ids)")
+    suspend fun deleteAll(ids: List<String>)
+
     @Query("UPDATE files SET name = :name WHERE id = :id")
     suspend fun rename(id: String, name: String)
 
@@ -96,6 +115,9 @@ interface FileDao {
 interface TestCaseDao {
     @Query("SELECT * FROM test_cases WHERE project_id = :projectId ORDER BY position")
     suspend fun list(projectId: String): List<TestCaseEntity>
+
+    @Query("SELECT * FROM test_cases WHERE id = :id")
+    suspend fun get(id: String): TestCaseEntity?
 
     @Query("SELECT COALESCE(MAX(position), -1) + 1 FROM test_cases WHERE project_id = :projectId")
     suspend fun nextPosition(projectId: String): Int

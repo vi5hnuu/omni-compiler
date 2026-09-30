@@ -2,7 +2,7 @@
  "uniqueId": "omni.textmate:tm-grammars",
  "name": "TextMate grammars (tm-grammars)",
  "artifactVersion": "1.32.22",
- "description": "Syntax grammars for 46 languages; each keeps its original MIT, BSD or Apache-2.0 license (see NOTICE in the app assets).",
+ "description": "Syntax grammars for 59 languages and file types; each keeps its original license (MIT, BSD-3-Clause, Apache-2.0 or the TextMate bundle license). The full per-grammar list is in the app's textmate/NOTICE.txt.",
  "website": "https://github.com/shikijs/textmate-grammars-themes",
  "developers": [
   {
@@ -10,6 +10,8 @@
   }
  ],
  "licenses": [
-  "MIT"
+  "MIT",
+  "Apache-2.0",
+  "BSD-3-Clause"
  ]
 }

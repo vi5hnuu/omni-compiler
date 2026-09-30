@@ -88,14 +88,15 @@ object EditorLanguages {
     fun grammarFor(fileName: String, languageBase: String?, isEntry: Boolean): GrammarId? {
         val ext = fileName.substringAfterLast('.', "").lowercase()
         val byBase = languageBase?.let { BASE_TO_GRAMMAR[it] }
-        val byExt = EXTENSION_TO_GRAMMAR[ext]
+        // Some files are known by their whole name rather than an extension (Makefile, Dockerfile).
+        val byExt = NAME_TO_GRAMMAR[fileName.lowercase()] ?: EXTENSION_TO_GRAMMAR[ext]
         val name = if (isEntry) byBase ?: byExt else byExt ?: if (ext in PLAIN_EXTENSIONS) null else byBase
         return name?.let { SCOPES[it] }?.let(::GrammarId)
     }
 
     private const val INDEX = "textmate/languages.json"
 
-    private val PLAIN_EXTENSIONS = setOf("txt", "in", "out", "csv", "tsv", "dat", "md", "json")
+    private val PLAIN_EXTENSIONS = setOf("txt", "in", "out", "csv", "tsv", "dat")
 
     /** Grammar file name → scope, matching `textmate/languages.json`. */
     private val SCOPES = mapOf(
@@ -111,6 +112,10 @@ object EditorLanguages {
         "ruby" to "source.ruby", "rust" to "source.rust", "scala" to "source.scala", "smalltalk" to "source.smalltalk.gnu",
         "sql" to "source.sql", "swift" to "source.swift", "typescript" to "source.ts", "v" to "source.v",
         "wasm" to "source.wat", "zig" to "source.zig",
+        "elixir" to "source.elixir", "nim" to "source.nim", "matlab" to "source.matlab", "html" to "text.html.basic",
+        "css" to "source.css", "markdown" to "text.html.markdown", "json" to "source.json", "yaml" to "source.yaml",
+        "xml" to "text.xml", "toml" to "source.toml", "make" to "source.makefile", "docker" to "source.dockerfile",
+        "ini" to "source.ini",
     )
 
     /** ls-judge language family → grammar. Families without a permissive grammar are absent (plain text). */
@@ -124,6 +129,8 @@ object EditorLanguages {
         "php" to "php", "powershell" to "powershell", "prolog" to "prolog", "python" to "python", "pypy" to "python",
         "r" to "r", "raku" to "raku", "ruby" to "ruby", "rust" to "rust", "scala" to "scala", "smalltalk" to "smalltalk",
         "sqlite" to "sql", "swift" to "swift", "typescript" to "typescript", "vlang" to "v", "wasm" to "wasm", "zig" to "zig",
+        // Racket and Octave borrow their closest permissively licensed grammars (Scheme, MATLAB).
+        "elixir" to "elixir", "nim" to "nim", "octave" to "matlab", "racket" to "scheme",
     )
 
     private val EXTENSION_TO_GRAMMAR = mapOf(
@@ -140,5 +147,13 @@ object EditorLanguages {
         "pas" to "pascal", "pp" to "pascal", "ps1" to "powershell", "pro" to "prolog", "raku" to "raku", "rakumod" to "raku",
         "p6" to "raku", "st" to "smalltalk", "v" to "v", "wat" to "wasm", "wast" to "wasm", "zig" to "zig", "awk" to "awk",
         "cob" to "cobol", "cbl" to "cobol",
+        "ex" to "elixir", "exs" to "elixir", "nim" to "nim", "nims" to "nim", "m" to "matlab", "rkt" to "scheme",
+        "html" to "html", "htm" to "html", "css" to "css", "md" to "markdown", "markdown" to "markdown",
+        "json" to "json", "yaml" to "yaml", "yml" to "yaml", "xml" to "xml", "svg" to "xml", "toml" to "toml",
+        "mk" to "make", "ini" to "ini", "cfg" to "ini", "dockerfile" to "docker",
+    )
+
+    private val NAME_TO_GRAMMAR = mapOf(
+        "makefile" to "make", "gnumakefile" to "make", "dockerfile" to "docker",
     )
 }

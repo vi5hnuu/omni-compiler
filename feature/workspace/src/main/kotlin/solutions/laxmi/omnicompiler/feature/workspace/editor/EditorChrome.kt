@@ -198,53 +198,6 @@ internal fun Breadcrumb(fileName: String) {
     }
 }
 
-/** Inline find bar replacing the breadcrumb while searching. */
-@Composable
-internal fun FindBar(state: CodeEditorState, onClose: () -> Unit) {
-    val colors = OmniTheme.colors
-    var query by remember { mutableStateOf("") }
-    val focus = remember { FocusRequester() }
-    LaunchedEffect(Unit) { focus.requestFocus() }
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .height(40.dp)
-            .background(colors.surface)
-            .drawBehind { drawLine(colors.divider, Offset(0f, size.height - 0.5f), Offset(size.width, size.height - 0.5f), 1f) }
-            .padding(start = 12.dp, end = 4.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Icon(OmniIcons.Search, null, tint = colors.textTertiary, modifier = Modifier.size(14.dp))
-        BasicTextField(
-            value = query,
-            onValueChange = {
-                query = it
-                state.search(it)
-            },
-            singleLine = true,
-            textStyle = OmniTheme.typography.mono.copy(color = colors.textPrimary),
-            cursorBrush = SolidColor(colors.accent),
-            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-            keyboardActions = KeyboardActions(onSearch = { state.findNext() }),
-            modifier = Modifier.weight(1f).padding(horizontal = 10.dp).focusRequester(focus),
-            decorationBox = { inner ->
-                if (query.isEmpty()) Text(stringResource(R.string.editor_find_placeholder), style = OmniTheme.typography.mono, color = colors.textTertiary)
-                inner()
-            },
-        )
-        if (query.isNotEmpty()) {
-            val label = if (state.searchMatches == 0) "0" else stringResource(R.string.editor_find_count, state.searchIndex + 1, state.searchMatches)
-            Text(label, style = OmniTheme.typography.monoSmall, color = colors.textTertiary)
-        }
-        OmniIconButton(OmniIcons.ChevronUp, stringResource(R.string.editor_previous_match), state::findPrevious, iconSize = 15.dp)
-        OmniIconButton(OmniIcons.ChevronDown, stringResource(R.string.editor_next_match), state::findNext, iconSize = 15.dp)
-        OmniIconButton(OmniIcons.Close, stringResource(R.string.editor_close_find), {
-            state.stopSearch()
-            onClose()
-        }, iconSize = 15.dp)
-    }
-}
-
 /** 20 dp status line: cursor, indentation, encoding and problem count. */
 @Composable
 internal fun EditorStatusBar(state: CodeEditorState, tabSize: Int, problems: Int) {

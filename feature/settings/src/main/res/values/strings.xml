@@ -63,4 +63,13 @@
     <string name="oss_view_source">View source</string>
     <string name="oss_source_website">Source / website</string>
     <string name="oss_read_license">Read license</string>
+    <string name="settings_storage">Storage</string>
+    <string name="settings_projects_folder">Projects folder</string>
+    <string name="settings_projects_folder_none">Not chosen</string>
+    <string name="settings_sticky_scroll">Sticky scroll</string>
+    <string name="settings_sticky_scroll_note">Keep the current function or block header in view while scrolling</string>
+    <string name="settings_invisibles">Show spaces and tabs</string>
+    <string name="settings_invisibles_note">Mark leading and trailing whitespace</string>
+    <string name="settings_hardware_keyboard">Hide on-screen keyboard</string>
+    <string name="settings_hardware_keyboard_note">When a hardware keyboard is connected</string>
 </resources>

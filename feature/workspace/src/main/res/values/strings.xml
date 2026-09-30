@@ -280,4 +280,30 @@
     </plurals>
     <string name="editor_run_hint_last">last %1$s</string>
     <string name="editor_run_hint_last_failed">last %1$s #%2$d</string>
+    <string name="editor_menu_save_to_origin">Save to original file</string>
+    <string name="editor_saved_to_origin">Saved to the original file</string>
+    <string name="editor_find_invalid">bad regex</string>
+    <string name="editor_find_more">Replace and options</string>
+    <string name="editor_find_case">Match case</string>
+    <string name="editor_find_whole_word">Whole word</string>
+    <string name="editor_find_regex">Regular expression</string>
+    <string name="editor_replace_placeholder">Replace with</string>
+    <string name="editor_replace">Replace</string>
+    <string name="editor_replace_all">All</string>
+    <string name="editor_go_to_line">Go to line</string>
+    <string name="editor_go_to_line_hint">1–%1$d</string>
+    <string name="editor_go">Go</string>
+    <string name="editor_shortcuts">Keyboard shortcuts</string>
+    <string name="editor_menu_find_replace">Find and replace</string>
+    <string name="shortcut_run">Run tests</string>
+    <string name="shortcut_save">Save now</string>
+    <string name="shortcut_find">Find</string>
+    <string name="shortcut_replace">Find and replace</string>
+    <string name="shortcut_go_to_line">Go to line</string>
+    <string name="shortcut_comment">Toggle comment</string>
+    <string name="shortcut_duplicate">Duplicate line</string>
+    <string name="shortcut_delete_line">Delete line</string>
+    <string name="shortcut_move_line">Move line up or down</string>
+    <string name="shortcut_undo_redo">Undo / redo</string>
+    <string name="shortcut_clipboard">Select all, copy, cut, paste</string>
 </resources>

@@ -25,7 +25,7 @@ import androidx.compose.ui.unit.sp
 import solutions.laxmi.omnicompiler.core.designsystem.theme.OmniDimens
 import solutions.laxmi.omnicompiler.core.designsystem.theme.OmniTheme
 
-/** Keys shown above the soft keyboard (design E2); Tab first, then the design's set, then extras on scroll. */
+/** Keys shown above the soft keyboard (design E2): caret and line keys, Tab, then the design's symbols (scrolls). */
 private val Symbols = listOf("{", "}", "(", ")", "[", "]", ";", "\"", "<", ">", "=", "&", "|", ":", ",", ".", "'", "+", "-", "*", "/", "%", "!", "#", "_", "\\")
 
 @Composable
@@ -39,7 +39,16 @@ fun SymbolRow(state: CodeEditorState, modifier: Modifier = Modifier) {
             .drawBehind { drawLine(colors.border, Offset(0f, 0f), Offset(size.width, 0f), 1f) }
             .horizontalScroll(rememberScrollState()),
     ) {
-        SymbolKey("⇥", width = 44, highlighted = true, description = stringResource(R.string.editor_key_tab)) { state.indent() }
+        // Soft keyboards have no arrow keys; precise caret moves and line edits are the most requested extras.
+        SymbolKey("◀", width = 36, highlighted = true, description = stringResource(R.string.editor_key_left)) { state.moveCaret(CaretDirection.Left) }
+        SymbolKey("▶", width = 36, highlighted = true, description = stringResource(R.string.editor_key_right)) { state.moveCaret(CaretDirection.Right) }
+        SymbolKey("▲", width = 36, highlighted = true, description = stringResource(R.string.editor_key_up)) { state.moveCaret(CaretDirection.Up) }
+        SymbolKey("▼", width = 36, highlighted = true, description = stringResource(R.string.editor_key_down)) { state.moveCaret(CaretDirection.Down) }
+        SymbolKey("⇥", width = 40, highlighted = true, description = stringResource(R.string.editor_key_tab)) { state.indent() }
+        SymbolKey("//", width = 40, highlighted = true, description = stringResource(R.string.editor_key_comment)) { state.toggleComment() }
+        SymbolKey("⤒", width = 36, highlighted = true, description = stringResource(R.string.editor_key_line_up)) { state.moveLines(up = true) }
+        SymbolKey("⤓", width = 36, highlighted = true, description = stringResource(R.string.editor_key_line_down)) { state.moveLines(up = false) }
+        SymbolKey("⧉", width = 36, highlighted = true, description = stringResource(R.string.editor_key_duplicate)) { state.duplicateLine() }
         Symbols.forEach { symbol -> SymbolKey(symbol, width = 34) { state.insert(symbol) } }
     }
 }

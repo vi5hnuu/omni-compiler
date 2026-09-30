@@ -72,6 +72,9 @@ data class EditorDocument(
     val fileName: String,
     val languageBase: String?,
     val isEntry: Boolean,
+    /** Comment syntax used by "toggle comment"; null tokens disable it. */
+    val lineComment: String? = null,
+    val blockComment: Pair<String, String>? = null,
 ) {
     internal val key: String get() = "$id@$revision"
 }
@@ -184,7 +187,8 @@ private fun createEditor(context: Context, state: CodeEditorState, onRunShortcut
         setScalable(false)
         props.symbolPairAutoCompletion = true
         props.autoIndent = true
-        props.stickyScroll = false
+        // Tapping a line number selects the whole line, like desktop editors.
+        props.actionWhenLineNumberClicked = io.github.rosemoe.sora.widget.DirectAccessProps.LN_ACTION_SELECT_LINE
         props.overScrollEnabled = false
         getComponent(EditorAutoCompletion::class.java).setEnabledAnimation(false)
         registerInlayHintRenderer(TextInlayHintRenderer.DefaultInstance)
@@ -213,10 +217,21 @@ private fun createEditor(context: Context, state: CodeEditorState, onRunShortcut
             state.searchIndex = searcher.currentMatchedPositionIndex
         }
         subscribeEvent(EditorKeyEvent::class.java) { event, _ ->
-            if (event.eventType == EditorKeyEvent.Type.DOWN && event.isCtrlPressed && event.keyCode == KeyEvent.KEYCODE_ENTER) {
-                onRunShortcut()
-                event.markAsConsumed()
+            if (event.eventType != EditorKeyEvent.Type.DOWN) return@subscribeEvent
+            // Shortcuts Sora doesn't have; its own (Ctrl+A/C/X/V/Z/Y/D, Ctrl+Shift+arrows) keep working.
+            val handled = when {
+                event.isCtrlPressed && event.keyCode == KeyEvent.KEYCODE_ENTER -> onRunShortcut().let { true }
+                event.isCtrlPressed && event.keyCode == KeyEvent.KEYCODE_S -> state.flush().let { true }
+                event.isCtrlPressed && event.keyCode == KeyEvent.KEYCODE_F -> state.raise(EditorCommand.Find).let { true }
+                event.isCtrlPressed && event.keyCode == KeyEvent.KEYCODE_H -> state.raise(EditorCommand.Replace).let { true }
+                event.isCtrlPressed && event.keyCode == KeyEvent.KEYCODE_G -> state.raise(EditorCommand.GoToLine).let { true }
+                event.isCtrlPressed && event.keyCode == KeyEvent.KEYCODE_SLASH -> state.toggleComment().let { true }
+                event.isAltPressed && event.keyCode == KeyEvent.KEYCODE_DPAD_UP -> state.moveLines(up = true).let { true }
+                event.isAltPressed && event.keyCode == KeyEvent.KEYCODE_DPAD_DOWN -> state.moveLines(up = false).let { true }
+                event.isCtrlPressed && event.isShiftPressed && event.keyCode == KeyEvent.KEYCODE_K -> state.deleteLines().let { true }
+                else -> false
             }
+            if (handled) event.markAsConsumed()
         }
         subscribeEvent(InlayHintClickEvent::class.java) { event, _ ->
             onLineHintClick()
@@ -266,6 +281,15 @@ private fun CodeEditor.applySettings(context: Context, settings: EditorSettings,
     (editorLanguage as? TextMateLanguage)?.let { it.tabSize = settings.tabSize; it.isAutoCompleteEnabled = settings.autocomplete }
     getComponent(EditorAutoCompletion::class.java).isEnabled = settings.autocomplete
     if (isWordwrap != settings.wordWrap) setWordwrap(settings.wordWrap)
+    setNonPrintablePaintingFlags(
+        if (settings.showInvisibles) {
+            CodeEditor.FLAG_DRAW_WHITESPACE_LEADING or CodeEditor.FLAG_DRAW_WHITESPACE_TRAILING or CodeEditor.FLAG_DRAW_TAB_SAME_AS_SPACE
+        } else {
+            0
+        },
+    )
+    props.stickyScroll = settings.stickyScroll
+    setDisableSoftKbdIfHardKbdAvailable(settings.hardwareKeyboardOnly)
 
     val themes = ThemeRegistry.getInstance()
     themes.setTheme(settings.theme.name)
@@ -324,6 +348,7 @@ private fun CodeEditor.bindDocument(state: CodeEditorState, document: EditorDocu
     state.flush()
     setTag(R.id.omni_editor_document, document.key)
     state.boundDocumentId = document.id
+    state.commentStyle = CommentStyle(document.lineComment, document.blockComment)
     val previous = editorLanguage
     setEditorLanguage(grammar?.let { TextMateLanguage.create(it.scopeName, true) } ?: EmptyLanguage())
     (previous as? TextMateLanguage)?.destroy()

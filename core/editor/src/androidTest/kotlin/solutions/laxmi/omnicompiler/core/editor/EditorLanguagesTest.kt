@@ -18,6 +18,7 @@ class EditorLanguagesTest {
             "a.erl", "a.f90", "a.fs", "a.go", "a.groovy", "a.scm", "a.hs", "a.java", "a.js", "a.jl", "a.kt", "a.lisp",
             "a.lua", "a.asm", "a.ml", "a.pas", "a.pl", "a.php", "a.ps1", "a.pro", "a.py", "a.r", "a.raku", "a.rb",
             "a.rs", "a.scala", "a.st", "a.sql", "a.swift", "a.ts", "a.v", "a.wat", "a.zig",
+            "a.ex", "a.nim", "a.m", "a.html", "a.css", "a.md", "a.json", "a.yaml", "a.xml", "a.toml", "Makefile", "Dockerfile", "a.ini",
         )
         files.forEach { file ->
             val grammar = checkNotNull(EditorLanguages.grammarFor(file, languageBase = null, isEntry = false)) { file }

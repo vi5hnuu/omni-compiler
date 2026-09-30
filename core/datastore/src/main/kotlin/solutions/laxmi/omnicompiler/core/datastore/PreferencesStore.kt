@@ -29,6 +29,10 @@ interface PreferencesStore {
     val lastProjectId: Flow<String?>
     val appTheme: Flow<AppTheme>
 
+    /** The picked projects folder as `treeUri` + folder document id; null until chosen. Device-level, survives sign-out. */
+    val projectsRoot: Flow<Pair<String, String>?>
+    suspend fun setProjectsRoot(treeUri: String, docId: String)
+
     suspend fun updateEditor(transform: (EditorSettings) -> EditorSettings)
     suspend fun updateRun(transform: (RunSettings) -> RunSettings)
     suspend fun markRuntimeUsed(runtimeId: String)
@@ -54,6 +58,16 @@ internal class DataStorePreferencesStore @Inject constructor(
         .distinctUntilChanged()
     override val lastProjectId: Flow<String?> = dataStore.data.map { it[Keys.LAST_PROJECT] }.distinctUntilChanged()
     override val appTheme: Flow<AppTheme> = dataStore.data.map { enumOr(it[Keys.APP_THEME], AppTheme.SYSTEM) }.distinctUntilChanged()
+    override val projectsRoot: Flow<Pair<String, String>?> = dataStore.data
+        .map { prefs -> prefs[Keys.ROOT_TREE]?.let { tree -> prefs[Keys.ROOT_DOC]?.let { tree to it } } }
+        .distinctUntilChanged()
+
+    override suspend fun setProjectsRoot(treeUri: String, docId: String) {
+        dataStore.edit { prefs ->
+            prefs[Keys.ROOT_TREE] = treeUri
+            prefs[Keys.ROOT_DOC] = docId
+        }
+    }
 
     override suspend fun updateEditor(transform: (EditorSettings) -> EditorSettings) {
         dataStore.edit { prefs -> prefs.write(transform(prefs.toEditorSettings())) }
@@ -107,6 +121,9 @@ internal class DataStorePreferencesStore @Inject constructor(
             autocomplete = this[Keys.AUTOCOMPLETE] ?: d.autocomplete,
             wordWrap = this[Keys.WORD_WRAP] ?: d.wordWrap,
             tabSize = this[Keys.TAB_SIZE] ?: d.tabSize,
+            showInvisibles = this[Keys.SHOW_INVISIBLES] ?: d.showInvisibles,
+            stickyScroll = this[Keys.STICKY_SCROLL] ?: d.stickyScroll,
+            hardwareKeyboardOnly = this[Keys.HARDWARE_KEYBOARD_ONLY] ?: d.hardwareKeyboardOnly,
         )
     }
 
@@ -122,6 +139,9 @@ internal class DataStorePreferencesStore @Inject constructor(
         this[Keys.AUTOCOMPLETE] = s.autocomplete
         this[Keys.WORD_WRAP] = s.wordWrap
         this[Keys.TAB_SIZE] = s.tabSize
+        this[Keys.SHOW_INVISIBLES] = s.showInvisibles
+        this[Keys.STICKY_SCROLL] = s.stickyScroll
+        this[Keys.HARDWARE_KEYBOARD_ONLY] = s.hardwareKeyboardOnly
     }
 
     private fun Preferences.toRunSettings(): RunSettings {
@@ -156,6 +176,8 @@ internal class DataStorePreferencesStore @Inject constructor(
     private object Keys {
         val THEME = stringPreferencesKey("editor_theme")
         val APP_THEME = stringPreferencesKey("app_theme")
+        val ROOT_TREE = stringPreferencesKey("projects_root_tree")
+        val ROOT_DOC = stringPreferencesKey("projects_root_doc")
         val FONT = stringPreferencesKey("editor_font")
         val FONT_SIZE = intPreferencesKey("editor_font_size")
         val LIGATURES = booleanPreferencesKey("editor_ligatures")
@@ -166,6 +188,9 @@ internal class DataStorePreferencesStore @Inject constructor(
         val AUTOCOMPLETE = booleanPreferencesKey("editor_autocomplete")
         val WORD_WRAP = booleanPreferencesKey("editor_word_wrap")
         val TAB_SIZE = intPreferencesKey("editor_tab_size")
+        val SHOW_INVISIBLES = booleanPreferencesKey("editor_show_invisibles")
+        val STICKY_SCROLL = booleanPreferencesKey("editor_sticky_scroll")
+        val HARDWARE_KEYBOARD_ONLY = booleanPreferencesKey("editor_hardware_keyboard_only")
         val DEFAULT_RUNTIME = stringPreferencesKey("run_default_runtime")
         val DEFAULT_TIME_MS = intPreferencesKey("run_default_time_ms")
         val DEFAULT_MEM_MB = intPreferencesKey("run_default_mem_mb")

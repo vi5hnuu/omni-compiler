@@ -1,5 +1,10 @@
 package solutions.laxmi.omnicompiler.feature.projects
 
+import solutions.laxmi.omnicompiler.core.model.ProjectIssue
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.compose.rememberLauncherForActivityResult
 import solutions.laxmi.omnicompiler.core.ui.formatAge
 import solutions.laxmi.omnicompiler.core.ui.asString
 import androidx.compose.ui.platform.LocalResources
@@ -58,6 +63,7 @@ import solutions.laxmi.omnicompiler.core.ui.VerdictBadge
 import solutions.laxmi.omnicompiler.core.ui.shareFile
 
 /** Design W3: all local projects with search, filters and per-project actions. */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProjectsScreen(navigator: Navigator) {
     val viewModel = hiltViewModel<ProjectsViewModel>()
@@ -69,6 +75,14 @@ fun ProjectsScreen(navigator: Navigator) {
     var creating by rememberSaveable { mutableStateOf(false) }
     var renaming by remember { mutableStateOf<ProjectRowUi?>(null) }
     var deleting by remember { mutableStateOf<ProjectRowUi?>(null) }
+    var menu by remember { mutableStateOf(false) }
+    // The system pickers reach device storage and cloud providers (Drive, OneDrive, Dropbox) alike.
+    val pickFolder = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
+        if (uri != null) viewModel.importFolder(uri.toString())
+    }
+    val pickFile = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) viewModel.importFile(uri.toString())
+    }
 
     LaunchedEffect(viewModel) {
         viewModel.eventFlow.collect { event ->
@@ -84,6 +98,13 @@ fun ProjectsScreen(navigator: Navigator) {
         Column(Modifier.fillMaxSize().navigationBarsPadding()) {
             OmniTopBar(stringResource(R.string.projects_title), onBack = navigator::back) {
                 OmniIconButton(OmniIcons.Search, stringResource(R.string.projects_search), { searching = !searching }, selected = searching)
+                Box {
+                    OmniIconButton(OmniIcons.MoreVertical, stringResource(R.string.projects_more), { menu = true })
+                    DropdownMenu(menu, { menu = false }, containerColor = colors.surfaceRaised, shape = RectangleShape) {
+                        DropdownMenuItem(text = { Text(stringResource(R.string.projects_import_folder)) }, onClick = { menu = false; pickFolder.launch(null) })
+                        DropdownMenuItem(text = { Text(stringResource(R.string.projects_open_file)) }, onClick = { menu = false; pickFile.launch(arrayOf("*/*")) })
+                    }
+                }
             }
             if (searching) {
                 OmniTextField(
@@ -105,7 +126,8 @@ fun ProjectsScreen(navigator: Navigator) {
                     modifier = Modifier.weight(1f),
                 )
             } else {
-                LazyColumn(Modifier.weight(1f)) {
+                PullToRefreshBox(isRefreshing = state.refreshing, onRefresh = viewModel::refresh, modifier = Modifier.weight(1f)) {
+                LazyColumn(Modifier.fillMaxSize()) {
                     items(state.projects, key = { it.summary.project.id }) { row ->
                         ProjectRow(
                             row = row,
@@ -118,6 +140,7 @@ fun ProjectsScreen(navigator: Navigator) {
                             onDelete = { deleting = row },
                         )
                     }
+                }
                 }
             }
             OmniButton(stringResource(R.string.projects_new), { creating = true }, Modifier.padding(16.dp), leadingIcon = OmniIcons.Plus, trailingIcon = null)
@@ -187,6 +210,17 @@ private fun ProjectRow(
                     project.lastVerdict?.let { VerdictBadge(it) }
                 }
                 Text(row.summary.fileNames.joinToString(" · "), style = OmniTheme.typography.monoSmall, color = colors.textTertiary, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                // What the last folder check found, e.g. a skipped binary file or a rebuilt manifest.
+                project.issues.firstOrNull()?.let { issue ->
+                    val more = project.issues.size - 1
+                    Text(
+                        issueText(issue) + if (more > 0) " " + stringResource(R.string.projects_issue_more, more) else "",
+                        style = OmniTheme.typography.bodySmall,
+                        color = colors.status.limit.text,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
             }
             Text(age, style = OmniTheme.typography.monoSmall, color = colors.textTertiary)
             OmniIconButton(OmniIcons.MoreVertical, stringResource(R.string.projects_actions), { menu = true }, iconSize = 15.dp)
@@ -210,4 +244,23 @@ private fun ProjectRow(
             }
         }
     }
+}
+
+@Composable
+private fun issueText(issue: ProjectIssue): String = when (issue) {
+    ProjectIssue.Imported -> stringResource(R.string.projects_issue_imported)
+    ProjectIssue.ManifestRebuilt -> stringResource(R.string.projects_issue_manifest_rebuilt)
+    ProjectIssue.DuplicateId -> stringResource(R.string.projects_issue_duplicate_id)
+    ProjectIssue.EntryMissing -> stringResource(R.string.projects_issue_entry_missing)
+    is ProjectIssue.UnknownRuntime -> stringResource(R.string.projects_issue_unknown_runtime, issue.runtimeId.ifBlank { "?" })
+    is ProjectIssue.TooManyFiles -> stringResource(R.string.projects_issue_too_many_files, issue.limit)
+    is ProjectIssue.FileSkipped -> stringResource(
+        when (issue.reason) {
+            ProjectIssue.SkipReason.TOO_LARGE -> R.string.projects_issue_skipped_large
+            ProjectIssue.SkipReason.BINARY -> R.string.projects_issue_skipped_binary
+            ProjectIssue.SkipReason.BAD_NAME -> R.string.projects_issue_skipped_name
+            ProjectIssue.SkipReason.FOLDER -> R.string.projects_issue_skipped_folder
+        },
+        issue.name,
+    )
 }

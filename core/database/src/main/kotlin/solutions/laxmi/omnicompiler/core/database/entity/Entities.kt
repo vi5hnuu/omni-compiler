@@ -18,6 +18,12 @@ data class ProjectEntity(
     @ColumnInfo(name = "last_verdict") val lastVerdict: String?,
     @ColumnInfo(name = "created_at") val createdAt: Long,
     @ColumnInfo(name = "updated_at") val updatedAt: Long,
+    /** Document id of the project's folder on device storage; null until the project is written there. */
+    @ColumnInfo(name = "folder_doc_id") val folderDocId: String? = null,
+    /** Problems found when the folder was last checked, one `code:detail` per line (see ProjectIssue). */
+    @ColumnInfo(name = "issues", defaultValue = "") val issues: String = "",
+    /** Document a single-file import came from (see ProjectManifest.origin). */
+    @ColumnInfo(name = "origin_uri") val originUri: String? = null,
 )
 
 @Entity(
@@ -37,6 +43,10 @@ data class FileEntity(
      * switch, an edit made outside the app). The editor reloads its buffer when this changes, never on its own saves.
      */
     @ColumnInfo(name = "content_version", defaultValue = "0") val contentVersion: Int = 0,
+    /** The file's document id and last known on-disk state; a mismatch on rescan means it changed outside the app. */
+    @ColumnInfo(name = "doc_id") val docId: String? = null,
+    @ColumnInfo(name = "last_modified", defaultValue = "0") val lastModified: Long = 0,
+    @ColumnInfo(name = "size", defaultValue = "0") val size: Long = 0,
 )
 
 /** A project with its files and tests read in one transaction, so observers never see a half-updated workspace. */
@@ -158,6 +168,9 @@ data class ProjectSummaryRow(
     @ColumnInfo(name = "last_verdict") val lastVerdict: String?,
     @ColumnInfo(name = "created_at") val createdAt: Long,
     @ColumnInfo(name = "updated_at") val updatedAt: Long,
+    @ColumnInfo(name = "folder_doc_id") val folderDocId: String?,
+    @ColumnInfo(name = "issues") val issues: String,
+    @ColumnInfo(name = "origin_uri") val originUri: String?,
     @ColumnInfo(name = "file_names") val fileNames: String?,
     @ColumnInfo(name = "test_count") val testCount: Int,
 )

@@ -37,6 +37,7 @@ data class ProjectsUiState(
     val languages: List<Language> = emptyList(),
     val currentProjectId: String? = null,
     val now: Instant = Instant.fromEpochMilliseconds(0),
+    val refreshing: Boolean = false,
 )
 
 sealed interface ProjectsEvent {
@@ -54,6 +55,7 @@ class ProjectsViewModel @Inject constructor(
 ) : ViewModel() {
 
     private val query = MutableStateFlow("")
+    private val refreshing = MutableStateFlow(false)
     private val filter = MutableStateFlow(ProjectFilter.ALL)
     private val events = Channel<ProjectsEvent>(Channel.BUFFERED)
     val eventFlow = events.receiveAsFlow()
@@ -65,8 +67,8 @@ class ProjectsViewModel @Inject constructor(
         query,
         filter,
         combine(runtimes.languages, shortCodes, ::Pair),
-        projects.lastProjectId,
-    ) { all, q, f, (languages, codes), lastId ->
+        combine(projects.lastProjectId, refreshing, ::Pair),
+    ) { all, q, f, (languages, codes), (lastId, isRefreshing) ->
         // One query feeds both the visible list and every tab's count.
         val visible = all.filter(f::matches)
         ProjectsUiState(
@@ -77,6 +79,7 @@ class ProjectsViewModel @Inject constructor(
             languages = languages,
             currentProjectId = lastId,
             now = time.now(),
+            refreshing = isRefreshing,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ProjectsUiState())
 
@@ -110,6 +113,30 @@ class ProjectsViewModel @Inject constructor(
         viewModelScope.launch {
             when (val result = projects.duplicate(projectId)) {
                 is Outcome.Success -> events.send(ProjectsEvent.Message(UiText.Res(R.string.projects_duplicated)))
+                is Outcome.Failure -> events.send(ProjectsEvent.Message(result.error.toUiText()))
+            }
+        }
+    }
+
+    /** Re-reads the projects folder (pull to refresh): picks up projects added or edited in other apps. */
+    fun refresh() {
+        if (refreshing.value) return
+        viewModelScope.launch {
+            refreshing.value = true
+            val result = projects.refreshFromDisk()
+            refreshing.value = false
+            if (result is Outcome.Failure) events.send(ProjectsEvent.Message(result.error.toUiText()))
+        }
+    }
+
+    fun importFolder(treeUri: String) = open { projects.importFolder(treeUri) }
+
+    fun importFile(documentUri: String) = open { projects.importFile(documentUri) }
+
+    private fun open(block: suspend () -> Outcome<String>) {
+        viewModelScope.launch {
+            when (val result = block()) {
+                is Outcome.Success -> events.send(ProjectsEvent.Open(result.value))
                 is Outcome.Failure -> events.send(ProjectsEvent.Message(result.error.toUiText()))
             }
         }

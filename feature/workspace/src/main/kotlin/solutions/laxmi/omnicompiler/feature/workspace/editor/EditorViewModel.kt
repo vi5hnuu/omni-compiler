@@ -221,6 +221,18 @@ class EditorViewModel @AssistedInject constructor(
 
     fun shareProject() = share { id -> exporter.exportZip(id) }
 
+    /** Writes the entry file back to the document a single-file import came from. */
+    fun saveToOrigin() {
+        val id = projectId.value ?: return
+        viewModelScope.launch {
+            val message = when (val result = projects.saveToOrigin(id)) {
+                is Outcome.Success -> UiText.Res(R.string.editor_saved_to_origin)
+                is Outcome.Failure -> result.error.toUiText()
+            }
+            events.send(EditorEvent.Message(message))
+        }
+    }
+
     private fun share(export: suspend (projectId: String) -> Outcome<SharedFile>) {
         val id = projectId.value ?: return
         viewModelScope.launch {

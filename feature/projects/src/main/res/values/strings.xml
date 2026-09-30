@@ -11,7 +11,7 @@
     <string name="projects_new">New project</string>
     <string name="projects_rename_title">Rename project</string>
     <string name="projects_delete_title">Delete %1$s?</string>
-    <string name="projects_delete_message">Its files, tests and console history are removed from this device. Runs already sent stay in your run history.</string>
+    <string name="projects_delete_message">Its folder, files and tests are deleted from your projects folder, and its console history is cleared. Runs already sent stay in your run history.</string>
     <string name="projects_actions">Project actions</string>
     <string name="projects_open">Open</string>
     <string name="projects_rename">Rename</string>
@@ -47,4 +47,27 @@
     <string name="practice_replace_tests_title">Replace tests?</string>
     <string name="practice_replace_tests_message">The current project\'s tests will be replaced. Your code stays as it is.</string>
     <string name="practice_replace_tests_confirm">Replace</string>
+    <string name="folder_title">Where should projects be saved?</string>
+    <string name="folder_title_change">Projects folder</string>
+    <string name="folder_body">Pick a folder, for example Documents. Omni Compiler keeps your projects in an OmniCompiler folder there: each project is a folder of plain source files you can open in any app, back up, or copy to another device.</string>
+    <string name="folder_privacy">Only the folder you pick is shared with the app. Code is sent to the compiler only when you run it.</string>
+    <string name="folder_current">Current: %1$s</string>
+    <string name="folder_change_note">Projects already in the current folder stay there. After switching, the app shows the projects in the new folder.</string>
+    <string name="folder_lost">Your projects folder can\'t be reached. It may have been moved or deleted, or access was removed. Choose it again.</string>
+    <string name="folder_choose">Choose folder</string>
+    <string name="folder_working">Setting up…</string>
+    <string name="projects_more">More options</string>
+    <string name="projects_import_folder">Import folder</string>
+    <string name="projects_open_file">Open file</string>
+    <string name="projects_issue_more">(+%1$d more)</string>
+    <string name="projects_issue_imported">Imported: no project settings were found, so the language was guessed from the files.</string>
+    <string name="projects_issue_manifest_rebuilt">Project settings were unreadable and were rebuilt (the old file is kept as project.json.bak).</string>
+    <string name="projects_issue_duplicate_id">This folder looked like a copy of another project and was given its own identity.</string>
+    <string name="projects_issue_entry_missing">No file to run: the main file is missing.</string>
+    <string name="projects_issue_unknown_runtime">Language %1$s isn\'t available. Pick a language to run it.</string>
+    <string name="projects_issue_too_many_files">Only the first %1$d files are included.</string>
+    <string name="projects_issue_skipped_large">Skipped %1$s: too large.</string>
+    <string name="projects_issue_skipped_binary">Skipped %1$s: not a text file.</string>
+    <string name="projects_issue_skipped_name">Skipped %1$s: unsupported file name.</string>
+    <string name="projects_issue_skipped_folder">Skipped folder %1$s: projects are flat, files in subfolders aren\'t run.</string>
 </resources>

@@ -1,5 +1,6 @@
 package solutions.laxmi.omnicompiler.feature.workspace.editor
 
+import solutions.laxmi.omnicompiler.core.editor.EditorCommand
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.runtime.setValue
@@ -117,6 +118,26 @@ internal fun ColumnScope.WorkspaceBody(
     var showLimits by rememberSaveable { mutableStateOf(false) }
     var showBenchmark by rememberSaveable { mutableStateOf(false) }
     var stdinTarget by rememberSaveable { mutableStateOf(StdinTarget.Input) }
+    var findWithReplace by rememberSaveable { mutableStateOf(false) }
+    var goingToLine by rememberSaveable { mutableStateOf(false) }
+    var showShortcuts by rememberSaveable { mutableStateOf(false) }
+
+    // Hardware-keyboard shortcuts raise these from inside the code view.
+    LaunchedEffect(editorState) {
+        editorState.commands.collect { command ->
+            when (command) {
+                EditorCommand.Find -> {
+                    findWithReplace = false
+                    onSearchChange(true)
+                }
+                EditorCommand.Replace -> {
+                    findWithReplace = true
+                    onSearchChange(true)
+                }
+                EditorCommand.GoToLine -> goingToLine = true
+            }
+        }
+    }
 
     val pickFile = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null) console.loadStdinFromFile(uri.toString(), intoTestEditor = stdinTarget == StdinTarget.TestEditor)
@@ -192,8 +213,14 @@ internal fun ColumnScope.WorkspaceBody(
             runButton = runButton,
             overflow = {
                 OverflowMenu(
-                    listOf(
+                    listOfNotNull(
+                        (stringResource(R.string.editor_menu_save_to_origin) to actions.onSaveToOrigin).takeIf { state.workspace?.project?.hasOrigin == true },
                         stringResource(R.string.editor_menu_run_with_input) to { openConsole(ConsoleTab.Input) },
+                        stringResource(R.string.editor_menu_find_replace) to {
+                            findWithReplace = true
+                            onSearchChange(true)
+                        },
+                        stringResource(R.string.editor_go_to_line) to { goingToLine = true },
                         stringResource(R.string.editor_menu_benchmark) to { showBenchmark = true },
                         stringResource(R.string.editor_menu_limits) to { showLimits = true },
                         stringResource(R.string.editor_new_file) to onShowNewFile,
@@ -203,6 +230,7 @@ internal fun ColumnScope.WorkspaceBody(
                         stringResource(if (state.settings.wordWrap) R.string.editor_menu_wrap_off else R.string.editor_menu_wrap_on) to actions.onToggleWordWrap,
                         stringResource(R.string.editor_menu_reset) to onConfirmReset,
                         stringResource(R.string.editor_menu_appearance) to actions.onAppearance,
+                        stringResource(R.string.editor_shortcuts) to { showShortcuts = true },
                     ),
                 )
             },
@@ -220,9 +248,10 @@ internal fun ColumnScope.WorkspaceBody(
             onAdd = onShowNewFile,
         )
     }
-    if (searching) FindBar(editorState, onClose = { onSearchChange(false) }) else if (!typing) Breadcrumb(activeFile.name)
+    if (searching) FindReplaceBar(editorState, startWithReplace = findWithReplace, onClose = { onSearchChange(false) }) else if (!typing) Breadcrumb(activeFile.name)
 
     val problems = consoleState.problemsFor(activeFile.name, activeFile.isEntry)
+    val sameLanguage = activeFile.isEntry || activeFile.name.substringAfterLast('.', "") == state.workspace?.entry?.name?.substringAfterLast('.', "")
     val colors = OmniTheme.colors
     // The bottom strip keeps one height in every mode: resizing the code view while the keyboard opens makes it
     // lose input focus. It shows the console summary normally and the symbol keys while typing code.
@@ -307,6 +336,9 @@ internal fun ColumnScope.WorkspaceBody(
                         fileName = activeFile.name,
                         languageBase = state.runtime?.language,
                         isEntry = activeFile.isEntry,
+                        // Comment syntax is known for the project's language; other file types get none.
+                        lineComment = state.language?.lineComment?.takeIf { sameLanguage },
+                        blockComment = state.language?.blockComment?.takeIf { sameLanguage },
                     ),
                     settings = state.settings,
                     onTextChange = actions.onContentChanged,
@@ -320,6 +352,14 @@ internal fun ColumnScope.WorkspaceBody(
             }
         }
     }
+
+    if (goingToLine) {
+        GoToLineDialog(editorState.lineCount, onDismiss = { goingToLine = false }) { line ->
+            goingToLine = false
+            editorState.goTo(line)
+        }
+    }
+    if (showShortcuts) ShortcutsSheet(onDismiss = { showShortcuts = false })
 
     if (creatingTest || editingTest != null) {
         TestEditorSheet(

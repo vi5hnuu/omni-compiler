@@ -28,5 +28,17 @@ object OmniMigrations {
         }
     }
 
-    val ALL: Array<Migration> = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+    /** v5: projects live in folders on device storage; the index remembers where and what it last saw there. */
+    val MIGRATION_4_5 = object : Migration(4, 5) {
+        override fun migrate(connection: SQLiteConnection) {
+            connection.execSQL("ALTER TABLE projects ADD COLUMN folder_doc_id TEXT")
+            connection.execSQL("ALTER TABLE projects ADD COLUMN issues TEXT NOT NULL DEFAULT ''")
+            connection.execSQL("ALTER TABLE projects ADD COLUMN origin_uri TEXT")
+            connection.execSQL("ALTER TABLE files ADD COLUMN doc_id TEXT")
+            connection.execSQL("ALTER TABLE files ADD COLUMN last_modified INTEGER NOT NULL DEFAULT 0")
+            connection.execSQL("ALTER TABLE files ADD COLUMN size INTEGER NOT NULL DEFAULT 0")
+        }
+    }
+
+    val ALL: Array<Migration> = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
 }

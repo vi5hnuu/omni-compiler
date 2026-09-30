@@ -1,5 +1,10 @@
 package solutions.laxmi.omnicompiler
 
+import solutions.laxmi.omnicompiler.core.data.project.ProjectRepository
+import solutions.laxmi.omnicompiler.core.data.project.ProjectFolderRepository
+import solutions.laxmi.omnicompiler.core.data.project.FolderStatus
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.combine
 import solutions.laxmi.omnicompiler.core.model.AppTheme
 import solutions.laxmi.omnicompiler.core.data.settings.SettingsRepository
 import androidx.lifecycle.ViewModel
@@ -7,26 +12,38 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import solutions.laxmi.omnicompiler.core.data.auth.AuthRepository
 import solutions.laxmi.omnicompiler.core.model.Session
 import javax.inject.Inject
 
-/** Coarse auth state that decides the root destination. */
-enum class AuthGate { Loading, SignedOut, SignedIn }
+/** Coarse app state that decides the root destination: signed in, and a reachable projects folder. */
+enum class AppGate { Loading, SignedOut, NeedsFolder, Ready }
 
 @HiltViewModel
-class MainViewModel @Inject constructor(auth: AuthRepository, settings: SettingsRepository) : ViewModel() {
-    val gate: StateFlow<AuthGate> = auth.session
-        .map {
-            when (it) {
-                Session.Loading -> AuthGate.Loading
-                Session.SignedOut -> AuthGate.SignedOut
-                is Session.Active -> AuthGate.SignedIn
-            }
+class MainViewModel @Inject constructor(
+    auth: AuthRepository,
+    settings: SettingsRepository,
+    private val folders: ProjectFolderRepository,
+    private val projects: ProjectRepository,
+) : ViewModel() {
+    val gate: StateFlow<AppGate> = combine(auth.session, folders.status) { session, folder ->
+        when {
+            session == Session.Loading -> AppGate.Loading
+            session == Session.SignedOut -> AppGate.SignedOut
+            folder == FolderStatus.Checking -> AppGate.Loading
+            folder != FolderStatus.Ready -> AppGate.NeedsFolder
+            else -> AppGate.Ready
         }
-        .stateIn(viewModelScope, SharingStarted.Eagerly, AuthGate.Loading)
+    }.stateIn(viewModelScope, SharingStarted.Eagerly, AppGate.Loading)
+
+    /** Back in the foreground: the folder may have been removed, or files edited in another app. */
+    fun onForeground() {
+        viewModelScope.launch {
+            folders.recheck()
+            projects.refreshFromDisk()
+        }
+    }
 
     val appTheme: StateFlow<AppTheme> = settings.appTheme.stateIn(viewModelScope, SharingStarted.Eagerly, AppTheme.SYSTEM)
 }

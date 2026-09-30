@@ -2,4 +2,12 @@
 <resources>
     <string name="editor_minimap">Minimap</string>
     <string name="editor_key_tab">Tab</string>
+    <string name="editor_key_left">Move left</string>
+    <string name="editor_key_right">Move right</string>
+    <string name="editor_key_up">Move up</string>
+    <string name="editor_key_down">Move down</string>
+    <string name="editor_key_comment">Toggle comment</string>
+    <string name="editor_key_line_up">Move line up</string>
+    <string name="editor_key_line_down">Move line down</string>
+    <string name="editor_key_duplicate">Duplicate line</string>
 </resources>

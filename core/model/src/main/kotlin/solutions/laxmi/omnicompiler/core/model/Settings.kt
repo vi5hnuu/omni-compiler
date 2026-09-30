@@ -31,6 +31,12 @@ data class EditorSettings(
     val autocomplete: Boolean = true,
     val wordWrap: Boolean = false,
     val tabSize: Int = 4,
+    /** Draw spaces and tabs (leading and trailing) as faint marks. */
+    val showInvisibles: Boolean = false,
+    /** Keep the enclosing block's first lines pinned while scrolling (stands in for code folding). */
+    val stickyScroll: Boolean = true,
+    /** Hide the on-screen keyboard while a hardware keyboard is connected. */
+    val hardwareKeyboardOnly: Boolean = true,
 ) {
     companion object {
         const val MIN_FONT_SP = 10

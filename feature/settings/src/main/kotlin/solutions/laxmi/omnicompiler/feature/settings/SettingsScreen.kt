@@ -1,5 +1,6 @@
 package solutions.laxmi.omnicompiler.feature.settings
 
+import solutions.laxmi.omnicompiler.core.navigation.ProjectFolderRoute
 import solutions.laxmi.omnicompiler.core.ui.labelRes
 import solutions.laxmi.omnicompiler.core.ui.displayName
 import solutions.laxmi.omnicompiler.core.ui.R as CommonR
@@ -74,10 +75,20 @@ fun SettingsScreen(navigator: Navigator, appVersion: String) {
             ToggleRow(stringResource(R.string.settings_symbol_row), stringResource(R.string.settings_symbol_row_note), editor.symbolRow) { v -> viewModel.updateEditor { it.copy(symbolRow = v) } }
             ToggleRow(stringResource(R.string.settings_autocomplete), stringResource(R.string.settings_autocomplete_note), editor.autocomplete) { v -> viewModel.updateEditor { it.copy(autocomplete = v) } }
             ToggleRow(stringResource(R.string.settings_word_wrap), stringResource(R.string.settings_word_wrap_note), editor.wordWrap) { v -> viewModel.updateEditor { it.copy(wordWrap = v) } }
+            ToggleRow(stringResource(R.string.settings_sticky_scroll), stringResource(R.string.settings_sticky_scroll_note), editor.stickyScroll) { v -> viewModel.updateEditor { it.copy(stickyScroll = v) } }
+            ToggleRow(stringResource(R.string.settings_invisibles), stringResource(R.string.settings_invisibles_note), editor.showInvisibles) { v -> viewModel.updateEditor { it.copy(showInvisibles = v) } }
+            ToggleRow(stringResource(R.string.settings_hardware_keyboard), stringResource(R.string.settings_hardware_keyboard_note), editor.hardwareKeyboardOnly) { v -> viewModel.updateEditor { it.copy(hardwareKeyboardOnly = v) } }
             OmniListRow(stringResource(R.string.settings_tab_size), trailing = {
                 OmniSegmented(EditorSettings.TabSizes, editor.tabSize, { "$it" }, { size -> viewModel.updateEditor { it.copy(tabSize = size) } }, Modifier.width(132.dp))
             })
 
+            SectionLabel(stringResource(R.string.settings_storage))
+            OmniListRow(
+                stringResource(R.string.settings_projects_folder),
+                subtitle = state.projectsFolder ?: stringResource(R.string.settings_projects_folder_none),
+                trailing = { Chevron() },
+                onClick = { navigator.navigate(ProjectFolderRoute(change = true)) },
+            )
             SectionLabel(stringResource(R.string.settings_run))
             OmniListRow(
                 stringResource(R.string.settings_default_language),

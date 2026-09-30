@@ -10,6 +10,10 @@ data class Project(
     val lastVerdict: Verdict?,
     val createdAt: Instant,
     val updatedAt: Instant,
+    /** What the last check of the project's folder found (skipped files, rebuilt manifest, …). */
+    val issues: List<ProjectIssue> = emptyList(),
+    /** Imported from a single file that can be written back ("Save to original"). */
+    val hasOrigin: Boolean = false,
 )
 
 /**

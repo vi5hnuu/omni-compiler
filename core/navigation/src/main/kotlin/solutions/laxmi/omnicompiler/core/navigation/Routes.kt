@@ -23,6 +23,9 @@ import kotlinx.serialization.Serializable
 @Serializable data object ExamplesRoute : Route
 @Serializable data class ProblemRoute(val slug: String) : Route
 
+/** Choose where projects are stored. [change] is true when opened from Settings rather than required at start. */
+@Serializable data class ProjectFolderRoute(val change: Boolean = false) : Route
+
 // History
 @Serializable data object HistoryRoute : Route
 @Serializable data class JobDetailRoute(val jobId: String, val runtimeId: String? = null) : Route

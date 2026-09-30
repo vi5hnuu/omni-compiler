@@ -1,5 +1,6 @@
 package solutions.laxmi.omnicompiler.navigation
 
+import solutions.laxmi.omnicompiler.core.navigation.ProjectFolderRoute
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
@@ -13,7 +14,7 @@ import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
-import solutions.laxmi.omnicompiler.AuthGate
+import solutions.laxmi.omnicompiler.AppGate
 import solutions.laxmi.omnicompiler.R
 import solutions.laxmi.omnicompiler.core.designsystem.theme.OmniTheme
 import solutions.laxmi.omnicompiler.core.navigation.CheckInboxRoute
@@ -34,8 +35,14 @@ import solutions.laxmi.omnicompiler.feature.settings.settingsEntries
 import solutions.laxmi.omnicompiler.feature.workspace.workspaceEntries
 
 @Composable
-fun OmniNavHost(gate: AuthGate, appVersion: String) {
-    val backStack = rememberNavBackStack(if (gate == AuthGate.SignedIn) EditorRoute() else WelcomeRoute)
+fun OmniNavHost(gate: AppGate, appVersion: String) {
+    val backStack = rememberNavBackStack(
+        when (gate) {
+            AppGate.Ready -> EditorRoute()
+            AppGate.NeedsFolder -> ProjectFolderRoute()
+            else -> WelcomeRoute
+        },
+    )
     val navigator = remember(backStack) { BackStackNavigator(backStack) }
 
     // Session gate: signing out anywhere (or a dead refresh token) returns to Welcome; signing in
@@ -43,8 +50,11 @@ fun OmniNavHost(gate: AuthGate, appVersion: String) {
     LaunchedEffect(gate) {
         val onAuthScreen = backStack.lastOrNull().isAuthRoute()
         when {
-            gate == AuthGate.SignedOut && !onAuthScreen -> navigator.resetTo(WelcomeRoute)
-            gate == AuthGate.SignedIn && backStack.lastOrNull() == WelcomeRoute -> navigator.resetTo(EditorRoute())
+            gate == AppGate.SignedOut && !onAuthScreen -> navigator.resetTo(WelcomeRoute)
+            // Projects live in a folder on the device; nothing past sign-in works until one is reachable.
+            gate == AppGate.NeedsFolder && backStack.lastOrNull() !is ProjectFolderRoute -> navigator.resetTo(ProjectFolderRoute())
+            gate == AppGate.Ready && (backStack.lastOrNull() == WelcomeRoute || backStack.lastOrNull() == ProjectFolderRoute()) ->
+                navigator.resetTo(EditorRoute())
         }
     }
 

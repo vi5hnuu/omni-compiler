@@ -28,6 +28,7 @@ dependencies {
     implementation(projects.core.datastore)
     implementation(projects.core.database)
     implementation(projects.core.catalog)
+    api(projects.core.storage)
     api(libs.androidx.paging.runtime)
     implementation(libs.androidx.room.paging)
     implementation(libs.androidx.room.ktx)

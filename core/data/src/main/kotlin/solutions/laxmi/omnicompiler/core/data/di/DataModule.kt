@@ -1,5 +1,7 @@
 package solutions.laxmi.omnicompiler.core.data.di
 
+import solutions.laxmi.omnicompiler.core.data.project.ProjectFolderRepository
+import solutions.laxmi.omnicompiler.core.data.project.DefaultProjectFolderRepository
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -43,6 +45,7 @@ internal interface DataModule {
     @Binds fun bindsGoogleIdTokenProvider(impl: CredentialManagerGoogleIdTokenProvider): GoogleIdTokenProvider
     @Binds fun bindsRuntimeRepository(impl: DefaultRuntimeRepository): RuntimeRepository
     @Binds fun bindsProjectRepository(impl: LocalProjectRepository): ProjectRepository
+    @Binds fun bindsProjectFolderRepository(impl: DefaultProjectFolderRepository): ProjectFolderRepository
     @Binds fun bindsSettingsRepository(impl: DefaultSettingsRepository): SettingsRepository
     @Binds fun bindsExecutionRepository(impl: DefaultExecutionRepository): ExecutionRepository
     @Binds fun bindsConnectivityObserver(impl: AndroidConnectivityObserver): ConnectivityObserver

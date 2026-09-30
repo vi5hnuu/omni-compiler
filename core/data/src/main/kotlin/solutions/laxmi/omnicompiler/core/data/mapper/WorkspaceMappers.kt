@@ -1,5 +1,6 @@
 package solutions.laxmi.omnicompiler.core.data.mapper
 
+import solutions.laxmi.omnicompiler.core.model.ProjectIssue
 import solutions.laxmi.omnicompiler.core.database.entity.FileEntity
 import solutions.laxmi.omnicompiler.core.database.entity.ProjectEntity
 import solutions.laxmi.omnicompiler.core.database.entity.ProjectSummaryRow
@@ -24,6 +25,8 @@ internal fun ProjectEntity.toModel() = Project(
     lastVerdict = Verdict.fromCode(lastVerdict),
     createdAt = Instant.fromEpochMilliseconds(createdAt),
     updatedAt = Instant.fromEpochMilliseconds(updatedAt),
+    issues = parseIssues(issues),
+    hasOrigin = originUri != null,
 )
 
 internal fun ProjectSummaryRow.toModel() = ProjectSummary(
@@ -35,6 +38,8 @@ internal fun ProjectSummaryRow.toModel() = ProjectSummary(
         lastVerdict = Verdict.fromCode(lastVerdict),
         createdAt = Instant.fromEpochMilliseconds(createdAt),
         updatedAt = Instant.fromEpochMilliseconds(updatedAt),
+        issues = parseIssues(issues),
+        hasOrigin = originUri != null,
     ),
     fileNames = fileNames?.split('\n')?.filter { it.isNotEmpty() }.orEmpty(),
     testCount = testCount,
@@ -63,3 +68,7 @@ internal fun Runtime.toEntity() = RuntimeEntity(
     available = available,
     lane = lane.name.lowercase(),
 )
+
+internal fun parseIssues(stored: String): List<ProjectIssue> = stored.lines().filter { it.isNotBlank() }.mapNotNull(ProjectIssue::parse)
+
+internal fun List<ProjectIssue>.toStored(): String = joinToString("\n", transform = ProjectIssue::format)

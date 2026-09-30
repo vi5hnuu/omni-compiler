@@ -212,3 +212,65 @@ internal fun FileActionsSheet(
         }
     }
 }
+
+/** Ctrl+G / overflow "Go to line": 1-based line number, clamped to the file by the editor. */
+@Composable
+internal fun GoToLineDialog(lineCount: Int, onDismiss: () -> Unit, onGo: (Int) -> Unit) {
+    var value by rememberSaveable { mutableStateOf("") }
+    val line = value.toIntOrNull()
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        shape = RectangleShape,
+        containerColor = OmniTheme.colors.surfaceRaised,
+        title = { Text(stringResource(R.string.editor_go_to_line), style = OmniTheme.typography.title, color = OmniTheme.colors.textPrimary) },
+        text = {
+            OmniTextField(
+                value = value,
+                onValueChange = { value = it.filter(Char::isDigit).take(7) },
+                placeholder = stringResource(R.string.editor_go_to_line_hint, lineCount),
+                textStyle = OmniTheme.typography.code,
+                keyboardOptions = KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
+            )
+        },
+        confirmButton = { OmniTextButton(stringResource(R.string.editor_go), { line?.let(onGo) }, enabled = line != null && line >= 1) },
+        dismissButton = { OmniTextButton(stringResource(CommonR.string.common_cancel), onDismiss, color = OmniTheme.colors.textSecondary) },
+    )
+}
+
+/** Hardware-keyboard shortcuts: Sora's built-ins plus the app's own. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+internal fun ShortcutsSheet(onDismiss: () -> Unit) {
+    val colors = OmniTheme.colors
+    val shortcuts = listOf(
+        "Ctrl + Enter" to R.string.shortcut_run,
+        "Ctrl + S" to R.string.shortcut_save,
+        "Ctrl + F" to R.string.shortcut_find,
+        "Ctrl + H" to R.string.shortcut_replace,
+        "Ctrl + G" to R.string.shortcut_go_to_line,
+        "Ctrl + /" to R.string.shortcut_comment,
+        "Ctrl + D" to R.string.shortcut_duplicate,
+        "Ctrl + Shift + K" to R.string.shortcut_delete_line,
+        "Alt + ↑ / ↓" to R.string.shortcut_move_line,
+        "Ctrl + Z / Y" to R.string.shortcut_undo_redo,
+        "Ctrl + A / C / X / V" to R.string.shortcut_clipboard,
+    )
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        shape = RectangleShape,
+        containerColor = colors.surface,
+        scrimColor = colors.scrim,
+        dragHandle = { SheetHandle() },
+    ) {
+        Column(Modifier.fillMaxWidth().navigationBarsPadding().padding(horizontal = 16.dp, vertical = 8.dp)) {
+            Text(stringResource(R.string.editor_shortcuts), style = OmniTheme.typography.title, color = colors.textPrimary, modifier = Modifier.padding(bottom = 8.dp))
+            shortcuts.forEach { (keys, label) ->
+                Row(Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
+                    Text(stringResource(label), style = OmniTheme.typography.body, color = colors.textSecondary, modifier = Modifier.weight(1f))
+                    Text(keys, style = OmniTheme.typography.mono, color = colors.textPrimary)
+                }
+            }
+        }
+    }
+}

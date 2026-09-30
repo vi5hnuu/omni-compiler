@@ -1,5 +1,6 @@
 package solutions.laxmi.omnicompiler.feature.settings
 
+import solutions.laxmi.omnicompiler.core.data.project.ProjectFolderRepository
 import solutions.laxmi.omnicompiler.core.model.AppTheme
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -27,6 +28,7 @@ data class SettingsUiState(
     val user: User? = null,
     val languages: List<Language> = emptyList(),
     val appTheme: AppTheme = AppTheme.SYSTEM,
+    val projectsFolder: String? = null,
 )
 
 @HiltViewModel
@@ -34,6 +36,7 @@ class SettingsViewModel @Inject constructor(
     private val settings: SettingsRepository,
     private val auth: AuthRepository,
     runtimes: RuntimeRepository,
+    folders: ProjectFolderRepository,
     val config: AppConfig,
 ) : ViewModel() {
 
@@ -42,9 +45,9 @@ class SettingsViewModel @Inject constructor(
         settings.runSettings,
         auth.session,
         runtimes.languages,
-        settings.appTheme,
-    ) { editor, run, session, languages, appTheme ->
-        SettingsUiState(editor, run, (session as? Session.Active)?.user, languages.filter { it.defaultRuntime?.isRunnable == true }, appTheme)
+        combine(settings.appTheme, folders.displayPath, ::Pair),
+    ) { editor, run, session, languages, (appTheme, folder) ->
+        SettingsUiState(editor, run, (session as? Session.Active)?.user, languages.filter { it.defaultRuntime?.isRunnable == true }, appTheme, folder)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SettingsUiState())
 
     fun updateEditor(transform: (EditorSettings) -> EditorSettings) {

@@ -106,6 +106,9 @@
     </plurals>
     <string name="common_error_languages_unavailable">Couldn\'t load languages from the server. Check your connection and try again.</string>
     <string name="common_error_open_project_first">Open a project first.</string>
+    <string name="common_error_projects_folder">Can\'t reach your projects folder. Check that it still exists, or choose it again in Settings.</string>
+    <string name="common_error_nothing_to_import">Nothing to import: no readable source files (binary or very large files are skipped).</string>
+    <string name="common_error_unknown_file_language">No language runs %1$s. Rename it with the right extension, or add it to a project.</string>
     <string name="common_error_export_failed">Couldn\'t prepare the export.</string>
     <string name="common_error_document_open_failed">Couldn\'t open that file.</string>
     <string name="common_error_document_too_large">File is larger than %1$d KB.</string>

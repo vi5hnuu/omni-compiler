@@ -24,7 +24,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         // Keep the splash until the stored session is read, so the first frame is the right root.
-        installSplashScreen().setKeepOnScreenCondition { viewModel.gate.value == AuthGate.Loading }
+        installSplashScreen().setKeepOnScreenCondition { viewModel.gate.value == AppGate.Loading }
         super.onCreate(savedInstanceState)
         setContent {
             val appTheme by viewModel.appTheme.collectAsStateWithLifecycle()
@@ -41,8 +41,13 @@ class MainActivity : ComponentActivity() {
             }
             OmniTheme(darkTheme = dark) {
                 val gate by viewModel.gate.collectAsStateWithLifecycle()
-                if (gate != AuthGate.Loading) OmniNavHost(gate, BuildConfig.VERSION_NAME)
+                if (gate != AppGate.Loading) OmniNavHost(gate, BuildConfig.VERSION_NAME)
             }
         }
+    }
+
+    override fun onStart() {
+        super.onStart()
+        viewModel.onForeground()
     }
 }
