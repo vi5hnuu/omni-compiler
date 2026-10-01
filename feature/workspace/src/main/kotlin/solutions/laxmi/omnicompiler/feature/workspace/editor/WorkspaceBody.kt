@@ -130,8 +130,9 @@ internal fun ColumnScope.WorkspaceBody(
     val projectFiles = state.workspace?.files.orEmpty()
     val splitFile = splitFileId?.let { id -> projectFiles.firstOrNull { it.id == id && it.id != activeFile.id } }
         ?.takeIf { wide }
+    // Both panes write pending edits before anything reads the files (runs, tests).
     fun flushEditors() {
-        flushEditors()
+        editorState.flush()
         splitState.flush()
     }
     // Choosing the second pane's file in the first pane swaps the two instead of opening it twice.
