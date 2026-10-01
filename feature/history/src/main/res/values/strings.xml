@@ -27,7 +27,7 @@
     <string name="job_load_failed">Couldn\'t load this run</string>
     <string name="job_code">Code</string>
     <string name="job_tests">Tests</string>
-    <string name="job_verify">Verify run</string>
+    <string name="job_verify">Replay to verify</string>
     <string name="job_open_as_project">Open as project</string>
     <string name="job_replay_proof">Replay proof</string>
     <string name="job_proof_image">Runtime image</string>

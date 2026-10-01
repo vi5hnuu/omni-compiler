@@ -9,6 +9,9 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -55,6 +58,11 @@ class JobDetailViewModel @AssistedInject constructor(
 
     private val state = MutableStateFlow(JobDetailUiState(runtimeId = route.runtimeId))
     val uiState: StateFlow<JobDetailUiState> = state
+
+    /** The job's runtime by name for the app bar; null until the catalog loads or when the id is unknown. */
+    val runtimeName: StateFlow<RuntimeName?> = runtimes.runtimeNames()
+        .map { names -> route.runtimeId?.let(names::get) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
     private val events = Channel<JobDetailEvent>(Channel.BUFFERED)
     val eventFlow = events.receiveAsFlow()

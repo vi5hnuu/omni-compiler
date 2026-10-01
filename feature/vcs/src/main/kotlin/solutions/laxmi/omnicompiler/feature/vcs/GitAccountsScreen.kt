@@ -116,7 +116,8 @@ private fun HostSection(host: GitHost, account: GitAccount?, busy: Boolean, erro
     val context = LocalContext.current
     var token by rememberSaveable(host) { mutableStateOf("") }
     SectionLabel(host.displayName())
-    Column(Modifier.padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+    // Bottom padding separates one provider's button from the next provider's heading.
+    Column(Modifier.padding(start = 16.dp, end = 16.dp, bottom = 16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         if (account != null) {
             Text(stringResource(R.string.git_connected_as, account.login), style = OmniTheme.typography.body, color = colors.textPrimary)
             OmniButton(stringResource(R.string.git_disconnect), onDisconnect, style = OmniButtonStyle.Secondary, trailingIcon = null)

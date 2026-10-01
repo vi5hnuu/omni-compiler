@@ -72,7 +72,12 @@ fun JobDetailScreen(route: JobDetailRoute, navigator: Navigator) {
     val colors = OmniTheme.colors
     Box(Modifier.fillMaxSize().background(colors.background)) {
         Column(Modifier.fillMaxSize().navigationBarsPadding()) {
-            OmniTopBar(stringResource(R.string.job_title, shortJobId(route.jobId)), onBack = navigator::back, subtitle = route.runtimeId) {
+            val runtimeName by viewModel.runtimeName.collectAsStateWithLifecycle()
+            OmniTopBar(
+                stringResource(R.string.job_title, shortJobId(route.jobId)),
+                onBack = navigator::back,
+                subtitle = runtimeName?.let { stringResource(R.string.history_runtime_name, it.language, it.version) } ?: route.runtimeId,
+            ) {
                 OmniIconButton(OmniIcons.Copy, stringResource(R.string.job_copy_id), { clipboard.setText(AnnotatedString(route.jobId)) })
             }
             val job = state.job
