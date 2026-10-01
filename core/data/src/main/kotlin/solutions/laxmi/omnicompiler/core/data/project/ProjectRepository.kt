@@ -1,5 +1,6 @@
 package solutions.laxmi.omnicompiler.core.data.project
 
+import solutions.laxmi.omnicompiler.core.storage.DocEntry
 import solutions.laxmi.omnicompiler.core.storage.ManifestCodec
 import solutions.laxmi.omnicompiler.core.data.mapper.toManifest
 import solutions.laxmi.omnicompiler.core.model.ProjectRemote
@@ -279,14 +280,18 @@ internal class LocalProjectRepository @Inject constructor(
     override suspend fun updateFileContent(fileId: String, content: String) {
         val file = files.get(fileId) ?: return
         val docId = file.docId
-        // Disk first; if the folder can't be reached the index still keeps the text, and the next save retries.
-        val written = if (docId == null) null else (onDisk { root -> store.updateFile(root, docId, content) } as? Outcome.Success)?.value
-        // Edits count as activity: Projects ordering and "open most recent" follow them.
-        db.withTransaction {
-            files.updateContent(fileId, content)
-            written?.let { files.setDiskState(fileId, it.docId, it.lastModified, it.size) }
-            projects.touchForFile(fileId, time.now().toEpochMilliseconds())
-        }
+        // Disk and index change under one lock: a rescan in between would see the newer file, take it for an
+        // edit made in another app and reload the editor mid-typing.
+        if (docId != null && onDisk { root -> indexContent(fileId, content, store.updateFile(root, docId, content)) } is Outcome.Success) return
+        // The folder can't be reached: the index still keeps the text, and the next save retries the disk.
+        indexContent(fileId, content, written = null)
+    }
+
+    /** Edits count as activity: Projects ordering and "open most recent" follow them. */
+    private suspend fun indexContent(fileId: String, content: String, written: DocEntry?) = db.withTransaction {
+        files.updateContent(fileId, content)
+        written?.let { files.setDiskState(fileId, it.docId, it.lastModified, it.size) }
+        projects.touchForFile(fileId, time.now().toEpochMilliseconds())
     }
 
     override suspend fun addFile(projectId: String, name: String, content: String): Outcome<SourceFile> {

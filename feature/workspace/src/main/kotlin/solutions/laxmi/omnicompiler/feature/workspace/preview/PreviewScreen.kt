@@ -248,7 +248,9 @@ private fun BrowserConsole(lines: List<ConsoleLine>, onEvaluate: (String) -> Uni
     }
 }
 
+/** Pages are user code: only plain web and mail links may leave the preview, never app-specific schemes. */
 private fun openExternally(context: Context, uri: Uri) {
+    if (uri.scheme?.lowercase() !in EXTERNAL_SCHEMES) return
     val intent = Intent(Intent.ACTION_VIEW, uri).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
     runCatching { context.startActivity(intent) }
 }
@@ -266,3 +268,4 @@ private fun mimeTypeOf(path: String): String = when (path.substringAfterLast('.'
 
 private const val PROJECT_PATH = "/project/"
 private const val RELOAD_DEBOUNCE_MS = 800L
+private val EXTERNAL_SCHEMES = setOf("http", "https", "mailto")

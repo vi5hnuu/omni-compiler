@@ -117,7 +117,10 @@ internal class DefaultGitRepository @Inject constructor(
             }
             val commit = network.commit(remote.host, token, remote.repoId, remote.branch, remote.baseCommit, message.trim().ifEmpty { DEFAULT_MESSAGE }, changes)
                 .valueOr { return@withToken it }
-            projects.setRemote(projectId, remote.copy(baseCommit = commit, baseBlobs = contents.mapValues { (_, content) -> blobId(content) }))
+            // Only what was pushed moves the base; a file edited while the push was in flight stays "modified".
+            val newBase = remote.baseBlobs.toMutableMap()
+            status.changes.forEach { change -> newBase.setOrRemove(change.name, contents[change.name]?.takeIf { change.kind != FileChange.Kind.Deleted }?.let(::blobId)) }
+            projects.setRemote(projectId, remote.copy(baseCommit = commit, baseBlobs = newBase))
         }
     }
 
