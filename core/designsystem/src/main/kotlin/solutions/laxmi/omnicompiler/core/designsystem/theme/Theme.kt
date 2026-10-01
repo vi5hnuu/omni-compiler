@@ -3,6 +3,7 @@ package solutions.laxmi.omnicompiler.core.designsystem.theme
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Shapes
+import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
@@ -10,6 +11,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.foundation.text.selection.LocalTextSelectionColors
 import androidx.compose.foundation.text.selection.TextSelectionColors
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 
 /** App chrome in dark (Signal) or light (Paper); editor themes are chosen separately (see `EditorTheme`). */
@@ -27,6 +29,8 @@ fun OmniTheme(darkTheme: Boolean = true, content: @Composable () -> Unit) {
         onSurface = colors.textPrimary,
         surfaceVariant = colors.surfaceRaised,
         onSurfaceVariant = colors.textSecondary,
+        surfaceContainerLowest = colors.surface,
+        surfaceContainerLow = colors.surface,
         surfaceContainer = colors.surfaceRaised,
         surfaceContainerHigh = colors.surfaceRaised,
         surfaceContainerHighest = colors.surfaceMuted,
@@ -35,6 +39,13 @@ fun OmniTheme(darkTheme: Boolean = true, content: @Composable () -> Unit) {
         error = colors.accent,
         onError = colors.onAccent,
         scrim = colors.scrim,
+        // Snackbars use the inverse roles; without these they fall back to Material's baseline palette.
+        inverseSurface = colors.textPrimary,
+        inverseOnSurface = colors.background,
+        // The action sits on the inverted surface, so it takes the opposite palette's readable accent.
+        inversePrimary = (if (darkTheme) PaperColors else SignalColors).accentText,
+        // No tonal tint: elevated menus and sheets keep the palette's flat surfaces.
+        surfaceTint = Color.Transparent,
     )
     val square = RoundedCornerShape(0.dp)
     CompositionLocalProvider(
@@ -45,6 +56,7 @@ fun OmniTheme(darkTheme: Boolean = true, content: @Composable () -> Unit) {
         MaterialTheme(
             colorScheme = material,
             shapes = Shapes(square, square, square, square, square),
+            typography = MaterialTypography,
             content = content,
         )
     }
@@ -56,4 +68,15 @@ object OmniTheme {
 
     val typography: OmniTypography
         @Composable @ReadOnlyComposable get() = LocalOmniTypography.current
+}
+
+/** Material components (menus, snackbars, dialogs, text fields' defaults) speak the app's typeface too. */
+private val MaterialTypography = with(DefaultOmniTypography) {
+    Typography(
+        displayLarge = display, displayMedium = display, displaySmall = display,
+        headlineLarge = headline, headlineMedium = headline, headlineSmall = headline,
+        titleLarge = title, titleMedium = title, titleSmall = titleSmall,
+        bodyLarge = body, bodyMedium = body, bodySmall = bodySmall,
+        labelLarge = button, labelMedium = label, labelSmall = label,
+    )
 }
