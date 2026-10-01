@@ -43,9 +43,12 @@ android {
         release {
             // Until the real id is set, release keeps the test app id; its ad units are empty, so it requests no ads.
             manifestPlaceholders["admobAppId"] = localProps.getProperty("omni.admob.appId") ?: testAdMobAppId
-            optimization {
-                enable = true
-            }
+            // R8 code and resource shrinking. Kept on these flags (rather than AGP 9's `optimization { enable }`) because the
+            // Baseline Profile plugin turns exactly these off for its non-minified profiling variant; with `optimization`
+            // that variant stayed obfuscated and produced a profile whose class names don't match this build.
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"))
         }
     }
     buildFeatures {

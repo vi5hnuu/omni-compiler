@@ -2,15 +2,16 @@ package solutions.laxmi.omnicompiler.baselineprofile
 
 import androidx.benchmark.macro.MacrobenchmarkScope
 import androidx.test.uiautomator.By
-import androidx.test.uiautomator.Direction
+import androidx.test.uiautomator.UiScrollable
+import androidx.test.uiautomator.UiSelector
 import androidx.test.uiautomator.Until
-import java.util.regex.Pattern
 
 /** The release-like build under test (benchmarkRelease / nonMinifiedRelease keep the release application id). */
 internal const val PACKAGE = "solutions.laxmi.omnicompiler"
 
 private const val TIMEOUT_MS = 15_000L
-private val CASE_INSENSITIVE = Pattern.CASE_INSENSITIVE
+/** How long to look for an optional first-run step before assuming it was already done. */
+private const val STEP_MS = 3_000L
 
 /**
  * Gets past first-run screens the way a user would: continue as a guest, then pick the projects folder in the
@@ -18,35 +19,36 @@ private val CASE_INSENSITIVE = Pattern.CASE_INSENSITIVE
  */
 internal fun MacrobenchmarkScope.ensureReady() {
     device.wait(Until.hasObject(By.pkg(PACKAGE).depth(0)), TIMEOUT_MS)
-    device.findObject(By.text("Continue as guest"))?.let { guest ->
+    // These screens recompose while they load (welcome counts, picker roots), so steps use UiObject, which finds its
+    // node again on every action, instead of a UiObject2 snapshot that goes stale between lookup and click.
+    val guest = device.findObject(UiSelector().text("Continue as guest"))
+    if (guest.waitForExists(STEP_MS)) {
         guest.click()
-        device.wait(Until.gone(By.text("Continue as guest")), TIMEOUT_MS)
+        guest.waitUntilGone(TIMEOUT_MS)
     }
-    device.wait(Until.findObject(By.text("Choose folder")), 2_000)?.let { choose ->
+    val choose = device.findObject(UiSelector().text("Choose folder"))
+    if (choose.waitForExists(STEP_MS)) {
         choose.click()
-        device.wait(Until.findObject(By.text(Pattern.compile("use this folder", CASE_INSENSITIVE))), TIMEOUT_MS)?.click()
-        device.wait(Until.findObject(By.text(Pattern.compile("allow", CASE_INSENSITIVE))), TIMEOUT_MS)?.click()
+        device.findObject(UiSelector().textMatches("(?i)use this folder")).takeIf { it.waitForExists(TIMEOUT_MS) }?.click()
+        device.findObject(UiSelector().textMatches("(?i)allow")).takeIf { it.waitForExists(TIMEOUT_MS) }?.click()
     }
     check(device.wait(Until.hasObject(By.desc("Open drawer")), TIMEOUT_MS)) { "The editor did not open" }
 }
 
 /** Opens [LargeProject] from the drawer and waits for its files. */
 internal fun MacrobenchmarkScope.openLargeProject() {
-    device.findObject(By.desc("Open drawer")).click()
-    val row = device.wait(Until.findObject(By.text(LargeProject.NAME)), TIMEOUT_MS) ?: error("${LargeProject.NAME} is not listed")
-    row.click()
+    tap(UiSelector().description("Open drawer"))
+    tap(UiSelector().text(LargeProject.NAME))
     device.wait(Until.hasObject(By.text(LargeProject.BIG_FILE)), TIMEOUT_MS)
     device.waitForIdle()
 }
 
 /** Switches to the large file and back to the entry file through the tabs. */
 internal fun MacrobenchmarkScope.switchFiles() {
-    device.findObject(By.text(LargeProject.BIG_FILE)).click()
-    device.waitForIdle()
-    device.findObject(By.text(LargeProject.ENTRY)).click()
-    device.waitForIdle()
-    device.findObject(By.text(LargeProject.BIG_FILE)).click()
-    device.waitForIdle()
+    listOf(LargeProject.BIG_FILE, LargeProject.ENTRY, LargeProject.BIG_FILE).forEach { name ->
+        tap(UiSelector().text(name))
+        device.waitForIdle()
+    }
 }
 
 /** Flings through the open file, down then up, in the middle of the screen where the code is. */
@@ -66,11 +68,20 @@ internal fun MacrobenchmarkScope.flingCode() {
 
 /** Opens the drawer, scrolls it and closes it with Back. */
 internal fun MacrobenchmarkScope.openAndCloseDrawer() {
-    device.findObject(By.desc("Open drawer")).click()
-    device.wait(Until.findObject(By.text("Settings")), TIMEOUT_MS)
-        ?: device.findObject(By.scrollable(true))?.scroll(Direction.DOWN, 1f)
+    tap(UiSelector().description("Open drawer"))
+    // Long file lists push Settings below the fold; scrolling the drawer exercises its list too.
+    if (!device.findObject(UiSelector().text("Settings")).waitForExists(STEP_MS)) {
+        UiScrollable(UiSelector().scrollable(true)).takeIf { it.exists() }?.scrollToEnd(1)
+    }
     device.pressBack()
     device.waitForIdle()
+}
+
+/** Waits for [selector] and taps it; fails the journey with the selector when it never appears. */
+private fun MacrobenchmarkScope.tap(selector: UiSelector) {
+    val target = device.findObject(selector)
+    check(target.waitForExists(TIMEOUT_MS)) { "Not found: $selector" }
+    target.click()
 }
 
 /** Few steps make a fast swipe, i.e. a fling. */
