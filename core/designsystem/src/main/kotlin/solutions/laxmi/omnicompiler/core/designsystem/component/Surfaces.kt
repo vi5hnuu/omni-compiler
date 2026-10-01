@@ -59,13 +59,15 @@ fun OmniTopBar(
     modifier: Modifier = Modifier,
     subtitle: String? = null,
     navigationIcon: ImageVector = OmniIcons.ArrowLeft,
+    /** Bar colour; full-page forms pass the screen background so the bar doesn't read as a second header. */
+    containerColor: Color = OmniTheme.colors.surface,
     actions: @Composable RowScope.() -> Unit = {},
 ) {
     val colors = OmniTheme.colors
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .background(colors.surface)
+            .background(containerColor)
             .statusBarsPadding()
             .height(OmniDimens.appBarHeight)
             .padding(start = 2.dp, end = 6.dp),

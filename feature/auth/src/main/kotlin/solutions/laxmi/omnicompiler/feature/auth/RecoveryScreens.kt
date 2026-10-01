@@ -7,7 +7,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -17,7 +16,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.ImeAction
@@ -30,7 +28,6 @@ import solutions.laxmi.omnicompiler.core.designsystem.component.OmniButton
 import solutions.laxmi.omnicompiler.core.designsystem.component.OmniButtonStyle
 import solutions.laxmi.omnicompiler.core.designsystem.component.OmniTextButton
 import solutions.laxmi.omnicompiler.core.designsystem.component.OmniTextField
-import solutions.laxmi.omnicompiler.core.designsystem.component.OmniTopBar
 import solutions.laxmi.omnicompiler.core.designsystem.icon.OmniIcons
 import solutions.laxmi.omnicompiler.core.designsystem.theme.OmniTheme
 import solutions.laxmi.omnicompiler.core.navigation.CheckInboxRoute
@@ -53,7 +50,11 @@ fun CheckInboxScreen(route: CheckInboxRoute, navigator: Navigator) {
     val context = LocalContext.current
     LaunchedEffect(viewModel) { viewModel.messages.collect { snackbar.showSnackbar(it.asString(resources)) } }
     val colors = OmniTheme.colors
-    AuthScaffold(snackbar, topBar = { OmniTopBar("", onBack = navigator::back) }) {
+    AuthScaffold(
+        snackbar,
+        topBar = { AuthTopBar(navigator::back) },
+        footer = { AccountSwitchRow(stringResource(R.string.inbox_wrong_address), stringResource(R.string.inbox_change_email), navigator::back) },
+    ) {
         AuthHeading(stringResource(R.string.inbox_title), stringResource(R.string.inbox_subtitle, route.email))
         OmniButton(stringResource(R.string.inbox_open_email), {
             if (!context.openEmailApp()) { /* no mail app: the address is on screen */ }
@@ -80,10 +81,6 @@ fun CheckInboxScreen(route: CheckInboxRoute, navigator: Navigator) {
         } else {
             OmniButton(stringResource(R.string.inbox_verified_sign_in), { navigator.replace(SignInRoute) }, modifier = Modifier.padding(top = 8.dp))
         }
-        Row(Modifier.fillMaxWidth().padding(vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text(stringResource(R.string.inbox_wrong_address) + " ", style = OmniTheme.typography.body, color = colors.textSecondary)
-            OmniTextButton(stringResource(R.string.inbox_change_email), navigator::back)
-        }
     }
 }
 
@@ -96,7 +93,7 @@ fun ForgotPasswordScreen(route: ForgotPasswordRoute, navigator: Navigator) {
     val snackbar = remember { SnackbarHostState() }
     val context = LocalContext.current
     LaunchedEffect(route.email) { viewModel.init(route.email) }
-    AuthScaffold(snackbar, topBar = { OmniTopBar("", onBack = navigator::back) }) {
+    AuthScaffold(snackbar, topBar = { AuthTopBar(navigator::back) }) {
         AuthHeading(stringResource(R.string.reset_title), stringResource(R.string.reset_subtitle))
         OmniTextField(
             state.email, viewModel::setEmail, label = stringResource(R.string.auth_email), placeholder = stringResource(R.string.auth_email_placeholder), error = state.error?.asString(),

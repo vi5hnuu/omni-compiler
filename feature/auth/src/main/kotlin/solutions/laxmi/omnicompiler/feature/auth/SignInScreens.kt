@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.KeyboardActions
@@ -25,7 +24,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.ImeAction
@@ -39,7 +37,6 @@ import solutions.laxmi.omnicompiler.core.designsystem.component.OmniCheckbox
 import solutions.laxmi.omnicompiler.core.designsystem.component.OmniPasswordField
 import solutions.laxmi.omnicompiler.core.designsystem.component.OmniTextButton
 import solutions.laxmi.omnicompiler.core.designsystem.component.OmniTextField
-import solutions.laxmi.omnicompiler.core.designsystem.component.OmniTopBar
 import solutions.laxmi.omnicompiler.core.designsystem.icon.OmniIcons
 import solutions.laxmi.omnicompiler.core.designsystem.theme.OmniTheme
 import solutions.laxmi.omnicompiler.core.navigation.CheckInboxRoute
@@ -76,7 +73,11 @@ fun SignInScreen(navigator: Navigator) {
     val context = LocalContext.current
     AuthEvents(viewModel, navigator, snackbar)
     val colors = OmniTheme.colors
-    AuthScaffold(snackbar, topBar = { OmniTopBar("", onBack = navigator::back) }) {
+    AuthScaffold(
+        snackbar,
+        topBar = { AuthTopBar(navigator::back) },
+        footer = { AccountSwitchRow(stringResource(R.string.sign_in_new), stringResource(R.string.sign_in_create_account)) { navigator.navigate(SignUpRoute()) } },
+    ) {
         AuthHeading(stringResource(R.string.sign_in_title), stringResource(R.string.sign_in_subtitle))
         OmniTextField(
             state.identifier, viewModel::setIdentifier, label = stringResource(R.string.sign_in_identifier), placeholder = stringResource(R.string.auth_email_placeholder),
@@ -104,10 +105,6 @@ fun SignInScreen(navigator: Navigator) {
                 viewModel.signInWithGoogle(context.findActivityContext())
             }
         }
-        Row(Modifier.fillMaxWidth().padding(vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text(stringResource(R.string.sign_in_new) + " ", style = OmniTheme.typography.body, color = colors.textSecondary)
-            OmniTextButton(stringResource(R.string.sign_in_create_account), { navigator.navigate(SignUpRoute()) })
-        }
     }
 }
 
@@ -122,7 +119,11 @@ fun SignUpScreen(route: SignUpRoute, navigator: Navigator) {
     AuthEvents(viewModel, navigator, snackbar)
     val colors = OmniTheme.colors
     val converting = route.convertGuest && state.isGuest
-    AuthScaffold(snackbar, topBar = { OmniTopBar("", onBack = navigator::back) }) {
+    AuthScaffold(
+        snackbar,
+        topBar = { AuthTopBar(navigator::back) },
+        footer = { AccountSwitchRow(stringResource(R.string.sign_up_have_account), stringResource(R.string.sign_in_button)) { navigator.replace(SignInRoute) } },
+    ) {
         AuthHeading(
             stringResource(R.string.sign_up_title),
             stringResource(if (converting) R.string.sign_up_subtitle_convert else R.string.sign_up_subtitle),
@@ -151,10 +152,6 @@ fun SignUpScreen(route: SignUpRoute, navigator: Navigator) {
             GoogleButton(stringResource(R.string.sign_up_google), loading = busy == AuthAction.Google, enabled = busy == null) {
                 viewModel.signInWithGoogle(context.findActivityContext())
             }
-        }
-        Row(Modifier.fillMaxWidth().padding(vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text(stringResource(R.string.sign_up_have_account) + " ", style = OmniTheme.typography.body, color = colors.textSecondary)
-            OmniTextButton(stringResource(R.string.sign_in_button), { navigator.replace(SignInRoute) })
         }
     }
 }

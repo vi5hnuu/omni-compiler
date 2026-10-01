@@ -38,6 +38,8 @@ import solutions.laxmi.omnicompiler.core.designsystem.R as DesignR
 import solutions.laxmi.omnicompiler.core.designsystem.component.OmniButton
 import solutions.laxmi.omnicompiler.core.designsystem.component.OmniButtonStyle
 import solutions.laxmi.omnicompiler.core.designsystem.component.OmniDivider
+import solutions.laxmi.omnicompiler.core.designsystem.component.OmniTextButton
+import solutions.laxmi.omnicompiler.core.designsystem.component.OmniTopBar
 import solutions.laxmi.omnicompiler.core.designsystem.theme.OmniDimens
 import solutions.laxmi.omnicompiler.core.designsystem.theme.OmniTheme
 
@@ -94,9 +96,22 @@ internal fun AuthScaffold(
     }
 }
 
+/** Back-only bar in the page colour, so the form's heading is the page's only header. */
+@Composable
+internal fun AuthTopBar(onBack: () -> Unit) = OmniTopBar("", onBack = onBack, containerColor = OmniTheme.colors.background)
+
+/** "New to omni? Create account"-style line; pinned in [AuthScaffold]'s footer so short forms are anchored at both ends. */
+@Composable
+internal fun AccountSwitchRow(prompt: String, action: String, onClick: () -> Unit) {
+    Row(Modifier.fillMaxWidth().padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+        Text("$prompt ", style = OmniTheme.typography.body, color = OmniTheme.colors.textSecondary)
+        OmniTextButton(action, onClick)
+    }
+}
+
 @Composable
 internal fun AuthHeading(title: String, subtitle: String?) {
-    Column(Modifier.padding(top = 8.dp, bottom = 4.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+    Column(Modifier.padding(top = 24.dp, bottom = 4.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Text(title, style = OmniTheme.typography.headline, color = OmniTheme.colors.textPrimary)
         if (subtitle != null) Text(subtitle, style = OmniTheme.typography.body, color = OmniTheme.colors.textSecondary)
     }
