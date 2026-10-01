@@ -2,7 +2,8 @@
 <resources>
     <string name="settings_title">Settings</string>
     <string name="settings_editor">Editor</string>
-    <string name="settings_theme_font">Theme · font</string>
+    <string name="settings_theme_font">Editor theme · font</string>
+    <string name="settings_appearance">Appearance</string>
     <string name="settings_theme_font_value">%1$s · %2$s %3$dpx</string>
     <string name="settings_minimap">Minimap</string>
     <string name="settings_minimap_note">Code overview beside the editor</string>

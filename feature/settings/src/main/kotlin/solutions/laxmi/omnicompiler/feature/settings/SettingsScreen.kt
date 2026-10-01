@@ -4,6 +4,7 @@ import androidx.activity.compose.LocalActivity
 import solutions.laxmi.omnicompiler.core.ads.LocalAds
 import solutions.laxmi.omnicompiler.core.navigation.GitAccountsRoute
 import solutions.laxmi.omnicompiler.core.navigation.ProjectFolderRoute
+import solutions.laxmi.omnicompiler.core.model.AppTheme
 import solutions.laxmi.omnicompiler.core.ui.labelRes
 import solutions.laxmi.omnicompiler.core.ui.displayName
 import solutions.laxmi.omnicompiler.core.ui.R as CommonR
@@ -67,9 +68,18 @@ fun SettingsScreen(navigator: Navigator, appVersion: String) {
     val activity = LocalActivity.current
     val privacyChoices by ads.privacyOptionsRequired.collectAsStateWithLifecycle()
     val defaultRuntime = state.run.defaultRuntimeId
+    // Segment labels are plain lambdas, so resolve the localized names up front.
+    val appThemeLabels = AppTheme.entries.associateWith { stringResource(it.labelRes) }
     Column(Modifier.fillMaxSize().background(colors.background).navigationBarsPadding()) {
         OmniTopBar(stringResource(R.string.settings_title), onBack = navigator::back)
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
+            // The app theme is the setting people look for first; it is also in Editor appearance.
+            SectionLabel(stringResource(R.string.settings_appearance))
+            OmniSegmented(
+                AppTheme.entries, state.appTheme, { appThemeLabels.getValue(it) }, viewModel::setAppTheme,
+                Modifier.padding(horizontal = 16.dp).fillMaxWidth(),
+            )
+
             SectionLabel(stringResource(R.string.settings_editor))
             OmniListRow(
                 stringResource(R.string.settings_theme_font),
