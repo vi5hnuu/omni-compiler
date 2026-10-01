@@ -10,8 +10,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.offset
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -21,8 +20,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.viewinterop.AndroidView
@@ -156,18 +157,15 @@ fun CodeEditor(
     }
 }
 
+/** Reads the row at draw time: it moves on every scroll frame and must not recompose the editor. */
 @Composable
 private fun ActiveLineBar(state: CodeEditorState, palette: EditorPalette) {
-    val row = state.activeRow ?: return
-    val density = LocalDensity.current
-    with(density) {
-        Box(
-            Modifier
-                .offset(y = row.first.toDp())
-                .size(width = 2.dp, height = row.second.toDp())
-                .background(palette.cursor),
-        )
-    }
+    Spacer(
+        Modifier.fillMaxSize().drawBehind {
+            val (top, height) = state.activeRow ?: return@drawBehind
+            drawRect(palette.cursor, topLeft = Offset(0f, top), size = Size(2.dp.toPx(), height))
+        },
+    )
 }
 
 private fun createEditor(context: Context, state: CodeEditorState, onRunShortcut: () -> Unit, onLineHintClick: () -> Unit): CodeEditor =

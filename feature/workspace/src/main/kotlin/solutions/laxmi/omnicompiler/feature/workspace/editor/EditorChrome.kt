@@ -101,7 +101,6 @@ internal fun ReadingTopBar(
 @Composable
 internal fun TypingTopBar(
     fileName: String,
-    dirty: Boolean,
     state: CodeEditorState,
     runEnabled: Boolean,
     onMenu: () -> Unit,
@@ -120,7 +119,7 @@ internal fun TypingTopBar(
     ) {
         OmniIconButton(OmniIcons.Menu, stringResource(R.string.editor_open_drawer), onMenu, size = 40.dp, tint = colors.textPrimary, iconSize = 18.dp)
         Text(fileName, style = OmniTheme.typography.bodyStrong, color = colors.textPrimary, maxLines = 1)
-        if (dirty) Box(Modifier.padding(start = 6.dp).size(5.dp).background(colors.textPrimary))
+        if (state.isDirty) Box(Modifier.padding(start = 6.dp).size(5.dp).background(colors.textPrimary))
         Box(Modifier.weight(1f))
         OmniIconButton(OmniIcons.Undo, stringResource(R.string.editor_undo), state::undo, enabled = state.canUndo, iconSize = 16.dp)
         OmniIconButton(OmniIcons.Redo, stringResource(R.string.editor_redo), state::redo, enabled = state.canRedo, iconSize = 16.dp)
@@ -134,7 +133,8 @@ internal fun FileTabs(
     files: List<SourceFile>,
     activeFileId: String?,
     entryShortCode: String?,
-    dirtyFileId: String?,
+    /** Read lazily: it flips on every edit and must not recompose the screen around the tabs. */
+    dirtyFileId: () -> String?,
     onSelect: (SourceFile) -> Unit,
     onFileMenu: (SourceFile) -> Unit,
     onAdd: () -> Unit,
@@ -175,7 +175,7 @@ internal fun FileTabs(
                         color = if (active) colors.textPrimary else colors.textSecondary,
                         maxLines = 1,
                     )
-                    if (file.id == dirtyFileId) Box(Modifier.size(5.dp).background(colors.textSecondary))
+                    if (file.id == dirtyFileId()) Box(Modifier.size(5.dp).background(colors.textSecondary))
                 }
             }
         }

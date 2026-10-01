@@ -216,7 +216,7 @@ internal fun ColumnScope.WorkspaceBody(
     }
 
     if (typing) {
-        TypingTopBar(activeFile.name, editorState.isDirty, editorState, runEnabled = true, onMenu = onOpenDrawer, onRun = stopOrRun, runButton = runButton)
+        TypingTopBar(activeFile.name, editorState, runEnabled = true, onMenu = onOpenDrawer, onRun = stopOrRun, runButton = runButton)
     } else {
         ReadingTopBar(
             projectName = state.workspace?.project?.name.orEmpty(),
@@ -268,7 +268,7 @@ internal fun ColumnScope.WorkspaceBody(
             files = state.workspace?.files.orEmpty(),
             activeFileId = activeFile.id,
             entryShortCode = state.language?.shortCode,
-            dirtyFileId = activeFile.id.takeIf { editorState.isDirty },
+            dirtyFileId = { activeFile.id.takeIf { editorState.isDirty } },
             onSelect = { selectFile(it.id) },
             onFileMenu = { if (!it.isEntry) onFileMenu(it) },
             onAdd = onShowNewFile,
@@ -389,7 +389,7 @@ internal fun ColumnScope.WorkspaceBody(
                                     files = projectFiles.filter { it.id != activeFile.id },
                                     activeFileId = splitFile.id,
                                     entryShortCode = state.language?.shortCode,
-                                    dirtyFileId = splitFile.id.takeIf { splitState.isDirty },
+                                    dirtyFileId = { splitFile.id.takeIf { splitState.isDirty } },
                                     onSelect = { splitFileId = it.id },
                                     onFileMenu = { },
                                     onAdd = onShowNewFile,
