@@ -37,6 +37,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import solutions.laxmi.omnicompiler.core.designsystem.component.InfoBanner
 import solutions.laxmi.omnicompiler.core.designsystem.component.OmniBadge
+import solutions.laxmi.omnicompiler.core.model.AuthProvider
 import solutions.laxmi.omnicompiler.core.designsystem.component.OmniButton
 import solutions.laxmi.omnicompiler.core.designsystem.component.OmniButtonStyle
 import solutions.laxmi.omnicompiler.core.designsystem.component.OmniPasswordField
@@ -97,7 +98,7 @@ fun ProfileScreen(navigator: Navigator) {
                 }
                 SectionLabel(stringResource(R.string.profile_security))
                 if (user.hasPassword) {
-                    OmniButton(stringResource(R.string.profile_change_password), { changingPassword = true }, Modifier.padding(horizontal = 16.dp), style = OmniButtonStyle.Secondary, leadingIcon = OmniIcons.Lock)
+                    OmniButton(stringResource(R.string.profile_change_password), { changingPassword = true }, Modifier.padding(horizontal = 16.dp), style = OmniButtonStyle.Outline, leadingIcon = OmniIcons.Lock)
                 } else if (!user.isGuest) {
                     Text(stringResource(R.string.profile_google_no_password), style = OmniTheme.typography.bodySmall, color = colors.textTertiary, modifier = Modifier.padding(horizontal = 16.dp))
                 }
@@ -139,7 +140,15 @@ private fun Header(user: User) {
             Text(user.displayName, style = OmniTheme.typography.title, color = colors.textPrimary)
             Text(user.email ?: user.username.orEmpty(), style = OmniTheme.typography.bodySmall, color = colors.textTertiary)
         }
-        OmniBadge(if (user.isGuest) stringResource(R.string.profile_badge_guest) else user.provider.name)
+        OmniBadge(
+            stringResource(
+                when {
+                    user.isGuest -> R.string.profile_badge_guest
+                    user.provider == AuthProvider.GOOGLE -> R.string.profile_badge_google
+                    else -> R.string.profile_badge_email
+                },
+            ),
+        )
     }
 }
 

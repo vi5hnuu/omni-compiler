@@ -68,6 +68,9 @@
     <string name="profile_delete_explainer">Deleting your account erases your run history, API key and webhooks on the judge, then your sign-in. Projects on this device are removed too.</string>
     <string name="profile_delete_account">Delete account</string>
     <string name="profile_badge_guest">GUEST</string>
+    <!-- How this account signs in, shown as a badge beside the name. -->
+    <string name="profile_badge_email">E-MAIL</string>
+    <string name="profile_badge_google">GOOGLE</string>
     <string name="profile_guest_notice">Guest accounts expire after a week without use. Create an account to keep your run history; your projects stay on this device either way.</string>
     <string name="profile_create_account">Create account</string>
     <string name="profile_have_account">I already have an account</string>

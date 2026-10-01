@@ -100,15 +100,26 @@ fun DeveloperScreen(navigator: Navigator) {
                     stringResource(if (state.revealedKey == null) R.string.developer_generate else R.string.developer_generate_another),
                     { confirmRotate = true },
                     Modifier.padding(16.dp),
-                    style = OmniButtonStyle.Secondary,
+                    style = OmniButtonStyle.Outline,
                     leadingIcon = OmniIcons.Key,
                     loading = state.rotating,
                 )
                 SectionLabel(stringResource(R.string.developer_quick_start))
                 val snippet = quickStart(state.apiBaseUrl)
-                Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp).background(colors.surfaceRaised).padding(12.dp)) {
-                    Text(snippet, style = OmniTheme.typography.mono, color = colors.textPrimary, modifier = Modifier.horizontalScroll(rememberScrollState()))
-                    OmniTextButton(stringResource(CommonR.string.common_copy), { clipboard.setText(AnnotatedString(snippet)) })
+                // Same shape as the console's code blocks: the snippet scrolls sideways and Copy stays in the corner.
+                Box(Modifier.fillMaxWidth().padding(horizontal = 16.dp).background(colors.surfaceRaised)) {
+                    Text(
+                        snippet,
+                        style = OmniTheme.typography.mono,
+                        color = colors.textPrimary,
+                        modifier = Modifier.horizontalScroll(rememberScrollState()).padding(start = 12.dp, top = 12.dp, bottom = 12.dp, end = 44.dp),
+                    )
+                    OmniIconButton(
+                        OmniIcons.Copy,
+                        stringResource(CommonR.string.common_copy),
+                        { clipboard.setText(AnnotatedString(snippet)) },
+                        modifier = Modifier.align(Alignment.TopEnd).background(colors.surfaceRaised),
+                    )
                 }
 
                 SectionLabel(stringResource(R.string.developer_webhooks)) { OmniTextButton(stringResource(R.string.developer_add), { addingWebhook = true }) }

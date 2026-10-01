@@ -6,6 +6,9 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -17,6 +20,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -98,28 +102,36 @@ fun ProjectFolderScreen(route: ProjectFolderRoute, navigator: Navigator) {
         if (route.change) {
             OmniTopBar(stringResource(R.string.folder_title_change), onBack = navigator::back)
         } else {
-            Text(
-                stringResource(R.string.folder_title),
-                style = OmniTheme.typography.headline,
-                color = colors.textPrimary,
-                modifier = Modifier.statusBarsPadding().padding(start = 16.dp, end = 16.dp, top = 24.dp),
-            )
+            Box(Modifier.statusBarsPadding())
         }
-        Column(
-            Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp),
-        ) {
-            if (state.status == FolderStatus.Lost) {
-                InfoBanner(stringResource(R.string.folder_lost), icon = OmniIcons.WifiOff)
+        BoxWithConstraints(Modifier.weight(1f)) {
+            // First run has nothing else on screen, so the explanation sits centred above the button instead of
+            // leaving the middle empty; from Settings it stays under the app bar like other settings pages.
+            Column(
+                Modifier.verticalScroll(rememberScrollState()).heightIn(min = maxHeight).padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp, if (route.change) Alignment.Top else Alignment.CenterVertically),
+            ) {
+                if (!route.change) {
+                    Text(stringResource(R.string.folder_title), style = OmniTheme.typography.headline, color = colors.textPrimary)
+                }
+                if (state.status == FolderStatus.Lost) {
+                    InfoBanner(stringResource(R.string.folder_lost), icon = OmniIcons.WifiOff)
+                }
+                Text(stringResource(R.string.folder_body), style = OmniTheme.typography.body, color = colors.textSecondary)
+                Text(stringResource(R.string.folder_privacy), style = OmniTheme.typography.bodySmall, color = colors.textTertiary)
+                state.path?.let { InfoBanner(it, icon = OmniIcons.Folder, title = stringResource(R.string.folder_current)) }
+                if (route.change) Text(stringResource(R.string.folder_change_note), style = OmniTheme.typography.bodySmall, color = colors.textTertiary)
+                state.error?.let { Text(it.asString(), style = OmniTheme.typography.bodySmall, color = colors.accentText) }
             }
-            Text(stringResource(R.string.folder_body), style = OmniTheme.typography.body, color = colors.textSecondary)
-            Text(stringResource(R.string.folder_privacy), style = OmniTheme.typography.bodySmall, color = colors.textTertiary)
-            state.path?.let { Text(stringResource(R.string.folder_current, it), style = OmniTheme.typography.mono, color = colors.textPrimary) }
-            if (route.change) Text(stringResource(R.string.folder_change_note), style = OmniTheme.typography.bodySmall, color = colors.textTertiary)
-            state.error?.let { Text(it.asString(), style = OmniTheme.typography.bodySmall, color = colors.accentText) }
         }
         OmniButton(
-            stringResource(if (state.busy) R.string.folder_working else R.string.folder_choose),
+            stringResource(
+                when {
+                    state.busy -> R.string.folder_working
+                    state.path != null -> R.string.folder_change
+                    else -> R.string.folder_choose
+                },
+            ),
             { pick.launch(documentsFolder()) },
             Modifier.padding(16.dp),
             enabled = !state.busy,

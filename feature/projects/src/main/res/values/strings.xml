@@ -48,10 +48,11 @@
     <string name="folder_title_change">Projects folder</string>
     <string name="folder_body">Pick a folder, for example Documents. Omni Compiler keeps your projects in an OmniCompiler folder there: each project is a folder of plain source files you can open in any app, back up, or copy to another device.</string>
     <string name="folder_privacy">Only the folder you pick is shared with the app. Code is sent to the compiler only when you run it.</string>
-    <string name="folder_current">Current: %1$s</string>
+    <string name="folder_current">Current folder</string>
     <string name="folder_change_note">Projects already in the current folder stay there. After switching, the app shows the projects in the new folder.</string>
     <string name="folder_lost">Your projects folder can\'t be reached. It may have been moved or deleted, or access was removed. Choose it again.</string>
     <string name="folder_choose">Choose folder</string>
+    <string name="folder_change">Change folder</string>
     <string name="folder_working">Setting up…</string>
     <string name="projects_more">More options</string>
     <string name="projects_import_folder">Import folder</string>
