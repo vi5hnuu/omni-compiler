@@ -14,6 +14,19 @@ aboutLibraries {
     collect {
         configPath = rootProject.file("config/aboutlibraries")
     }
+    library {
+        // Only open-source code the app ships. Google Play services, AdMob/UMP, Google ID and Play's hsdp are
+        // proprietary (Android SDK licence / Google terms); BOMs are version lists and the Dagger lint AAR isn't
+        // packaged, so neither carries code to attribute.
+        exclusionPatterns = setOf(
+            Regex("com\\.google\\.android\\.gms:.*").toPattern(),
+            Regex("com\\.google\\.android\\.ump:.*").toPattern(),
+            Regex("com\\.google\\.android\\.libraries\\.identity\\..*").toPattern(),
+            Regex("com\\.google\\.android\\.play:hsdp").toPattern(),
+            Regex(".*:.*-bom").toPattern(),
+            Regex("com\\.google\\.dagger:dagger-lint-aar").toPattern(),
+        )
+    }
 }
 
 val localProps = Properties().apply {
