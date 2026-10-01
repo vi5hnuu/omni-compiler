@@ -268,7 +268,7 @@ internal class DefaultExecutionRepository @Inject constructor(
     private data class Prepared(val record: RunRecord, val request: ExecutionRequest, val entryFileName: String?)
 
     private suspend fun prepare(projectId: String, options: RunOptions): Outcome<Prepared> {
-        val workspace = projects.observeWorkspace(projectId).first()
+        val workspace = projects.snapshot(projectId)
             ?: return Outcome.Failure(AppError.NotFound(reason = ErrorReason.ProjectNotFound))
         val entry = workspace.entry ?: return Outcome.Failure(AppError.Validation(reason = ErrorReason.EntryFileMissing))
         if (entry.content.isBlank()) return Outcome.Failure(AppError.Validation(reason = ErrorReason.WriteCodeFirst))

@@ -41,7 +41,7 @@ import solutions.laxmi.omnicompiler.core.designsystem.component.SectionLabel
 import solutions.laxmi.omnicompiler.core.designsystem.icon.OmniIcons
 import solutions.laxmi.omnicompiler.core.designsystem.theme.OmniTheme
 import solutions.laxmi.omnicompiler.core.model.ProjectSummary
-import solutions.laxmi.omnicompiler.core.model.SourceFile
+import solutions.laxmi.omnicompiler.core.model.FileHeader
 import solutions.laxmi.omnicompiler.core.model.User
 import solutions.laxmi.omnicompiler.core.ui.Avatar
 import solutions.laxmi.omnicompiler.core.ui.VerdictBadge
@@ -65,13 +65,13 @@ internal fun EditorDrawer(
     usage: DrawerUsage?,
     currentProjectId: String?,
     currentProjectName: String,
-    files: List<SourceFile>,
+    files: List<FileHeader>,
     activeFileId: String?,
     entryShortCode: String?,
     onAccount: () -> Unit,
     onProject: (String) -> Unit,
     onNewProject: () -> Unit,
-    onFile: (SourceFile) -> Unit,
+    onFile: (FileHeader) -> Unit,
     onDestination: (DrawerDestination) -> Unit,
 ) {
     val colors = OmniTheme.colors
@@ -226,7 +226,7 @@ private fun DrawerRow(selected: Boolean, onClick: () -> Unit, content: @Composab
 }
 
 @StringRes
-private fun fileRole(file: SourceFile): Int? = when {
+private fun fileRole(file: FileHeader): Int? = when {
     file.isEntry -> R.string.drawer_file_entry
     file.name.substringAfterLast('.', "").lowercase() in DATA_EXTENSIONS -> R.string.drawer_file_data
     else -> null

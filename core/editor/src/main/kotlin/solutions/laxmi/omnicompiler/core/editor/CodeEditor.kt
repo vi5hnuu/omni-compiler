@@ -47,6 +47,7 @@ import io.github.rosemoe.sora.lang.diagnostic.DiagnosticsContainer
 import io.github.rosemoe.sora.langs.textmate.TextMateColorScheme
 import io.github.rosemoe.sora.langs.textmate.TextMateLanguage
 import io.github.rosemoe.sora.langs.textmate.registry.ThemeRegistry
+import io.github.rosemoe.sora.text.Content
 import io.github.rosemoe.sora.widget.CodeEditor
 import io.github.rosemoe.sora.widget.component.EditorAutoCompletion
 import io.github.rosemoe.sora.widget.schemes.EditorColorScheme
@@ -64,7 +65,7 @@ data class EditorLineHint(val line: Int, val text: String)
 
 /**
  * The buffer to show. [id] names the document (a file); bumping [revision] forces the view to reload
- * [text] (e.g. after "reset to starter"), which also resets undo history.
+ * [text] (e.g. after "reset to starter"), which also resets that file's undo history.
  */
 data class EditorDocument(
     val id: String,
@@ -83,11 +84,15 @@ data class EditorDocument(
 /**
  * Code editor (Sora + TextMate) with the design's minimap and active-line marker.
  * The native view owns the text while a document is open; edits flow out via [onTextChange] (debounced).
+ * A null [document] means its text is still loading: the view keeps showing what it has.
+ *
+ * Each file keeps its own Sora document (text, undo history, caret, scroll) while it stays among the recently
+ * shown ones, and the text appears before its grammar is ready: colours follow when it loads.
  */
 @Composable
 fun CodeEditor(
     state: CodeEditorState,
-    document: EditorDocument,
+    document: EditorDocument?,
     settings: EditorSettings,
     onTextChange: (documentId: String, text: String) -> Unit,
     modifier: Modifier = Modifier,
@@ -105,47 +110,61 @@ fun CodeEditor(
     val currentOnTextChange by rememberUpdatedState(onTextChange)
     val currentRunShortcut by rememberUpdatedState(onRunShortcut)
     val currentLineHintClick by rememberUpdatedState(onLineHintClick)
-    val grammar = remember(document.fileName, document.languageBase, document.isEntry) {
-        EditorLanguages.grammarFor(document.fileName, document.languageBase, document.isEntry)
+    val grammar = remember(document?.fileName, document?.languageBase, document?.isEntry) {
+        document?.let { EditorLanguages.grammarFor(it.fileName, it.languageBase, it.isEntry) }
     }
-    // Which grammar is parsed and usable; a document is bound only once its own grammar is.
-    var loaded by remember { mutableStateOf<LoadedGrammar?>(null) }
-
+    // Grammars parse lazily on first use; the document is shown meanwhile and coloured once this is set.
+    var loadedGrammar by remember { mutableStateOf<LoadedGrammar?>(null) }
     LaunchedEffect(grammar) {
         withContext(Dispatchers.IO) { EditorLanguages.ensureLoaded(context, grammar) }
-        loaded = LoadedGrammar(grammar)
+        loadedGrammar = LoadedGrammar(grammar)
+    }
+    // The view's colour scheme comes from the registered themes, so it waits for them (once per process, fast).
+    var themesReady by remember { mutableStateOf(EditorLanguages.themesReady) }
+    LaunchedEffect(Unit) {
+        if (themesReady) return@LaunchedEffect
+        withContext(Dispatchers.IO) { EditorLanguages.ensureThemes(context) }
+        themesReady = true
     }
     SideEffect { state.onTextChanged = { id, text -> currentOnTextChange(id, text) } }
 
     Row(modifier.background(palette.background)) {
         Box(Modifier.weight(1f).fillMaxHeight()) {
-            if (loaded != null) {
-                AndroidView(
-                    modifier = Modifier.fillMaxSize(),
-                    factory = { ctx ->
-                        createEditor(ctx, state, onRunShortcut = { currentRunShortcut?.invoke() }, onLineHintClick = { currentLineHintClick() })
-                    },
-                    update = { editor ->
-                        editor.applySettings(context, effective, palette)
-                        editor.isEditable = !readOnly
-                        if (loaded?.grammar == grammar) {
-                            editor.bindDocument(state, document, grammar)
-                            editor.setDiagnostics(diagnostics)
-                            editor.setLineHint(lineHint)
-                        }
-                    },
-                    onRelease = { editor ->
-                        state.flush()
-                        state.editor = null
-                        editor.release()
-                    },
-                )
-                ActiveLineBar(state, palette)
-            }
+            if (themesReady) AndroidView(
+                modifier = Modifier.fillMaxSize(),
+                factory = { ctx ->
+                    createEditor(ctx, state, onRunShortcut = { currentRunShortcut?.invoke() }, onLineHintClick = { currentLineHintClick() })
+                },
+                update = { editor ->
+                    editor.applySettings(context, state, effective, palette)
+                    editor.isEditable = !readOnly
+                    // Decorations belong to a document: apply them only once it is the one shown.
+                    if (document != null && state.boundKey == document.key) {
+                        editor.setDiagnostics(diagnostics)
+                        editor.setLineHint(lineHint)
+                    }
+                },
+                onRelease = { editor ->
+                    state.flush()
+                    state.release()
+                    editor.release()
+                },
+            )
+            ActiveLineBar(state, palette)
         }
         if (effective.minimap) {
             Minimap(state, palette, errorLines = remember(diagnostics) { diagnostics.filter { it.isError }.map { it.line }.toSet() })
         }
+    }
+
+    // Show the document; restarting on a new key cancels a document still being prepared.
+    LaunchedEffect(state, document?.key, themesReady) {
+        if (themesReady) document?.let { state.show(it, grammar) }
+    }
+    // Colour it once its grammar is ready (and only rebuild the language when the grammar changes).
+    LaunchedEffect(state, loadedGrammar, state.boundKey) {
+        val ready = loadedGrammar?.takeIf { it.grammar == grammar } ?: return@LaunchedEffect
+        if (state.boundKey == document?.key) state.useLanguage(ready.grammar)
     }
 
     // Persist the buffer whenever the app goes to the background.
@@ -263,10 +282,11 @@ private fun updateActiveRow(state: CodeEditorState) {
 private data class AppliedSettings(val settings: EditorSettings, val palette: EditorPalette)
 
 /** Re-applies settings only when they change; AndroidView.update runs on every recomposition. */
-private fun CodeEditor.applySettings(context: Context, settings: EditorSettings, palette: EditorPalette) {
+private fun CodeEditor.applySettings(context: Context, state: CodeEditorState, settings: EditorSettings, palette: EditorPalette) {
     val applied = AppliedSettings(settings, palette)
     if (getTag(R.id.omni_editor_settings) == applied) return
     setTag(R.id.omni_editor_settings, applied)
+    state.appliedSettings = settings
 
     val typeface = settings.font.typeface(context)
     typefaceText = typeface
@@ -276,7 +296,7 @@ private fun CodeEditor.applySettings(context: Context, settings: EditorSettings,
     setLigatureEnabled(settings.ligatures)
     setBlockLineEnabled(settings.indentGuides)
     tabWidth = settings.tabSize
-    (editorLanguage as? TextMateLanguage)?.let { it.tabSize = settings.tabSize; it.isAutoCompleteEnabled = settings.autocomplete }
+    configureLanguage(settings)
     getComponent(EditorAutoCompletion::class.java).isEnabled = settings.autocomplete
     if (isWordwrap != settings.wordWrap) setWordwrap(settings.wordWrap)
     setNonPrintablePaintingFlags(
@@ -340,26 +360,67 @@ private fun CodeFont.typeface(context: Context): Typeface {
     return ResourcesCompat.getFont(context, res) ?: Typeface.MONOSPACE
 }
 
-/** Swaps buffers only when the document identity changes, never on ordinary recomposition. */
-private fun CodeEditor.bindDocument(state: CodeEditorState, document: EditorDocument, grammar: GrammarId?) {
-    if (getTag(R.id.omni_editor_document) == document.key) return
-    state.flush()
-    setTag(R.id.omni_editor_document, document.key)
-    state.boundDocumentId = document.id
-    state.commentStyle = CommentStyle(document.lineComment, document.blockComment)
-    val previous = editorLanguage
-    setEditorLanguage(grammar?.let { TextMateLanguage.create(it.scopeName, true) } ?: EmptyLanguage())
-    (previous as? TextMateLanguage)?.destroy()
-    setText(document.text)
-    state.isDirty = false
-    state.lineCount = text.lineCount
-    state.canUndo = false
-    state.canRedo = false
-    state.cursor = CursorPosition(1, 1)
-    state.refreshMinimap()
-    setTag(R.id.omni_editor_settings, null)
-    // setText/setEditorLanguage drop inlay hints; force the next setLineHint to re-add it.
-    setTag(R.id.omni_editor_line_hint, null)
+private fun CodeEditor.configureLanguage(settings: EditorSettings?) {
+    val language = editorLanguage as? TextMateLanguage ?: return
+    settings ?: return
+    language.tabSize = settings.tabSize
+    language.isAutoCompleteEnabled = settings.autocomplete
+}
+
+/**
+ * Shows [document]: the cached Sora document when its tab was open recently (keeping undo, caret and scroll),
+ * otherwise a new one whose text is split into lines off the main thread ([Content] is thread-safe).
+ */
+internal suspend fun CodeEditorState.show(document: EditorDocument, grammar: GrammarId?) {
+    if (boundKey == document.key || editor == null) return
+    val shown = documents.get(document.id, document.revision)
+        ?: CachedDocument(withContext(Dispatchers.Default) { Content(document.text) }, document.revision)
+    val view = editor ?: return
+    flush()
+    boundDocumentId?.let(documents::peek)?.let { previous -> previous.scrollX = view.offsetX; previous.scrollY = view.offsetY }
+    // A different grammar's colours must not linger on this text while its own grammar loads.
+    if (grammar != languageGrammar) applyLanguage(view, null)
+    view.setText(shown.content, true, null)
+    documents.put(document.id, shown)
+    boundDocumentId = document.id
+    boundKey = document.key
+    commentStyle = CommentStyle(document.lineComment, document.blockComment)
+    isDirty = false
+    lineCount = view.text.lineCount
+    canUndo = view.canUndo()
+    canRedo = view.canRedo()
+    cursor = CursorPosition(view.cursor.leftLine + 1, view.cursor.leftColumn + 1)
+    refreshMinimap()
+    // setText drops inlay hints; force the next setLineHint to re-add it.
+    view.setTag(R.id.omni_editor_line_hint, null)
+    view.setTag(R.id.omni_editor_diagnostics, null)
+    // Offsets apply once the new text is laid out.
+    view.post { view.scrollTo(shown.scrollX, shown.scrollY) }
+}
+
+/** Attaches [grammar]'s language to the shown text, rebuilding it only when the grammar actually changes. */
+internal fun CodeEditorState.useLanguage(grammar: GrammarId?) {
+    val view = editor ?: return
+    // Already attached: the same grammar, or plain text staying plain.
+    if (grammar == languageGrammar && (hasLanguage || grammar == null)) return
+    applyLanguage(view, grammar)
+}
+
+private fun CodeEditorState.applyLanguage(view: CodeEditor, grammar: GrammarId?) {
+    // setEditorLanguage destroys the previous language and re-analyses the current text.
+    view.setEditorLanguage(grammar?.let { TextMateLanguage.create(it.scopeName, true) } ?: EmptyLanguage())
+    view.configureLanguage(appliedSettings)
+    languageGrammar = grammar
+    hasLanguage = grammar != null
+}
+
+private fun CodeEditor.scrollTo(x: Int, y: Int) {
+    val maxX = scrollMaxX
+    val maxY = scrollMaxY
+    scroller.forceFinished(true)
+    scroller.startScroll(offsetX, offsetY, x.coerceIn(0, maxX) - offsetX, y.coerceIn(0, maxY) - offsetY, 0)
+    scroller.computeScrollOffset()
+    invalidate()
 }
 
 private fun CodeEditor.setLineHint(hint: EditorLineHint?) {

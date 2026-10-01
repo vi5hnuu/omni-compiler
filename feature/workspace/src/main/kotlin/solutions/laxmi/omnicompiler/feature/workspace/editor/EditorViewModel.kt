@@ -10,6 +10,7 @@ import dagger.assisted.AssistedInject
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -35,10 +36,11 @@ import solutions.laxmi.omnicompiler.core.model.Outcome
 import solutions.laxmi.omnicompiler.core.model.onSuccess
 import solutions.laxmi.omnicompiler.core.model.ProjectFilter
 import solutions.laxmi.omnicompiler.core.model.ProjectSummary
-import solutions.laxmi.omnicompiler.core.model.ProjectWorkspace
+import solutions.laxmi.omnicompiler.core.model.WorkspaceOutline
 import solutions.laxmi.omnicompiler.core.model.Runtime
 import solutions.laxmi.omnicompiler.core.model.Session
-import solutions.laxmi.omnicompiler.core.model.SourceFile
+import solutions.laxmi.omnicompiler.core.model.FileHeader
+import solutions.laxmi.omnicompiler.core.model.OpenFile
 import solutions.laxmi.omnicompiler.core.model.User
 import solutions.laxmi.omnicompiler.core.navigation.EditorRoute
 import solutions.laxmi.omnicompiler.core.ui.UiText
@@ -48,14 +50,14 @@ import solutions.laxmi.omnicompiler.feature.workspace.R
 data class EditorUiState(
     val loading: Boolean = true,
     val error: UiText? = null,
-    val workspace: ProjectWorkspace? = null,
+    val workspace: WorkspaceOutline? = null,
     val runtime: Runtime? = null,
     val language: LanguageInfo? = null,
     val activeFileId: String? = null,
     val settings: EditorSettings = EditorSettings(),
     val user: User? = null,
 ) {
-    val activeFile: SourceFile? get() = workspace?.files?.firstOrNull { it.id == activeFileId } ?: workspace?.entry
+    val activeFile: FileHeader? get() = workspace?.files?.firstOrNull { it.id == activeFileId } ?: workspace?.entry
 }
 
 /** "Runs this period" for the drawer footer; only shown when the plan has a quota. */
@@ -98,7 +100,7 @@ class EditorViewModel @AssistedInject constructor(
      * resolved so startup errors still reach the UI; (id, null) means that project no longer exists.
      */
     private val loadedWorkspace = projectId.flatMapLatest { id ->
-        if (id == null) flowOf(null to null) else projects.observeWorkspace(id).map { id to it }
+        if (id == null) flowOf(null to null) else projects.observeOutline(id).map { id to it }
     }
 
     private val workspace = loadedWorkspace.map { it.second }
@@ -165,6 +167,9 @@ class EditorViewModel @AssistedInject constructor(
     fun selectFile(fileId: String) {
         activeFileId.value = fileId
     }
+
+    /** An open file's text; collected only by the pane showing it. */
+    fun observeFile(fileId: String): Flow<OpenFile?> = projects.observeFile(fileId)
 
     fun onContentChanged(fileId: String, text: String) {
         viewModelScope.launch { saveLock.withLock { projects.updateFileContent(fileId, text) } }

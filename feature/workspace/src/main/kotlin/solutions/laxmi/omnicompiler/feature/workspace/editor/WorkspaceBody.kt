@@ -1,5 +1,7 @@
 package solutions.laxmi.omnicompiler.feature.workspace.editor
 
+import solutions.laxmi.omnicompiler.core.model.OpenFile
+import kotlinx.coroutines.flow.flowOf
 import androidx.compose.ui.platform.LocalConfiguration
 import solutions.laxmi.omnicompiler.core.editor.EditorCommand
 import androidx.compose.foundation.layout.Spacer
@@ -61,7 +63,7 @@ import solutions.laxmi.omnicompiler.core.model.RunMode
 import solutions.laxmi.omnicompiler.core.model.RunPhase
 import solutions.laxmi.omnicompiler.core.model.RunRecord
 import solutions.laxmi.omnicompiler.core.model.Verdict
-import solutions.laxmi.omnicompiler.core.model.SourceFile
+import solutions.laxmi.omnicompiler.core.model.FileHeader
 import solutions.laxmi.omnicompiler.core.model.TestCase
 import solutions.laxmi.omnicompiler.feature.workspace.console.BenchmarkSheet
 import solutions.laxmi.omnicompiler.feature.workspace.console.ConsoleEvent
@@ -88,7 +90,7 @@ private enum class StdinTarget { Input, TestEditor }
 internal fun ColumnScope.WorkspaceBody(
     state: EditorUiState,
     projectId: String,
-    activeFile: SourceFile,
+    activeFile: FileHeader,
     editorState: CodeEditorState,
     splitState: CodeEditorState,
     typing: Boolean,
@@ -98,7 +100,7 @@ internal fun ColumnScope.WorkspaceBody(
     onShowNewFile: () -> Unit,
     onRenameProject: () -> Unit,
     onConfirmReset: () -> Unit,
-    onFileMenu: (SourceFile) -> Unit,
+    onFileMenu: (FileHeader) -> Unit,
     drawerOpen: Boolean,
     snackbar: SnackbarHostState,
     actions: EditorActions,
@@ -132,6 +134,10 @@ internal fun ColumnScope.WorkspaceBody(
     val splitFile = splitFileId?.let { id -> projectFiles.firstOrNull { it.id == id && it.id != activeFile.id } }
         ?.takeIf { wide }
     // Both panes write pending edits before anything reads the files (runs, tests).
+    // Each pane reads only its own file's text, and only again when that file is replaced outside the editor.
+    val activeText by remember(activeFile.id) { actions.fileText(activeFile.id) }.collectAsStateWithLifecycle(null)
+    val splitText by remember(splitFile?.id) { splitFile?.let { actions.fileText(it.id) } ?: flowOf(null) }
+        .collectAsStateWithLifecycle(null)
     fun flushEditors() {
         editorState.flush()
         splitState.flush()
@@ -359,22 +365,24 @@ internal fun ColumnScope.WorkspaceBody(
                 val primaryEditor: @Composable (Modifier) -> Unit = { paneModifier ->
                     CodeEditor(
                         state = editorState,
-                        document = EditorDocument(
-                            id = activeFile.id,
-                            revision = activeFile.contentVersion,
-                            text = activeFile.content,
-                            fileName = activeFile.name,
-                            languageBase = state.runtime?.language,
-                            isEntry = activeFile.isEntry,
-                            // Comment syntax is known for the project's language; other file types get none.
-                            lineComment = state.language?.lineComment?.takeIf { sameLanguage },
-                            blockComment = state.language?.blockComment?.takeIf { sameLanguage },
-                        ),
+                        document = activeText?.takeIf { it.id == activeFile.id }?.let { text ->
+                            EditorDocument(
+                                id = activeFile.id,
+                                revision = text.contentVersion,
+                                text = text.content,
+                                fileName = activeFile.name,
+                                languageBase = state.runtime?.language,
+                                isEntry = activeFile.isEntry,
+                                // Comment syntax is known for the project's language; other file types get none.
+                                lineComment = state.language?.lineComment?.takeIf { sameLanguage },
+                                blockComment = state.language?.blockComment?.takeIf { sameLanguage },
+                            )
+                        },
                         settings = state.settings,
                         onTextChange = actions.onContentChanged,
                         diagnostics = remember(problems) { problems.map { EditorDiagnostic(it.line!!, it.column, it.message, it.isError) } },
                         onRunShortcut = if (consoleState.runSettings.runOnCtrlEnter) runTests else null,
-                        lineHint = runHint(activeFile, state.runtime?.language, consoleState.tests.size, latest, running),
+                        lineHint = runHint(activeFile, currentText(editorState, activeFile.id, activeText), state.runtime?.language, consoleState.tests.size, latest, running),
                         onLineHintClick = runTests,
                         modifier = paneModifier,
                     )
@@ -399,14 +407,16 @@ internal fun ColumnScope.WorkspaceBody(
                                 )
                                 CodeEditor(
                                     state = splitState,
-                                    document = EditorDocument(
-                                        id = splitFile.id,
-                                        revision = splitFile.contentVersion,
-                                        text = splitFile.content,
-                                        fileName = splitFile.name,
-                                        languageBase = state.runtime?.language,
-                                        isEntry = splitFile.isEntry,
-                                    ),
+                                    document = splitText?.takeIf { it.id == splitFile.id }?.let { text ->
+                                        EditorDocument(
+                                            id = splitFile.id,
+                                            revision = text.contentVersion,
+                                            text = text.content,
+                                            fileName = splitFile.name,
+                                            languageBase = state.runtime?.language,
+                                            isEntry = splitFile.isEntry,
+                                        )
+                                    },
                                     settings = state.settings,
                                     onTextChange = actions.onContentChanged,
                                     modifier = Modifier.weight(1f).fillMaxWidth(),
@@ -491,11 +501,15 @@ internal fun ColumnScope.WorkspaceBody(
     }
 }
 
+/** The file's text as the app last saw it: the editor's latest save, else what was loaded. */
+private fun currentText(editor: CodeEditorState, fileId: String, loaded: OpenFile?): String? =
+    editor.savedText?.takeIf { it.documentId == fileId }?.text ?: loaded?.takeIf { it.id == fileId }?.content
+
 /** Design E1 code lens: "▶ Run · 7 tests · last WA #3" after the entry file's `main` line. */
 @Composable
-private fun runHint(file: SourceFile, languageBase: String?, testCount: Int, latest: RunRecord?, running: Boolean): EditorLineHint? {
-    if (!file.isEntry || running) return null
-    val line = remember(file.content, languageBase) { EntryPoint.line(languageBase, file.content) } ?: return null
+private fun runHint(file: FileHeader, text: String?, languageBase: String?, testCount: Int, latest: RunRecord?, running: Boolean): EditorLineHint? {
+    if (!file.isEntry || running || text == null) return null
+    val line = remember(text, languageBase) { EntryPoint.line(languageBase, text) } ?: return null
     val parts = mutableListOf(stringResource(R.string.editor_run_hint))
     if (testCount > 0) parts += pluralStringResource(R.plurals.editor_run_hint_tests, testCount, testCount)
     latest?.takeIf { it.mode == RunMode.TESTS }?.verdict?.let { verdict ->
@@ -509,7 +523,7 @@ private fun runHint(file: SourceFile, languageBase: String?, testCount: Int, lat
 private const val SHEET_FRACTION = 0.78f
 
 @androidx.annotation.StringRes
-private fun previewLabel(file: SourceFile): Int? = when (file.name.substringAfterLast('.', "").lowercase()) {
+private fun previewLabel(file: FileHeader): Int? = when (file.name.substringAfterLast('.', "").lowercase()) {
     "html", "htm", "md", "markdown" -> R.string.editor_menu_preview
     "js", "mjs" -> R.string.editor_menu_run_in_browser
     else -> null

@@ -1,5 +1,7 @@
 package solutions.laxmi.omnicompiler.feature.workspace.editor
 
+import solutions.laxmi.omnicompiler.core.model.OpenFile
+import kotlinx.coroutines.flow.Flow
 import androidx.activity.compose.LocalActivity
 import solutions.laxmi.omnicompiler.core.ads.LocalAds
 import solutions.laxmi.omnicompiler.core.navigation.SourceControlRoute
@@ -62,7 +64,7 @@ import solutions.laxmi.omnicompiler.core.editor.EditorDocument
 import solutions.laxmi.omnicompiler.core.editor.SymbolRow
 import solutions.laxmi.omnicompiler.core.editor.rememberCodeEditorState
 import solutions.laxmi.omnicompiler.core.model.ProjectSummary
-import solutions.laxmi.omnicompiler.core.model.SourceFile
+import solutions.laxmi.omnicompiler.core.model.FileHeader
 import solutions.laxmi.omnicompiler.core.navigation.AppearanceRoute
 import solutions.laxmi.omnicompiler.core.navigation.DeveloperRoute
 import solutions.laxmi.omnicompiler.core.navigation.EditorRoute
@@ -111,6 +113,7 @@ fun EditorScreen(route: EditorRoute, navigator: Navigator) {
             onRetry = viewModel::retry,
             onSelectFile = viewModel::selectFile,
             onContentChanged = viewModel::onContentChanged,
+            fileText = viewModel::observeFile,
             onToggleMinimap = viewModel::toggleMinimap,
             onToggleWordWrap = viewModel::toggleWordWrap,
             onAddFile = viewModel::addFile,
@@ -167,6 +170,8 @@ internal class EditorActions(
     val onRetry: () -> Unit,
     val onSelectFile: (String) -> Unit,
     val onContentChanged: (String, String) -> Unit,
+    /** An open file's text, re-emitted only when it is replaced outside the editor. */
+    val fileText: (fileId: String) -> Flow<OpenFile?>,
     val onToggleMinimap: () -> Unit,
     val onToggleWordWrap: () -> Unit,
     val onAddFile: (String, String, () -> Unit) -> Unit,
@@ -203,9 +208,9 @@ private fun EditorContent(state: EditorUiState, drawer: DrawerContent, snackbar:
     var showNewFile by rememberSaveable { mutableStateOf(false) }
     var renamingProject by rememberSaveable { mutableStateOf(false) }
     var confirmReset by rememberSaveable { mutableStateOf(false) }
-    var fileMenuFor by remember { mutableStateOf<SourceFile?>(null) }
-    var renamingFile by remember { mutableStateOf<SourceFile?>(null) }
-    var deletingFile by remember { mutableStateOf<SourceFile?>(null) }
+    var fileMenuFor by remember { mutableStateOf<FileHeader?>(null) }
+    var renamingFile by remember { mutableStateOf<FileHeader?>(null) }
+    var deletingFile by remember { mutableStateOf<FileHeader?>(null) }
 
     val workspace = state.workspace
     val activeFile = state.activeFile

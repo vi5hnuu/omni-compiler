@@ -10,6 +10,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import io.github.rosemoe.sora.widget.CodeEditor
+import solutions.laxmi.omnicompiler.core.model.EditorSettings
 import io.github.rosemoe.sora.widget.EditorSearcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -42,6 +43,10 @@ enum class CaretDirection { Left, Right, Up, Down }
 @Immutable
 data class CommentStyle(val line: String?, val block: Pair<String, String>?)
 
+/** A file's text as last saved from the editor. */
+@Immutable
+data class SavedText(val documentId: String, val text: String)
+
 /** Visible window of the document as fractions of its total height (0..1). */
 @Immutable
 data class EditorViewport(val top: Float, val height: Float)
@@ -60,6 +65,9 @@ class CodeEditorState internal constructor(private val scope: CoroutineScope) {
     var minimap by mutableStateOf<List<MinimapLine>>(emptyList()); internal set
     var viewport by mutableStateOf(EditorViewport(0f, 1f)); internal set
     var isDirty by mutableStateOf(false); internal set
+
+    /** The text last saved from the view, with its file id: what the app sees once autosave settles. */
+    var savedText by mutableStateOf<SavedText?>(null); private set
 
     /** The code view holds input focus (as opposed to another text field on screen, e.g. stdin). */
     var hasFocus by mutableStateOf(false); internal set
@@ -82,6 +90,19 @@ class CodeEditorState internal constructor(private val scope: CoroutineScope) {
 
     /** Id of the document currently loaded in the view; edits are always saved against it. */
     internal var boundDocumentId: String? = null
+
+    /** `id@revision` of the shown document; observable so per-document decorations apply once it is shown. */
+    internal var boundKey by mutableStateOf<String?>(null)
+
+    /** Documents of recently shown files (text, undo, caret, scroll), reused when their tab is shown again. */
+    internal val documents = DocumentCache()
+
+    /** The grammar the view's language was built for; null with [hasLanguage] means plain text. */
+    internal var languageGrammar: GrammarId? = null
+    internal var hasLanguage = false
+
+    /** Settings last applied to the view, re-applied to each new language (tab size, autocomplete). */
+    internal var appliedSettings: EditorSettings? = null
     private var pendingSave: Job? = null
 
     fun insert(symbol: String) {
@@ -264,6 +285,16 @@ class CodeEditorState internal constructor(private val scope: CoroutineScope) {
         editor.invalidate()
     }
 
+    /** The view is gone: drop its documents and language so a new view starts clean. */
+    internal fun release() {
+        editor = null
+        documents.clear()
+        boundDocumentId = null
+        boundKey = null
+        languageGrammar = null
+        hasLanguage = false
+    }
+
     /** Writes pending edits immediately (file switch, app backgrounded). */
     fun flush() {
         val editor = editor ?: return
@@ -271,7 +302,9 @@ class CodeEditorState internal constructor(private val scope: CoroutineScope) {
         if (!isDirty) return
         pendingSave?.cancel()
         isDirty = false
-        onTextChanged?.invoke(documentId, editor.text.toString())
+        val text = editor.text.toString()
+        savedText = SavedText(documentId, text)
+        onTextChanged?.invoke(documentId, text)
     }
 
     internal fun onContentChanged() {

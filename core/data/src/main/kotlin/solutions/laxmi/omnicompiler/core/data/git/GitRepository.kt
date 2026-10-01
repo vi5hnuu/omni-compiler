@@ -1,5 +1,7 @@
 package solutions.laxmi.omnicompiler.core.data.git
 
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -98,8 +100,10 @@ internal class DefaultGitRepository @Inject constructor(
         projects.importRemote(name, fetched, remote)
     }
 
-    override fun observeStatus(projectId: String): Flow<SourceStatus?> = projects.observeWorkspace(projectId)
-        .map { workspace -> workspace?.let(::statusOf) }
+    // Status hashes every file, so it is recomputed from a fresh snapshot whenever the outline changes (each save).
+    override fun observeStatus(projectId: String): Flow<SourceStatus?> = projects.observeOutline(projectId)
+        .mapLatest { projects.snapshot(projectId)?.let(::statusOf) }
+        .distinctUntilChanged()
         .flowOn(cpu)
 
     override suspend fun commitAndPush(projectId: String, message: String): Outcome<Unit> {
@@ -110,7 +114,7 @@ internal class DefaultGitRepository @Inject constructor(
         return withToken(remote.host) { token ->
             val head = network.head(remote.host, token, remote.repoId, remote.branch).valueOr { return@withToken it }
             if (head != remote.baseCommit) return@withToken Outcome.Failure(AppError.Conflict(reason = ErrorReason.GitPullFirst))
-            val workspace = projects.observeWorkspace(projectId).first() ?: return@withToken notFound()
+            val workspace = projects.snapshot(projectId) ?: return@withToken notFound()
             val contents = workspace.files.associate { it.name to it.content }
             val changes = status.changes.map { change ->
                 CommitChange(remotePath(remote, change.name), contents[change.name].takeIf { change.kind != FileChange.Kind.Deleted }, existed = change.name in remote.baseBlobs)
@@ -125,7 +129,7 @@ internal class DefaultGitRepository @Inject constructor(
     }
 
     override suspend fun pull(projectId: String): Outcome<PullResult> {
-        val workspace = projects.observeWorkspace(projectId).first() ?: return notFound()
+        val workspace = projects.snapshot(projectId) ?: return notFound()
         val remote = workspace.project.remote ?: return notFound()
         return withToken(remote.host) { token ->
             val head = network.head(remote.host, token, remote.repoId, remote.branch).valueOr { return@withToken it }
@@ -159,7 +163,7 @@ internal class DefaultGitRepository @Inject constructor(
     }
 
     override suspend fun resolve(projectId: String, fileName: String, keepMine: Boolean): Outcome<Unit> {
-        val workspace = projects.observeWorkspace(projectId).first() ?: return notFound()
+        val workspace = projects.snapshot(projectId) ?: return notFound()
         val remote = workspace.project.remote ?: return notFound()
         return withToken(remote.host) { token ->
             val theirs = network.list(remote.host, token, remote.repoId, remote.baseCommit, remote.path).valueOr { return@withToken it }
@@ -175,7 +179,7 @@ internal class DefaultGitRepository @Inject constructor(
         }
     }
 
-    private suspend fun currentStatus(projectId: String): SourceStatus? = projects.observeWorkspace(projectId).first()?.let(::statusOf)
+    private suspend fun currentStatus(projectId: String): SourceStatus? = projects.snapshot(projectId)?.let(::statusOf)
 
     private fun statusOf(workspace: ProjectWorkspace): SourceStatus? {
         val remote = workspace.project.remote ?: return null

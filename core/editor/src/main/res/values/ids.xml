@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <item name="omni_editor_settings" type="id" />
-    <item name="omni_editor_document" type="id" />
     <item name="omni_editor_diagnostics" type="id" />
     <item name="omni_editor_line_hint" type="id" />
 </resources>

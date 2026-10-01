@@ -50,7 +50,7 @@ import solutions.laxmi.omnicompiler.core.designsystem.icon.OmniIcons
 import solutions.laxmi.omnicompiler.core.designsystem.theme.OmniDimens
 import solutions.laxmi.omnicompiler.core.designsystem.theme.OmniTheme
 import solutions.laxmi.omnicompiler.core.editor.CodeEditorState
-import solutions.laxmi.omnicompiler.core.model.SourceFile
+import solutions.laxmi.omnicompiler.core.model.FileHeader
 import solutions.laxmi.omnicompiler.core.ui.fileBadgeFor
 
 /** E1 app bar: menu, project + runtime picker, search, minimap toggle, overflow, Run. */
@@ -130,13 +130,13 @@ internal fun TypingTopBar(
 /** File tabs (32 dp): active tab has a red top bar; long-press opens rename/delete for extra files. */
 @Composable
 internal fun FileTabs(
-    files: List<SourceFile>,
+    files: List<FileHeader>,
     activeFileId: String?,
     entryShortCode: String?,
     /** Read lazily: it flips on every edit and must not recompose the screen around the tabs. */
     dirtyFileId: () -> String?,
-    onSelect: (SourceFile) -> Unit,
-    onFileMenu: (SourceFile) -> Unit,
+    onSelect: (FileHeader) -> Unit,
+    onFileMenu: (FileHeader) -> Unit,
     onAdd: () -> Unit,
 ) {
     val colors = OmniTheme.colors

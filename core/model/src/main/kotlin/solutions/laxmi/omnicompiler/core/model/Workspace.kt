@@ -50,12 +50,36 @@ data class ProjectSummary(
     val testCount: Int,
 )
 
+/** A complete snapshot, contents included: what a run, a push or an export works from. */
 data class ProjectWorkspace(
     val project: Project,
     val files: List<SourceFile>,
     val tests: List<TestCase>,
 ) {
     val entry: SourceFile? get() = files.firstOrNull { it.isEntry }
+}
+
+/** A file of a project without its text: enough for tabs, lists and menus. */
+data class FileHeader(
+    val id: String,
+    val projectId: String,
+    val name: String,
+    val isEntry: Boolean,
+    val position: Int,
+    /** Changes when the content was replaced outside the editor; the editor reloads only then. */
+    val contentVersion: Int = 0,
+)
+
+/** The text of one open file, read again only when [contentVersion] changes. */
+data class OpenFile(val id: String, val content: String, val contentVersion: Int)
+
+/** What screens observe: the project, its files without contents, and its tests. */
+data class WorkspaceOutline(
+    val project: Project,
+    val files: List<FileHeader>,
+    val tests: List<TestCase>,
+) {
+    val entry: FileHeader? get() = files.firstOrNull { it.isEntry }
 }
 
 /** Filters on the projects screen. */

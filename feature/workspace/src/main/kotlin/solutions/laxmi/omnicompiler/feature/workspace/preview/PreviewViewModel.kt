@@ -1,5 +1,6 @@
 package solutions.laxmi.omnicompiler.feature.workspace.preview
 
+import kotlinx.coroutines.flow.mapLatest
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.assisted.Assisted
@@ -48,7 +49,10 @@ class PreviewViewModel @AssistedInject constructor(
 
     private val console = MutableStateFlow<List<ConsoleLine>>(emptyList())
 
-    val uiState: StateFlow<PreviewUiState> = combine(projects.observeWorkspace(route.projectId), console) { workspace, lines ->
+    // The page needs every file's text; re-read it whenever the outline changes (each save touches the project).
+    private val workspace = projects.observeOutline(route.projectId).mapLatest { projects.snapshot(route.projectId) }
+
+    val uiState: StateFlow<PreviewUiState> = combine(workspace, console) { workspace, lines ->
         val files = workspace?.files.orEmpty()
         val target = route.fileId?.let { id -> files.firstOrNull { it.id == id } } ?: workspace?.entry
         val kind = target?.let(::kindOf)

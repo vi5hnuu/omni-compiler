@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.Flow
 import solutions.laxmi.omnicompiler.core.database.entity.FileEntity
 import solutions.laxmi.omnicompiler.core.database.entity.ProjectEntity
 import solutions.laxmi.omnicompiler.core.database.entity.ProjectSummaryRow
+import solutions.laxmi.omnicompiler.core.database.entity.ProjectOutlineRow
 import solutions.laxmi.omnicompiler.core.database.entity.ProjectWithChildren
 import solutions.laxmi.omnicompiler.core.database.entity.TestCaseEntity
 
@@ -30,7 +31,12 @@ interface ProjectDao {
 
     @Transaction
     @Query("SELECT * FROM projects WHERE id = :id")
-    fun observeWithChildren(id: String): Flow<ProjectWithChildren?>
+    fun observeOutline(id: String): Flow<ProjectOutlineRow?>
+
+    /** Everything, contents included, in one transaction: for runs, git, export. */
+    @Transaction
+    @Query("SELECT * FROM projects WHERE id = :id")
+    suspend fun withChildren(id: String): ProjectWithChildren?
 
     @Query("SELECT * FROM projects WHERE id = :id")
     suspend fun get(id: String): ProjectEntity?
@@ -76,6 +82,13 @@ interface FileDao {
 
     @Query("SELECT * FROM files WHERE id = :id")
     suspend fun get(id: String): FileEntity?
+
+    /** Re-queried on every `files` write but reads one integer; the content is fetched only when it changes. */
+    @Query("SELECT content_version FROM files WHERE id = :id")
+    fun observeContentVersion(id: String): Flow<Int?>
+
+    @Query("SELECT content FROM files WHERE id = :id")
+    suspend fun content(id: String): String?
 
     @Query("SELECT COALESCE(MAX(position), -1) + 1 FROM files WHERE project_id = :projectId")
     suspend fun nextPosition(projectId: String): Int

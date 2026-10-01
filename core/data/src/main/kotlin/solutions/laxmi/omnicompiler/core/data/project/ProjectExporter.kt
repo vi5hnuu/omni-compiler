@@ -35,7 +35,7 @@ internal class CacheProjectExporter @Inject constructor(
     private val authority get() = "${context.packageName}$AUTHORITY_SUFFIX"
 
     override suspend fun exportZip(projectId: String): Outcome<SharedFile> {
-        val workspace = projects.observeWorkspace(projectId).first() ?: return Outcome.Failure(AppError.NotFound(reason = ErrorReason.ProjectNotFound))
+        val workspace = projects.snapshot(projectId) ?: return Outcome.Failure(AppError.NotFound(reason = ErrorReason.ProjectNotFound))
         return write("${workspace.project.name}.zip", MIME_ZIP) { file ->
             ZipOutputStream(file.outputStream().buffered()).use { zip ->
                 workspace.files.forEach { source ->
@@ -58,7 +58,7 @@ internal class CacheProjectExporter @Inject constructor(
     }
 
     override suspend fun exportFile(projectId: String, fileId: String): Outcome<SharedFile> {
-        val source = projects.observeWorkspace(projectId).first()?.files?.firstOrNull { it.id == fileId }
+        val source = projects.snapshot(projectId)?.files?.firstOrNull { it.id == fileId }
             ?: return Outcome.Failure(AppError.NotFound(reason = ErrorReason.FileNotFound))
         return write(source.name, MIME_TEXT) { it.writeText(source.content) }
     }

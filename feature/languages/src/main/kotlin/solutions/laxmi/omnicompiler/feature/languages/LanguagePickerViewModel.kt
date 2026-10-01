@@ -77,7 +77,7 @@ class LanguagePickerViewModel @AssistedInject constructor(
     val uiState: StateFlow<LanguagePickerUiState> = combine(
         combine(runtimes.languages, runtimes.recentRuntimeIds, ::Pair),
         combine(query, filter, selectedBase, ::Triple),
-        combine(projects.observeWorkspace(projectId), settings.runSettings, ::Pair),
+        combine(projects.observeOutline(projectId), settings.runSettings, ::Pair),
         combine(limits, refreshError, refreshing, ::Triple),
     ) { (languages, recentIds), (q, f, base), (workspace, runSettings), (lims, error, busy) ->
         val recent = recentIds.mapNotNull { id -> languages.firstOrNull { lang -> lang.runtimes.any { it.id == id } } }.distinct()

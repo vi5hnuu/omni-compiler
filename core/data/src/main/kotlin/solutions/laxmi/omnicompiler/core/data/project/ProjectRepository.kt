@@ -20,12 +20,14 @@ import solutions.laxmi.omnicompiler.core.database.dao.FileDao
 import solutions.laxmi.omnicompiler.core.database.dao.ProjectDao
 import solutions.laxmi.omnicompiler.core.database.dao.TestCaseDao
 import solutions.laxmi.omnicompiler.core.database.entity.FileEntity
+import solutions.laxmi.omnicompiler.core.database.entity.FileHeaderRow
 import solutions.laxmi.omnicompiler.core.database.entity.ProjectEntity
 import solutions.laxmi.omnicompiler.core.database.entity.TestCaseEntity
 import solutions.laxmi.omnicompiler.core.datastore.PreferencesStore
 import solutions.laxmi.omnicompiler.core.model.AppError
 import solutions.laxmi.omnicompiler.core.model.ErrorReason
 import solutions.laxmi.omnicompiler.core.model.Limits
+import solutions.laxmi.omnicompiler.core.model.OpenFile
 import solutions.laxmi.omnicompiler.core.model.Outcome
 import solutions.laxmi.omnicompiler.core.model.ProjectFilter
 import solutions.laxmi.omnicompiler.core.model.ProjectSummary
@@ -35,6 +37,7 @@ import solutions.laxmi.omnicompiler.core.model.SourceFile
 import solutions.laxmi.omnicompiler.core.model.TestCase
 import solutions.laxmi.omnicompiler.core.model.TestCaseDraft
 import solutions.laxmi.omnicompiler.core.model.Verdict
+import solutions.laxmi.omnicompiler.core.model.WorkspaceOutline
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -51,7 +54,14 @@ data class ProjectTemplate(
  */
 interface ProjectRepository {
     fun observeSummaries(query: String, filter: ProjectFilter): Flow<List<ProjectSummary>>
-    fun observeWorkspace(projectId: String): Flow<ProjectWorkspace?>
+    /** The project with file headers and tests; cheap to re-query on every save, whatever the file sizes. */
+    fun observeOutline(projectId: String): Flow<WorkspaceOutline?>
+
+    /** An open file's text, re-read only when it is replaced outside the editor (never on the editor's own saves). */
+    fun observeFile(fileId: String): Flow<OpenFile?>
+
+    /** Everything including contents, read once: for runs, pushes and exports. */
+    suspend fun snapshot(projectId: String): ProjectWorkspace?
     val lastProjectId: Flow<String?>
 
     /** The project to open at launch: the last one used, else the most recent, else a new starter. */
@@ -127,16 +137,30 @@ internal class LocalProjectRepository @Inject constructor(
             rows.map { it.toModel() }.filter(filter::matches)
         }
 
-    override fun observeWorkspace(projectId: String): Flow<ProjectWorkspace?> =
-        projects.observeWithChildren(projectId).map { row ->
+    override fun observeOutline(projectId: String): Flow<WorkspaceOutline?> =
+        projects.observeOutline(projectId).map { row ->
             row?.let {
-                ProjectWorkspace(
+                WorkspaceOutline(
                     project = it.project.toModel(),
-                    files = it.files.sortedWith(compareByDescending<FileEntity> { f -> f.isEntry }.thenBy { f -> f.position }).map { f -> f.toModel() },
+                    files = it.files.sortedWith(compareByDescending<FileHeaderRow> { f -> f.isEntry }.thenBy { f -> f.position }).map { f -> f.toModel() },
                     tests = it.tests.sortedBy { t -> t.position }.map { t -> t.toModel() },
                 )
             }
         }.distinctUntilChanged()
+
+    override fun observeFile(fileId: String): Flow<OpenFile?> =
+        files.observeContentVersion(fileId).distinctUntilChanged().map { version ->
+            version?.let { files.content(fileId)?.let { content -> OpenFile(fileId, content, version) } }
+        }
+
+    override suspend fun snapshot(projectId: String): ProjectWorkspace? =
+        projects.withChildren(projectId)?.let {
+            ProjectWorkspace(
+                project = it.project.toModel(),
+                files = it.files.sortedWith(compareByDescending<FileEntity> { f -> f.isEntry }.thenBy { f -> f.position }).map { f -> f.toModel() },
+                tests = it.tests.sortedBy { t -> t.position }.map { t -> t.toModel() },
+            )
+        }
 
     override suspend fun resolveStartupProject(): Outcome<String> {
         preferences.lastProjectId.first()?.let { id -> if (projects.get(id) != null) return Outcome.Success(id) }

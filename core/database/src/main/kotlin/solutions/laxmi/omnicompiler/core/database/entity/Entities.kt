@@ -51,10 +51,30 @@ data class FileEntity(
     @ColumnInfo(name = "size", defaultValue = "0") val size: Long = 0,
 )
 
-/** A project with its files and tests read in one transaction, so observers never see a half-updated workspace. */
+/** A project with its files and tests read in one transaction, so a snapshot never sees a half-updated workspace. */
 data class ProjectWithChildren(
     @Embedded val project: ProjectEntity,
     @Relation(parentColumn = "id", entityColumn = "project_id") val files: List<FileEntity>,
+    @Relation(parentColumn = "id", entityColumn = "project_id") val tests: List<TestCaseEntity>,
+)
+
+/** A file row without its content: what tabs, lists and menus need. */
+data class FileHeaderRow(
+    val id: String,
+    @ColumnInfo(name = "project_id") val projectId: String,
+    val name: String,
+    @ColumnInfo(name = "is_entry") val isEntry: Boolean,
+    val position: Int,
+    @ColumnInfo(name = "content_version") val contentVersion: Int,
+)
+
+/**
+ * What screens observe: the project, its file headers and tests. Every save rewrites a `files` row, so leaving
+ * contents out keeps each re-query cheap however large the project; open files read their text separately.
+ */
+data class ProjectOutlineRow(
+    @Embedded val project: ProjectEntity,
+    @Relation(parentColumn = "id", entityColumn = "project_id", entity = FileEntity::class) val files: List<FileHeaderRow>,
     @Relation(parentColumn = "id", entityColumn = "project_id") val tests: List<TestCaseEntity>,
 )
 

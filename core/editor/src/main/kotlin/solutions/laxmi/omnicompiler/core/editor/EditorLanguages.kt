@@ -28,6 +28,14 @@ object EditorLanguages {
     @Volatile private var definitions: Map<String, Entry>? = null
     private val loadedScopes = HashSet<String>()
 
+    /** True once the editor themes are registered (the view's colour scheme depends on them). */
+    val themesReady: Boolean get() = definitions != null
+
+    /** Registers the editor themes and reads the grammar index; cheap, and done once per process. */
+    fun ensureThemes(context: Context) {
+        definitions ?: initialize(context.applicationContext)
+    }
+
     /** Makes [grammar] (and the themes) ready for `TextMateLanguage.create`; `null` only prepares themes. */
     fun ensureLoaded(context: Context, grammar: GrammarId?) {
         val index = definitions ?: initialize(context.applicationContext)

@@ -6,10 +6,12 @@ import solutions.laxmi.omnicompiler.core.storage.ManifestRemote
 import solutions.laxmi.omnicompiler.core.storage.ManifestCodec
 import solutions.laxmi.omnicompiler.core.model.ProjectIssue
 import solutions.laxmi.omnicompiler.core.database.entity.FileEntity
+import solutions.laxmi.omnicompiler.core.database.entity.FileHeaderRow
 import solutions.laxmi.omnicompiler.core.database.entity.ProjectEntity
 import solutions.laxmi.omnicompiler.core.database.entity.ProjectSummaryRow
 import solutions.laxmi.omnicompiler.core.database.entity.RuntimeEntity
 import solutions.laxmi.omnicompiler.core.database.entity.TestCaseEntity
+import solutions.laxmi.omnicompiler.core.model.FileHeader
 import solutions.laxmi.omnicompiler.core.model.Lane
 import solutions.laxmi.omnicompiler.core.model.Limits
 import solutions.laxmi.omnicompiler.core.model.Project
@@ -52,6 +54,8 @@ internal fun ProjectSummaryRow.toModel() = ProjectSummary(
 )
 
 internal fun FileEntity.toModel() = SourceFile(id, projectId, name, content, isEntry, position, contentVersion)
+
+internal fun FileHeaderRow.toModel() = FileHeader(id, projectId, name, isEntry, position, contentVersion)
 
 internal fun TestCaseEntity.toModel() = TestCase(id, projectId, name, stdin, expected, position)
 

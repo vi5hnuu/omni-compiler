@@ -171,7 +171,7 @@ internal fun ConfirmDialog(title: String, message: String, confirmLabel: String,
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun FileActionsSheet(
-    file: solutions.laxmi.omnicompiler.core.model.SourceFile,
+    file: solutions.laxmi.omnicompiler.core.model.FileHeader,
     onDismiss: () -> Unit,
     onRename: () -> Unit,
     onShare: () -> Unit,

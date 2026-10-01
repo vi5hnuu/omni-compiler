@@ -1,5 +1,7 @@
 package solutions.laxmi.omnicompiler.feature.workspace.console
 
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.shareIn
 import solutions.laxmi.omnicompiler.core.model.Verdict
 import solutions.laxmi.omnicompiler.core.model.RunPhase
 import solutions.laxmi.omnicompiler.core.data.auth.KeepWorkOffer
@@ -106,9 +108,12 @@ class ConsoleViewModel @AssistedInject constructor(
 
     private val runtimeDefaults = MutableStateFlow(Limits.Default)
 
+    /** Shared by the state below and the runtime-defaults lookup, so the outline is queried once. */
+    private val outline = projects.observeOutline(projectId).shareIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), replay = 1)
+
     val uiState: StateFlow<ConsoleUiState> = combine(
         executions.observeConsole(projectId),
-        projects.observeWorkspace(projectId),
+        outline,
         executions.pendingRuns.map { list -> list.filter { it.projectId == projectId } },
         combine(connectivity.isOnline, executions.rateLimit, runtimeDefaults, ::Triple),
         settings.runSettings,
@@ -127,7 +132,7 @@ class ConsoleViewModel @AssistedInject constructor(
 
     init {
         viewModelScope.launch {
-            projects.observeWorkspace(projectId).map { it?.project?.runtimeId }.collect { runtimeId ->
+            outline.map { it?.project?.runtimeId }.distinctUntilChanged().collect { runtimeId ->
                 if (runtimeId != null) runtimeDefaults.value = runtimes.defaultLimits(runtimeId)
             }
         }

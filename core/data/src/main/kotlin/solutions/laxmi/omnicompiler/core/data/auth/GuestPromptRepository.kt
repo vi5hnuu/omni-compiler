@@ -29,7 +29,7 @@ internal class DefaultGuestPromptRepository @Inject constructor(
     override suspend fun claimOffer(projectId: String): KeepWorkOffer? {
         val user = (auth.session.value as? Session.Active)?.user ?: return null
         if (!user.isGuest || projectId in preferences.guestPromptedProjects()) return null
-        val workspace = projects.observeWorkspace(projectId).first() ?: return null
+        val workspace = projects.observeOutline(projectId).first() ?: return null
         preferences.markGuestPrompted(projectId)
         return KeepWorkOffer(workspace.project.name, workspace.files.size, workspace.tests.size, runs.countForProject(projectId))
     }
