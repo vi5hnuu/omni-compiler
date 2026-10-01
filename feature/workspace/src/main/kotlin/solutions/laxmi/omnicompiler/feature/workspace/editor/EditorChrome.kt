@@ -222,9 +222,11 @@ internal fun EditorStatusBar(state: CodeEditorState, tabSize: Int, problems: Int
     }
 }
 
-/** What the app-bar action does right now; the label follows the run's phase. */
+/** What the app-bar action does right now; the label follows the run's phase, or the open file for web pages. */
 internal enum class RunButtonState(@StringRes val labelRes: Int, val icon: androidx.compose.ui.graphics.vector.ImageVector) {
     Run(R.string.editor_run, OmniIcons.Play),
+    /** HTML and Markdown render on the device in the preview; the judge has no runtime for them. */
+    Preview(R.string.editor_menu_preview, OmniIcons.Eye),
     Stop(R.string.editor_stop, OmniIcons.Stop),
     Detach(R.string.editor_detach, OmniIcons.Stop),
 }

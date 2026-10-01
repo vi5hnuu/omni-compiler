@@ -215,11 +215,17 @@ internal fun ColumnScope.WorkspaceBody(
         flushEditors()
         console.runTests()
     }
-    val stopOrRun: () -> Unit = if (running) console::stop else runTests
+    // A page tab's primary action is its preview; Run would send the project's entry file to the judge instead.
+    val previewsPage = isPage(activeFile)
     val runButton = when {
-        !running -> RunButtonState.Run
+        !running -> if (previewsPage) RunButtonState.Preview else RunButtonState.Run
         latest?.phase == RunPhase.PENDING || latest?.phase == RunPhase.SUBMITTING -> RunButtonState.Stop
         else -> RunButtonState.Detach
+    }
+    val stopOrRun: () -> Unit = when (runButton) {
+        RunButtonState.Run -> runTests
+        RunButtonState.Preview -> ({ actions.onPreview(activeFile.id) })
+        RunButtonState.Stop, RunButtonState.Detach -> console::stop
     }
 
     if (typing) {
@@ -242,8 +248,8 @@ internal fun ColumnScope.WorkspaceBody(
                     listOf(
                         // Run
                         listOfNotNull(
-                            // Web files open in the preview; browser JavaScript runs in a page with a console.
-                            previewLabel(activeFile)?.let { label -> MenuAction(stringResource(label)) { actions.onPreview(activeFile.id) } },
+                            // Pages preview from the app-bar button; browser JavaScript runs in a page with a console.
+                            MenuAction(stringResource(R.string.editor_menu_run_in_browser)) { actions.onPreview(activeFile.id) }.takeIf { isBrowserScript(activeFile) },
                             MenuAction(stringResource(R.string.editor_menu_run_with_input)) { openConsole(ConsoleTab.Input) },
                             MenuAction(stringResource(R.string.editor_menu_benchmark)) { showBenchmark = true },
                             MenuAction(stringResource(R.string.editor_menu_limits)) { showLimits = true },
@@ -534,9 +540,10 @@ private fun runHint(file: FileHeader, text: String?, languageBase: String?, test
 
 private const val SHEET_FRACTION = 0.78f
 
-@androidx.annotation.StringRes
-private fun previewLabel(file: FileHeader): Int? = when (file.name.substringAfterLast('.', "").lowercase()) {
-    "html", "htm", "md", "markdown" -> R.string.editor_menu_preview
-    "js", "mjs" -> R.string.editor_menu_run_in_browser
-    else -> null
-}
+private fun FileHeader.extension() = name.substringAfterLast('.', "").lowercase()
+
+/** Files the preview renders as a page (HTML, Markdown). */
+private fun isPage(file: FileHeader) = file.extension() in setOf("html", "htm", "md", "markdown")
+
+/** JavaScript the preview can also run in a page with a browser console. */
+private fun isBrowserScript(file: FileHeader) = file.extension() in setOf("js", "mjs")
