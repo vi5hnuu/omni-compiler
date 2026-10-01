@@ -33,6 +33,10 @@ gradlePlugin {
             id = libs.plugins.omni.android.library.get().pluginId
             implementationClass = "AndroidLibraryConventionPlugin"
         }
+        register("androidTest") {
+            id = libs.plugins.omni.android.test.get().pluginId
+            implementationClass = "AndroidTestConventionPlugin"
+        }
         register("androidCompose") {
             id = libs.plugins.omni.android.compose.get().pluginId
             implementationClass = "AndroidComposeConventionPlugin"

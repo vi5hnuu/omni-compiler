@@ -5,6 +5,7 @@ plugins {
     alias(libs.plugins.omni.android.compose)
     alias(libs.plugins.omni.hilt)
     alias(libs.plugins.aboutlibraries.android)
+    alias(libs.plugins.baselineprofile)
 }
 
 // Open-source notices are generated from dependency metadata at build time (res/raw/aboutlibraries.json);
@@ -70,6 +71,10 @@ dependencies {
     implementation(projects.feature.settings)
     implementation(projects.feature.vcs)
     implementation(projects.core.ads)
+
+    // Installs the bundled baseline profile so first launches run precompiled code paths.
+    implementation(libs.androidx.profileinstaller)
+    baselineProfile(projects.baselineprofile)
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.core.splashscreen)

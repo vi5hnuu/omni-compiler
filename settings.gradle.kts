@@ -27,6 +27,7 @@ rootProject.name = "omnicompiler"
 enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
 
 include(":app")
+include(":baselineprofile")
 
 include(":core:common")
 include(":core:model")
