@@ -69,6 +69,7 @@ import kotlin.math.roundToInt
 fun HistoryScreen(navigator: Navigator) {
     val viewModel = hiltViewModel<HistoryViewModel>()
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val runtimeNames by viewModel.runtimeNames.collectAsStateWithLifecycle()
     val items = viewModel.items.collectAsLazyPagingItems()
     val colors = OmniTheme.colors
     Column(Modifier.fillMaxSize().background(colors.background).navigationBarsPadding()) {
@@ -116,7 +117,7 @@ fun HistoryScreen(navigator: Navigator) {
                 items(items.itemCount, key = items.itemKey { it.key() }, contentType = items.itemContentType { it::class }) { index ->
                     when (val item = items[index]) {
                         is HistoryItem.Header -> DayHeader(item.dayStartEpochMs)
-                        is HistoryItem.Row -> SubmissionRow(item.submission) {
+                        is HistoryItem.Row -> SubmissionRow(item.submission, runtimeNames[item.submission.runtimeId]) {
                             navigator.navigate(JobDetailRoute(item.submission.id, item.submission.runtimeId))
                         }
                         null -> Unit
@@ -209,7 +210,7 @@ private fun DayHeader(dayStart: Long) {
 }
 
 @Composable
-private fun SubmissionRow(submission: Submission, onClick: () -> Unit) {
+private fun SubmissionRow(submission: Submission, runtimeName: RuntimeName?, onClick: () -> Unit) {
     val colors = OmniTheme.colors
     val locale = LocalConfiguration.current.locales[0]
     Row(
@@ -223,7 +224,11 @@ private fun SubmissionRow(submission: Submission, onClick: () -> Unit) {
     ) {
         submission.verdict?.let { VerdictBadge(it) } ?: Text(submission.status.name.lowercase(), style = OmniTheme.typography.monoSmall, color = colors.textTertiary)
         Column(Modifier.weight(1f)) {
-            Text(submission.runtimeId, style = OmniTheme.typography.bodyStrong, color = colors.textPrimary)
+            Text(
+                runtimeName?.let { stringResource(R.string.history_runtime_name, it.language, it.version) } ?: submission.runtimeId,
+                style = OmniTheme.typography.bodyStrong,
+                color = colors.textPrimary,
+            )
             Text(stringResource(R.string.history_job, shortJobId(submission.id)), style = OmniTheme.typography.monoSmall, color = colors.textTertiary)
         }
         Column(horizontalAlignment = Alignment.End) {

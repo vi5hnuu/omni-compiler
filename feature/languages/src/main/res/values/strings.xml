@@ -17,8 +17,10 @@
     <string name="languages_all">All languages</string>
     <string name="languages_filter_all">All</string>
     <string name="languages_filter_recent">Recent</string>
-    <string name="languages_accepted">%1$d%% accepted</string>
-    <string name="languages_fast">FAST</string>
+    <!-- Judge-wide acceptance for the language (all users' runs), not this user's. -->
+    <string name="languages_accepted">%1$d%% accepted overall</string>
+    <!-- Badge for languages with a pre-warmed (hot lane) runtime, which start runs faster. -->
+    <string name="languages_fast">FAST START</string>
     <string name="languages_runtimes_title">%1$s runtimes</string>
     <plurals name="languages_available">
         <item quantity="one">%1$d available</item>

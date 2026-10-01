@@ -20,6 +20,7 @@ import solutions.laxmi.omnicompiler.core.data.auth.AuthRepository
 import solutions.laxmi.omnicompiler.core.data.history.CachedHistorySummary
 import solutions.laxmi.omnicompiler.core.data.history.DayActivity
 import solutions.laxmi.omnicompiler.core.data.history.HistoryRepository
+import solutions.laxmi.omnicompiler.core.data.runtime.RuntimeRepository
 import solutions.laxmi.omnicompiler.core.model.Outcome
 import solutions.laxmi.omnicompiler.core.model.Session
 import solutions.laxmi.omnicompiler.core.model.Submission
@@ -42,11 +43,20 @@ data class HistoryUiState(
     val stats: UsageStats? = null,
 )
 
+/** A runtime as people read it ("Python", "3.11") rather than its judge id ("python-3.11"). */
+data class RuntimeName(val language: String, val version: String)
+
 @HiltViewModel
 class HistoryViewModel @Inject constructor(
     private val history: HistoryRepository,
     auth: AuthRepository,
+    runtimes: RuntimeRepository,
 ) : ViewModel() {
+
+    /** Display names by runtime id; ids missing from the catalog fall back to the raw id in the row. */
+    val runtimeNames: StateFlow<Map<String, RuntimeName>> = runtimes.languages
+        .map { languages -> languages.flatMap { language -> language.runtimes.map { it.id to RuntimeName(language.info.name, it.version) } }.toMap() }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyMap())
 
     private val filter = MutableStateFlow<Verdict?>(null)
     private val stats = MutableStateFlow<UsageStats?>(null)

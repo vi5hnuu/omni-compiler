@@ -18,7 +18,8 @@
     <string name="editor_next_match">Next match</string>
     <string name="editor_close_find">Close find</string>
     <string name="editor_cursor_position">Ln %1$d, Col %2$d</string>
-    <string name="editor_indent_spaces">Spaces %1$d</string>
+    <!-- The tab size setting; the editor does not detect a file's own indentation. -->
+    <string name="editor_indent_spaces">Tab size %1$d</string>
     <string name="editor_encoding" translatable="false">UTF-8</string>
     <plurals name="editor_problems">
         <item quantity="one">%1$d problem</item>
@@ -135,7 +136,8 @@
     <string name="console_exit_detached">stopped listening · result will appear in run history</string>
     <string name="console_exit_failed">failed</string>
     <string name="console_exit_lost">lost track of the job · it will appear in run history</string>
-    <string name="console_verify">Verify run</string>
+    <!-- Replays the finished job on the judge and shows the reproducibility proof. -->
+    <string name="console_verify">Replay to verify</string>
 
     <!-- Run headlines -->
     <string name="run_waiting_connection">Waiting for connection</string>
