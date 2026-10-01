@@ -17,14 +17,10 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -45,6 +41,16 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import solutions.laxmi.omnicompiler.core.designsystem.component.SheetHandle
+import solutions.laxmi.omnicompiler.core.designsystem.component.SectionLabel
+import solutions.laxmi.omnicompiler.core.designsystem.component.OmniListRow
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.layout.navigationBarsPadding
 import solutions.laxmi.omnicompiler.core.designsystem.component.OmniCompactButton
 import solutions.laxmi.omnicompiler.core.designsystem.component.OmniIconButton
 import solutions.laxmi.omnicompiler.core.designsystem.icon.OmniIcons
@@ -223,7 +229,7 @@ internal fun EditorStatusBar(state: CodeEditorState, tabSize: Int, problems: Int
 }
 
 /** What the app-bar action does right now; the label follows the run's phase, or the open file for web pages. */
-internal enum class RunButtonState(@StringRes val labelRes: Int, val icon: androidx.compose.ui.graphics.vector.ImageVector) {
+internal enum class RunButtonState(@StringRes val labelRes: Int, val icon: ImageVector) {
     Run(R.string.editor_run, OmniIcons.Play),
     /** HTML and Markdown render on the device in the preview; the judge has no runtime for them. */
     Preview(R.string.editor_menu_preview, OmniIcons.Eye),
@@ -232,30 +238,41 @@ internal enum class RunButtonState(@StringRes val labelRes: Int, val icon: andro
 }
 
 /** One overflow-menu entry. */
-internal data class MenuAction(val label: String, val onClick: () -> Unit)
+internal data class MenuAction(val label: String, val icon: ImageVector, val onClick: () -> Unit)
 
-/** The ⋮ menu; [groups] (run, edit, project, help) are separated by dividers and empty groups are skipped. */
+/** A titled section of the overflow sheet (run, edit, project, help). */
+internal data class MenuGroup(val title: String, val actions: List<MenuAction>)
+
+/**
+ * The ⋮ actions as a Material bottom sheet: the list is too long for a dropdown on phones, and a sheet keeps
+ * every action reachable with one thumb. Empty groups are skipped.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-internal fun OverflowMenu(groups: List<List<MenuAction>>) {
+internal fun OverflowMenu(groups: List<MenuGroup>) {
     var open by remember { mutableStateOf(false) }
-    Box {
-        OmniIconButton(OmniIcons.MoreVertical, stringResource(R.string.editor_more_options), { open = true })
-        DropdownMenu(
-            expanded = open,
-            onDismissRequest = { open = false },
-            containerColor = OmniTheme.colors.surfaceRaised,
-            shape = androidx.compose.ui.graphics.RectangleShape,
-        ) {
-            groups.filter { it.isNotEmpty() }.forEachIndexed { index, group ->
-                if (index > 0) HorizontalDivider(color = OmniTheme.colors.divider)
-                group.forEach { item ->
-                    DropdownMenuItem(
-                        text = { Text(item.label, style = OmniTheme.typography.bodyStrong, color = OmniTheme.colors.textPrimary) },
+    OmniIconButton(OmniIcons.MoreVertical, stringResource(R.string.editor_more_options), { open = true })
+    if (!open) return
+    val colors = OmniTheme.colors
+    ModalBottomSheet(
+        onDismissRequest = { open = false },
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        shape = RectangleShape,
+        containerColor = colors.surface,
+        scrimColor = colors.scrim,
+        dragHandle = { SheetHandle() },
+    ) {
+        Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).navigationBarsPadding().padding(bottom = 8.dp)) {
+            groups.filter { it.actions.isNotEmpty() }.forEach { group ->
+                SectionLabel(group.title)
+                group.actions.forEach { item ->
+                    OmniListRow(
+                        item.label,
+                        leading = { Icon(item.icon, null, tint = colors.textSecondary, modifier = Modifier.size(18.dp)) },
                         onClick = {
                             open = false
                             item.onClick()
                         },
-                        modifier = Modifier.width(220.dp),
                     )
                 }
             }

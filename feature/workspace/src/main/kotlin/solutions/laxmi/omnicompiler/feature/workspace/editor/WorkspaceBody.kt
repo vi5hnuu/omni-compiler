@@ -246,41 +246,49 @@ internal fun ColumnScope.WorkspaceBody(
             overflow = {
                 OverflowMenu(
                     listOf(
-                        // Run
-                        listOfNotNull(
-                            // Pages preview from the app-bar button; browser JavaScript runs in a page with a console.
-                            MenuAction(stringResource(R.string.editor_menu_run_in_browser)) { actions.onPreview(activeFile.id) }.takeIf { isBrowserScript(activeFile) },
-                            MenuAction(stringResource(R.string.editor_menu_run_with_input)) { openConsole(ConsoleTab.Input) },
-                            MenuAction(stringResource(R.string.editor_menu_benchmark)) { showBenchmark = true },
-                            MenuAction(stringResource(R.string.editor_menu_limits)) { showLimits = true },
+                        MenuGroup(
+                            stringResource(R.string.editor_menu_group_run),
+                            listOfNotNull(
+                                // Pages preview from the app-bar button; browser JavaScript runs in a page with a console.
+                                MenuAction(stringResource(R.string.editor_menu_run_in_browser), OmniIcons.ExternalLink) { actions.onPreview(activeFile.id) }.takeIf { isBrowserScript(activeFile) },
+                                MenuAction(stringResource(R.string.editor_menu_run_with_input), OmniIcons.Terminal) { openConsole(ConsoleTab.Input) },
+                                MenuAction(stringResource(R.string.editor_menu_benchmark), OmniIcons.Chart) { showBenchmark = true },
+                                MenuAction(stringResource(R.string.editor_menu_limits), OmniIcons.Timer) { showLimits = true },
+                            ),
                         ),
-                        // Edit
-                        listOf(
-                            MenuAction(stringResource(R.string.editor_menu_find_replace)) {
-                                findWithReplace = true
-                                onSearchChange(true)
-                            },
-                            MenuAction(stringResource(R.string.editor_go_to_line)) { goingToLine = true },
-                            MenuAction(stringResource(if (state.settings.wordWrap) R.string.editor_menu_wrap_off else R.string.editor_menu_wrap_on), actions.onToggleWordWrap),
+                        MenuGroup(
+                            stringResource(R.string.editor_menu_group_edit),
+                            listOf(
+                                MenuAction(stringResource(R.string.editor_menu_find_replace), OmniIcons.Search) {
+                                    findWithReplace = true
+                                    onSearchChange(true)
+                                },
+                                MenuAction(stringResource(R.string.editor_go_to_line), OmniIcons.ArrowRight) { goingToLine = true },
+                                MenuAction(stringResource(if (state.settings.wordWrap) R.string.editor_menu_wrap_off else R.string.editor_menu_wrap_on), OmniIcons.WrapText, actions.onToggleWordWrap),
+                            ),
                         ),
-                        // File and project
-                        listOfNotNull(
-                            MenuAction(stringResource(R.string.editor_new_file), onShowNewFile),
-                            MenuAction(stringResource(if (splitFile != null) R.string.editor_menu_unsplit else R.string.editor_menu_split)) {
-                                flushEditors()
-                                splitFileId = if (splitFile != null) null else projectFiles.firstOrNull { it.id != activeFile.id }?.id
-                            }.takeIf { wide && projectFiles.size > 1 },
-                            MenuAction(stringResource(R.string.editor_menu_source_control), actions.onSourceControl).takeIf { state.workspace?.project?.remote != null },
-                            MenuAction(stringResource(R.string.editor_menu_save_to_origin), actions.onSaveToOrigin).takeIf { state.workspace?.project?.hasOrigin == true },
-                            MenuAction(stringResource(R.string.editor_menu_rename_project), onRenameProject),
-                            MenuAction(stringResource(R.string.editor_menu_share_project), actions.onShareProject),
-                            MenuAction(stringResource(R.string.editor_menu_change_language), actions.onPickRuntime),
-                            MenuAction(stringResource(R.string.editor_menu_reset), onConfirmReset),
+                        MenuGroup(
+                            stringResource(R.string.editor_menu_group_project),
+                            listOfNotNull(
+                                MenuAction(stringResource(R.string.editor_new_file), OmniIcons.Plus, onShowNewFile),
+                                MenuAction(stringResource(if (splitFile != null) R.string.editor_menu_unsplit else R.string.editor_menu_split), OmniIcons.Layers) {
+                                    flushEditors()
+                                    splitFileId = if (splitFile != null) null else projectFiles.firstOrNull { it.id != activeFile.id }?.id
+                                }.takeIf { wide && projectFiles.size > 1 },
+                                MenuAction(stringResource(R.string.editor_menu_source_control), OmniIcons.Link, actions.onSourceControl).takeIf { state.workspace?.project?.remote != null },
+                                MenuAction(stringResource(R.string.editor_menu_save_to_origin), OmniIcons.Upload, actions.onSaveToOrigin).takeIf { state.workspace?.project?.hasOrigin == true },
+                                MenuAction(stringResource(R.string.editor_menu_rename_project), OmniIcons.Edit, onRenameProject),
+                                MenuAction(stringResource(R.string.editor_menu_share_project), OmniIcons.Share, actions.onShareProject),
+                                MenuAction(stringResource(R.string.editor_menu_change_language), OmniIcons.Braces, actions.onPickRuntime),
+                                MenuAction(stringResource(R.string.editor_menu_reset), OmniIcons.Refresh, onConfirmReset),
+                            ),
                         ),
-                        // Help
-                        listOf(
-                            MenuAction(stringResource(R.string.editor_menu_appearance), actions.onAppearance),
-                            MenuAction(stringResource(R.string.editor_shortcuts)) { showShortcuts = true },
+                        MenuGroup(
+                            stringResource(R.string.editor_menu_group_help),
+                            listOf(
+                                MenuAction(stringResource(R.string.editor_menu_appearance), OmniIcons.Settings, actions.onAppearance),
+                                MenuAction(stringResource(R.string.editor_shortcuts), OmniIcons.Keyboard) { showShortcuts = true },
+                            ),
                         ),
                     ),
                 )

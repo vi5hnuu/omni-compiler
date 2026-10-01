@@ -194,7 +194,8 @@ private fun createEditor(context: Context, state: CodeEditorState, onRunShortcut
         setPinLineNumber(true)
         setDividerWidth(0f)
         setDividerMargin(8 * dpUnit, 6 * dpUnit)
-        setLineNumberMarginLeft(4 * dpUnit)
+        // Clear of the active-line bar and of system edge handles (e.g. Samsung's edge panel) on the left edge.
+        setLineNumberMarginLeft(8 * dpUnit)
         setHighlightCurrentLine(true)
         setHighlightBracketPair(true)
         setBlockLineWidth(1f)

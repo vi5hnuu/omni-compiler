@@ -318,6 +318,10 @@
     <string name="preview_unsupported_title">Nothing to preview</string>
     <string name="preview_unsupported_message">Preview works for HTML, Markdown and JavaScript files.</string>
     <string name="editor_menu_preview">Preview</string>
+    <string name="editor_menu_group_run">Run</string>
+    <string name="editor_menu_group_edit">Edit</string>
+    <string name="editor_menu_group_project">File &amp; project</string>
+    <string name="editor_menu_group_help">Help</string>
     <string name="editor_menu_run_in_browser">Run in browser</string>
     <string name="editor_split_divider">Resize panes</string>
     <string name="editor_menu_split">Split view</string>
