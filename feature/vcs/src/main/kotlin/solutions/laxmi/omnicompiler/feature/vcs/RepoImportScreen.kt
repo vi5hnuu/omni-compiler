@@ -1,5 +1,7 @@
 package solutions.laxmi.omnicompiler.feature.vcs
 
+import solutions.laxmi.omnicompiler.core.ui.R as CommonR
+import solutions.laxmi.omnicompiler.core.designsystem.component.InfoBanner
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
@@ -77,43 +79,46 @@ fun RepoImportScreen(navigator: Navigator) {
         }
         if (browse == null) {
             if (state.hosts.size > 1) {
-                OmniTabRow(state.hosts.map { OmniTab(it.displayName()) }, state.hosts.indexOf(state.host), { viewModel.selectHost(state.hosts[it]) })
+                val tabs = state.hosts.map { host ->
+                    OmniTab(state.logins[host]?.let { stringResource(R.string.git_host_login, host.displayName(), it) } ?: host.displayName())
+                }
+                OmniTabRow(tabs, state.hosts.indexOf(state.host), { viewModel.selectHost(state.hosts[it]) })
             }
             OmniTextField(
                 state.query, viewModel::setQuery, placeholder = stringResource(R.string.git_search_repos), leadingIcon = OmniIcons.Search,
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
             )
-            LazyColumn(Modifier.weight(1f)) {
-                items(state.visibleRepos, key = { it.host.name + it.id }) { repo ->
-                    OmniListRow(
-                        title = repo.fullName,
-                        subtitle = repo.defaultBranch,
-                        trailing = { if (repo.isPrivate) OmniBadge(stringResource(R.string.git_private)) },
-                        onClick = { viewModel.openRepo(repo) },
-                    )
-                }
-                if (state.canLoadMore && state.query.isBlank()) {
-                    item { OmniTextButton(stringResource(R.string.git_load_more), viewModel::loadMore, Modifier.padding(16.dp), enabled = !state.loading) }
-                }
+            when {
+                state.repos.isEmpty() && state.loading -> CentredSpinner(Modifier.weight(1f))
+                state.repos.isEmpty() && state.error != null -> LoadFailed(state, viewModel::retry, Modifier.weight(1f))
+                else -> RepoList(state, viewModel, Modifier.weight(1f))
             }
         } else {
             BranchBar(browse.branches.ifEmpty { listOf(browse.branch) }, browse.branch, viewModel::selectBranch)
             val files = browse.entries.count { !it.isFolder }
-            LazyColumn(Modifier.weight(1f)) {
-                items(browse.entries, key = { it.path }) { entry ->
-                    OmniListRow(
-                        title = entry.name,
-                        leading = { Icon(if (entry.isFolder) OmniIcons.Folder else OmniIcons.File, null, tint = colors.textTertiary, modifier = Modifier.size(16.dp)) },
-                        trailing = if (entry.isFolder) ({ Icon(OmniIcons.ChevronRight, null, tint = colors.textTertiary, modifier = Modifier.size(14.dp)) }) else null,
-                        onClick = if (entry.isFolder) ({ viewModel.showFolder(entry.path) }) else null,
-                    )
+            val folders = browse.entries.count { it.isFolder }
+            when {
+                browse.entries.isEmpty() && state.loading -> CentredSpinner(Modifier.weight(1f))
+                browse.entries.isEmpty() && state.error != null -> LoadFailed(state, viewModel::retry, Modifier.weight(1f))
+                else -> LazyColumn(Modifier.weight(1f)) {
+                    items(browse.entries, key = { it.path }) { entry ->
+                        OmniListRow(
+                            title = entry.name,
+                            leading = { Icon(if (entry.isFolder) OmniIcons.Folder else OmniIcons.File, null, tint = colors.textTertiary, modifier = Modifier.size(16.dp)) },
+                            trailing = if (entry.isFolder) ({ Icon(OmniIcons.ChevronRight, null, tint = colors.textTertiary, modifier = Modifier.size(14.dp)) }) else null,
+                            onClick = if (entry.isFolder) ({ viewModel.showFolder(entry.path) }) else null,
+                        )
+                    }
                 }
             }
-            Text(
-                stringResource(R.string.git_import_note),
-                style = OmniTheme.typography.bodySmall,
-                color = colors.textTertiary,
-                modifier = Modifier.padding(horizontal = 16.dp),
+            // Projects are flat, so make the limitation visible before the user imports.
+            InfoBanner(
+                buildString {
+                    append(stringResource(R.string.git_import_note))
+                    if (folders > 0) append(' ').append(pluralStringResource(R.plurals.git_import_skipped_folders, folders, folders))
+                },
+                Modifier.padding(horizontal = 16.dp),
+                icon = OmniIcons.Info,
             )
             OmniButton(
                 if (files > 0) pluralStringResource(R.plurals.git_import_folder, files, files) else stringResource(R.string.git_import_empty),
@@ -124,10 +129,51 @@ fun RepoImportScreen(navigator: Navigator) {
                 leadingIcon = OmniIcons.Download,
                 trailingIcon = null,
             )
+            // An import failure has entries on screen, so it shows under the button rather than replacing the list.
+            if (browse.entries.isNotEmpty()) state.error?.let { ErrorLine(it.asString()) }
         }
-        state.error?.let { Text(it.asString(), style = OmniTheme.typography.bodySmall, color = colors.accentText, modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) }
-        if (state.loading) Box(Modifier.fillMaxWidth().padding(8.dp), contentAlignment = Alignment.Center) { OmniSpinner() }
     }
+}
+
+@Composable
+private fun RepoList(state: RepoImportUiState, viewModel: RepoImportViewModel, modifier: Modifier) {
+    LazyColumn(modifier) {
+        items(state.visibleRepos, key = { it.host.name + it.id }) { repo ->
+            OmniListRow(
+                title = repo.fullName,
+                subtitle = repo.defaultBranch,
+                trailing = { if (repo.isPrivate) OmniBadge(stringResource(R.string.git_private)) },
+                onClick = { viewModel.openRepo(repo) },
+            )
+        }
+        if (state.loading) {
+            item { CentredSpinner(Modifier.fillMaxWidth().padding(16.dp)) }
+        } else if (state.canLoadMore && state.query.isBlank()) {
+            item { OmniTextButton(stringResource(R.string.git_load_more), viewModel::loadMore, Modifier.padding(16.dp)) }
+        }
+        if (state.error != null) item { ErrorLine(state.error.asString()) }
+    }
+}
+
+@Composable
+private fun CentredSpinner(modifier: Modifier) {
+    Box(modifier.fillMaxWidth(), contentAlignment = Alignment.Center) { OmniSpinner() }
+}
+
+@Composable
+private fun LoadFailed(state: RepoImportUiState, onRetry: () -> Unit, modifier: Modifier) {
+    EmptyState(
+        title = stringResource(R.string.git_load_failed, state.host?.displayName().orEmpty()),
+        message = state.error?.asString().orEmpty(),
+        modifier = modifier,
+        icon = OmniIcons.WifiOff,
+        action = { OmniButton(stringResource(CommonR.string.common_retry), onRetry) },
+    )
+}
+
+@Composable
+private fun ErrorLine(text: String) {
+    Text(text, style = OmniTheme.typography.bodySmall, color = OmniTheme.colors.accentText, modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
 }
 
 @Composable

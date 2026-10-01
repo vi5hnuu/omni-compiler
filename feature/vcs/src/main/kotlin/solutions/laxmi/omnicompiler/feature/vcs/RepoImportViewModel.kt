@@ -32,6 +32,8 @@ data class RepoBrowse(
 
 data class RepoImportUiState(
     val hosts: List<GitHost> = emptyList(),
+    /** Connected login per host, shown on the host tabs so two accounts are easy to tell apart. */
+    val logins: Map<GitHost, String> = emptyMap(),
     val host: GitHost? = null,
     val query: String = "",
     val repos: List<RemoteRepo> = emptyList(),
@@ -58,8 +60,9 @@ class RepoImportViewModel @Inject constructor(private val git: GitRepository) : 
 
     init {
         viewModelScope.launch {
-            val hosts = git.accounts.first().map { it.host }
-            state.update { it.copy(hosts = hosts) }
+            val accounts = git.accounts.first()
+            val hosts = accounts.map { it.host }
+            state.update { it.copy(hosts = hosts, logins = accounts.associate { it.host to it.login }) }
             hosts.firstOrNull()?.let(::selectHost)
         }
     }
@@ -109,6 +112,12 @@ class RepoImportViewModel @Inject constructor(private val git: GitRepository) : 
                 is Outcome.Failure -> state.update { it.copy(loading = false, error = result.error.toUiText()) }
             }
         }
+    }
+
+    /** Repeats whatever failed: the open folder when browsing, otherwise the repository list. */
+    fun retry() {
+        val browse = state.value.browse
+        if (browse != null) showFolder(browse.path) else loadMore()
     }
 
     /** Back inside the browser: parent folder, then the repository list. Returns false when there's nowhere to go. */
