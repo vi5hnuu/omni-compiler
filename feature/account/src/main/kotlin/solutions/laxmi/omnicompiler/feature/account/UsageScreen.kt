@@ -72,32 +72,41 @@ fun UsageScreen(navigator: Navigator) {
                 else -> Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
                     val plan = state.plan!!
                     plan.expiryWarning?.let { InfoBanner(it, Modifier.padding(16.dp), icon = OmniIcons.Alert) }
-                    if (state.billing?.testMode == true) InfoBanner(stringResource(R.string.usage_test_mode), Modifier.padding(horizontal = 16.dp), icon = OmniIcons.Info)
+                    if (state.billing?.testMode == true) InfoBanner(stringResource(R.string.usage_test_mode), Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp), icon = OmniIcons.Info)
                     Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
                         Column(Modifier.weight(1f)) {
                             Text(stringResource(R.string.usage_current_plan).uppercase(), style = OmniTheme.typography.overline, color = colors.textTertiary)
                             Text(plan.effectivePlan.replaceFirstChar { it.uppercase() }, style = OmniTheme.typography.headline, color = colors.textPrimary)
                             plan.expiresAt?.let { Text(stringResource(R.string.usage_renews_or_ends, it.take(10)), style = OmniTheme.typography.bodySmall, color = colors.textTertiary) }
                         }
-                        plan.planSource?.let { OmniBadge(it.uppercase()) }
+                        plan.planSource?.let(::planSourceLabel)?.let { OmniBadge(stringResource(it).uppercase()) }
                     }
                     state.billing?.let { billing ->
                         SectionLabel(stringResource(R.string.usage_billing_period))
-                        Meter(
-                            label = stringResource(R.string.usage_runs),
-                            value = stringResource(R.string.usage_fraction, billing.executionsUsed.toInt(), billing.quotaLimit.toInt()),
-                            fraction = if (billing.quotaLimit > 0) billing.executionsUsed.toFloat() / billing.quotaLimit else 0f,
-                        )
-                        Text(billing.quotaRemaining.toInt().let { pluralStringResource(R.plurals.usage_runs_remaining, it, it) }, style = OmniTheme.typography.bodySmall, color = colors.textTertiary, modifier = Modifier.padding(horizontal = 16.dp))
+                        // A quota of 0 is unmetered on the judge: show the count without a meter or "remaining".
+                        if (billing.quotaLimit > 0) {
+                            Meter(
+                                label = stringResource(R.string.usage_billed_runs),
+                                value = stringResource(R.string.usage_fraction, billing.executionsUsed.toInt(), billing.quotaLimit.toInt()),
+                                fraction = billing.executionsUsed.toFloat() / billing.quotaLimit,
+                            )
+                            Text(billing.quotaRemaining.toInt().let { pluralStringResource(R.plurals.usage_runs_remaining, it, it) }, style = OmniTheme.typography.bodySmall, color = colors.textTertiary, modifier = Modifier.padding(horizontal = 16.dp))
+                        } else {
+                            KeyValue(stringResource(R.string.usage_billed_runs), stringResource(R.string.usage_unlimited_count, billing.executionsUsed.toInt()))
+                        }
                     }
                     SectionLabel(stringResource(R.string.usage_rate_limit))
-                    val limit = state.rateLimit
-                    Meter(
-                        label = stringResource(R.string.usage_runs_this_minute),
-                        value = limit?.let { stringResource(R.string.usage_fraction, it.limit - it.remaining, it.limit) }
-                            ?: stringResource(R.string.usage_per_minute, plan.rateLimitRpm),
-                        fraction = limit?.let { (it.limit - it.remaining).toFloat() / it.limit.coerceAtLeast(1) } ?: 0f,
-                    )
+                    // The judge omits rate headers for unlimited buckets and reports an rpm of 0.
+                    val limit = state.rateLimit?.takeIf { it.limit > 0 }
+                    when {
+                        limit != null -> Meter(
+                            label = stringResource(R.string.usage_runs_this_minute),
+                            value = stringResource(R.string.usage_fraction, limit.limit - limit.remaining, limit.limit),
+                            fraction = (limit.limit - limit.remaining).toFloat() / limit.limit,
+                        )
+                        plan.rateLimitRpm > 0 -> KeyValue(stringResource(R.string.usage_runs_this_minute), stringResource(R.string.usage_per_minute, plan.rateLimitRpm))
+                        else -> KeyValue(stringResource(R.string.usage_runs_this_minute), stringResource(R.string.usage_unlimited))
+                    }
                     SectionLabel(stringResource(R.string.usage_your_limits))
                     listOf(
                         stringResource(R.string.usage_limit_time) to stringResource(R.string.usage_limit_time_value, Limits.MAX_TIME_MS / 1_000),
@@ -113,8 +122,8 @@ fun UsageScreen(navigator: Navigator) {
                     }
                     state.billing?.let { billing ->
                         SectionLabel(stringResource(R.string.usage_billing))
-                        KeyValue(stringResource(R.string.usage_status), billing.status.ifBlank { stringResource(R.string.usage_status_none) })
-                        billing.provider?.let { KeyValue(stringResource(R.string.usage_provider), it) }
+                        KeyValue(stringResource(R.string.usage_status), billing.status.humanized().ifBlank { stringResource(R.string.usage_status_none) })
+                        billing.provider?.let { KeyValue(stringResource(R.string.usage_provider), it.humanized()) }
                         billing.periodStart?.let { KeyValue(stringResource(R.string.usage_period_started), it.take(10)) }
                         Row(Modifier.padding(16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             OmniButton(stringResource(R.string.usage_sync), viewModel::sync, Modifier.weight(1f), style = OmniButtonStyle.Secondary, loading = state.busy, trailingIcon = OmniIcons.Refresh)
@@ -173,3 +182,15 @@ internal fun KeyValue(key: String, value: String) {
 private const val JUDGE_MAX_TESTS = 100
 private const val JUDGE_MAX_FILES = 20
 private const val JUDGE_MAX_FILE_KB = 64
+
+/** Judge enum values ("past_due", "razorpay") as display text ("Past due", "Razorpay"). */
+private fun String.humanized(): String = replace('_', ' ').replaceFirstChar { it.uppercase() }
+
+/** Readable label for the judge's `plan_source`; the schema default needs no badge. */
+@androidx.annotation.StringRes
+private fun planSourceLabel(source: String): Int? = when (source) {
+    "admin_grant" -> R.string.usage_source_admin_grant
+    "billing" -> R.string.usage_source_billing
+    "trial" -> R.string.usage_source_trial
+    else -> null
+}

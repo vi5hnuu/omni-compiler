@@ -16,6 +16,7 @@
     <string name="settings_tab_size">Tab size</string>
     <string name="settings_run">Run</string>
     <string name="settings_default_language">Default language</string>
+    <string name="settings_runtime_label">%1$s %2$s</string>
     <string name="settings_default_language_auto">Chosen automatically (Python, C++, …)</string>
     <string name="settings_default_limits">Default limits</string>
     <string name="settings_default_limits_value">%1$d ms · %2$d MB for new projects</string>

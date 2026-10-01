@@ -68,6 +68,12 @@ fun SettingsScreen(navigator: Navigator, appVersion: String) {
     val activity = LocalActivity.current
     val privacyChoices by ads.privacyOptionsRequired.collectAsStateWithLifecycle()
     val defaultRuntime = state.run.defaultRuntimeId
+    // "JavaScript 26" rather than the judge id; the id stays as a fallback for runtimes missing from the catalog.
+    val defaultRuntimeLabel = defaultRuntime?.let { id ->
+        state.languages.firstNotNullOfOrNull { language ->
+            language.runtimes.firstOrNull { it.id == id }?.let { stringResource(R.string.settings_runtime_label, language.info.name, it.version) }
+        } ?: id
+    }
     // Segment labels are plain lambdas, so resolve the localized names up front.
     val appThemeLabels = AppTheme.entries.associateWith { stringResource(it.labelRes) }
     Column(Modifier.fillMaxSize().background(colors.background).navigationBarsPadding()) {
@@ -109,7 +115,7 @@ fun SettingsScreen(navigator: Navigator, appVersion: String) {
             SectionLabel(stringResource(R.string.settings_run))
             OmniListRow(
                 stringResource(R.string.settings_default_language),
-                subtitle = defaultRuntime ?: stringResource(R.string.settings_default_language_auto),
+                subtitle = defaultRuntimeLabel ?: stringResource(R.string.settings_default_language_auto),
                 trailing = { Chevron() },
                 onClick = { pickingDefault = true },
             )

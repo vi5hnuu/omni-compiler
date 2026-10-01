@@ -11,6 +11,8 @@
     <string name="usage_renews_or_ends">Renews or ends %1$s</string>
     <string name="usage_billing_period">This billing period</string>
     <string name="usage_runs">Runs</string>
+    <!-- The judge meters every execution request it accepts, so this can differ from the job count in run history. -->
+    <string name="usage_billed_runs">Billed runs</string>
     <string name="usage_fraction">%1$d / %2$d</string>
     <plurals name="usage_runs_remaining">
         <item quantity="one">%1$d run remaining</item>
@@ -19,6 +21,12 @@
     <string name="usage_rate_limit">Rate limit</string>
     <string name="usage_runs_this_minute">Runs this minute</string>
     <string name="usage_per_minute">%1$d / min</string>
+    <!-- Shown instead of "used / limit" when the judge reports a limit of 0, which means unmetered. -->
+    <string name="usage_unlimited_count">%1$d · unlimited</string>
+    <string name="usage_unlimited">Unlimited</string>
+    <string name="usage_source_admin_grant">Granted</string>
+    <string name="usage_source_billing">Subscription</string>
+    <string name="usage_source_trial">Trial</string>
     <string name="usage_your_limits">Your limits</string>
     <string name="usage_limit_time">Time limit / test</string>
     <string name="usage_limit_time_value">up to %1$d s</string>
@@ -35,7 +43,7 @@
     <string name="usage_percent">%1$d%%</string>
     <string name="usage_billing">Billing</string>
     <string name="usage_status">Status</string>
-    <string name="usage_status_none">none</string>
+    <string name="usage_status_none">None</string>
     <string name="usage_provider">Provider</string>
     <string name="usage_period_started">Period started</string>
     <string name="usage_sync">Sync billing</string>
