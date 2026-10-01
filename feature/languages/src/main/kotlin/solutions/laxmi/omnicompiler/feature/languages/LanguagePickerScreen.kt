@@ -111,10 +111,12 @@ fun LanguagePickerScreen(route: LanguagePickerRoute, navigator: Navigator) {
             state.refreshError?.let {
                 InfoBanner(it.asString(), Modifier.padding(horizontal = 16.dp, vertical = 4.dp), icon = OmniIcons.WifiOff, action = { OmniTextButton(stringResource(CommonR.string.common_retry), viewModel::refresh) })
             }
+            // Messages appear above the banner: nothing may overlap an ad.
+            Box(Modifier.weight(1f)) {
             when {
                 state.loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { OmniSpinner() }
-                state.languages.isEmpty() -> EmptyState(stringResource(R.string.languages_no_matches_title), stringResource(R.string.languages_no_matches_message), icon = OmniIcons.Search)
-                else -> LazyColumn(Modifier.weight(1f)) {
+                state.languages.isEmpty() -> EmptyState(stringResource(R.string.languages_no_matches_title), stringResource(R.string.languages_no_matches_message), Modifier.fillMaxSize(), icon = OmniIcons.Search)
+                else -> LazyColumn(Modifier.fillMaxSize()) {
                     if (state.recent.isNotEmpty()) {
                         item { SectionLabel(stringResource(R.string.languages_recent)) }
                         items(state.recent, key = { "recent-${it.base}" }) { LanguageRow(it, state.currentRuntimeId, viewModel::select) }
@@ -123,9 +125,10 @@ fun LanguagePickerScreen(route: LanguagePickerRoute, navigator: Navigator) {
                     items(state.languages, key = { it.base }) { LanguageRow(it, state.currentRuntimeId, viewModel::select) }
                 }
             }
+                SnackbarHost(snackbar, Modifier.align(Alignment.BottomCenter))
+            }
             AdBanner()
         }
-        SnackbarHost(snackbar, Modifier.align(Alignment.BottomCenter).navigationBarsPadding())
     }
     state.selected?.let { language ->
         RuntimeSheet(

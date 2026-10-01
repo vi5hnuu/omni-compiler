@@ -72,7 +72,9 @@ fun ExamplesScreen(navigator: Navigator) {
         Column(Modifier.fillMaxSize().navigationBarsPadding()) {
             OmniTopBar(stringResource(R.string.practice_title), onBack = navigator::back)
             OmniTabRow(listOf(OmniTab(stringResource(R.string.practice_tab_examples), state.examples.size.toString()), OmniTab(stringResource(R.string.practice_tab_problems), state.problems.size.toString())), tab, { tab = it })
-            LazyColumn(Modifier.weight(1f)) {
+            // Messages appear above the banner: nothing may overlap an ad.
+            Box(Modifier.weight(1f)) {
+            LazyColumn(Modifier.fillMaxSize()) {
                 if (tab == 0) {
                     items(state.examples, key = { it.id }) { example ->
                         OmniListRow(
@@ -93,9 +95,10 @@ fun ExamplesScreen(navigator: Navigator) {
                     }
                 }
             }
+                SnackbarHost(snackbar, Modifier.align(Alignment.BottomCenter))
+            }
             AdBanner()
         }
-        SnackbarHost(snackbar, Modifier.align(Alignment.BottomCenter).navigationBarsPadding())
     }
     chosen?.let { example ->
         ExampleSheet(

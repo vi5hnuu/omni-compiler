@@ -126,15 +126,17 @@ fun ProjectsScreen(navigator: Navigator) {
                 selectedIndex = filters.indexOf(state.filter),
                 onSelect = { viewModel.setFilter(filters[it]) },
             )
+            // Messages appear above "New project" and the banner, never over them.
+            Box(Modifier.weight(1f)) {
             if (state.projects.isEmpty()) {
                 EmptyState(
                     title = stringResource(if (state.query.isBlank()) R.string.projects_empty_title else R.string.projects_no_matches),
                     message = stringResource(R.string.projects_empty_message),
                     icon = OmniIcons.Folder,
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier.fillMaxSize(),
                 )
             } else {
-                PullToRefreshBox(isRefreshing = state.refreshing, onRefresh = viewModel::refresh, modifier = Modifier.weight(1f)) {
+                PullToRefreshBox(isRefreshing = state.refreshing, onRefresh = viewModel::refresh, modifier = Modifier.fillMaxSize()) {
                 LazyColumn(Modifier.fillMaxSize()) {
                     items(state.projects, key = { it.summary.project.id }) { row ->
                         ProjectRow(
@@ -155,10 +157,11 @@ fun ProjectsScreen(navigator: Navigator) {
                 }
                 }
             }
+                SnackbarHost(snackbar, Modifier.align(Alignment.BottomCenter))
+            }
             OmniButton(stringResource(R.string.projects_new), { creating = true }, Modifier.padding(16.dp), leadingIcon = OmniIcons.Plus, trailingIcon = null)
             AdBanner()
         }
-        SnackbarHost(snackbar, Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(bottom = 72.dp))
     }
     if (creating) {
         NewProjectSheet(state.languages, onDismiss = { creating = false }) { name, language ->
