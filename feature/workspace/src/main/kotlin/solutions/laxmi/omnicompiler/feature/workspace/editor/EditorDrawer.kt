@@ -22,6 +22,11 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
@@ -70,6 +75,12 @@ internal fun EditorDrawer(
     onDestination: (DrawerDestination) -> Unit,
 ) {
     val colors = OmniTheme.colors
+    // Large projects would push navigation out of reach: show a few files (always including the open one).
+    var showAllFiles by rememberSaveable { mutableStateOf(false) }
+    val shownFiles = if (showAllFiles || files.size <= MAX_DRAWER_FILES + 1) files else {
+        val first = files.take(MAX_DRAWER_FILES)
+        first + files.filter { it.id == activeFileId && it !in first }
+    }
     Column(
         Modifier
             .width(300.dp)
@@ -109,7 +120,7 @@ internal fun EditorDrawer(
                 }
             }
             item { SectionLabel(stringResource(R.string.drawer_project_files, currentProjectName)) }
-            items(files, key = { it.id }) { file ->
+            items(shownFiles, key = { it.id }) { file ->
                 DrawerRow(selected = file.id == activeFileId, onClick = { onFile(file) }) {
                     Text(
                         fileBadgeFor(file.name, entryShortCode, file.isEntry),
@@ -119,6 +130,19 @@ internal fun EditorDrawer(
                     )
                     Text(file.name, style = OmniTheme.typography.bodySmall, color = colors.textPrimary, maxLines = 1, modifier = Modifier.weight(1f))
                     fileRole(file)?.let { Text(stringResource(it), style = OmniTheme.typography.monoSmall, color = colors.textTertiary) }
+                }
+            }
+            if (files.size > shownFiles.size || showAllFiles) {
+                item(key = "files-toggle") {
+                    DrawerRow(selected = false, onClick = { showAllFiles = !showAllFiles }) {
+                        Text(
+                            if (showAllFiles) stringResource(R.string.drawer_files_fewer)
+                            else pluralStringResource(R.plurals.drawer_files_all, files.size, files.size),
+                            style = OmniTheme.typography.bodySmall,
+                            color = colors.accentText,
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
                 }
             }
             item { Box(Modifier.height(8.dp)) }
@@ -211,3 +235,4 @@ private fun fileRole(file: SourceFile): Int? = when {
 private val DATA_EXTENSIONS = setOf("txt", "in", "dat", "csv")
 
 private const val MAX_DRAWER_PROJECTS = 6
+private const val MAX_DRAWER_FILES = 5

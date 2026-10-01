@@ -79,6 +79,11 @@
     <string name="drawer_projects">Projects</string>
     <string name="drawer_new">New</string>
     <string name="drawer_project_files">%1$s · files</string>
+    <plurals name="drawer_files_all">
+        <item quantity="one">Show all %1$d file</item>
+        <item quantity="other">Show all %1$d files</item>
+    </plurals>
+    <string name="drawer_files_fewer">Show fewer files</string>
     <string name="drawer_not_signed_in">Not signed in</string>
     <string name="drawer_guest_subtitle">Guest · runs stay on this device</string>
     <string name="drawer_signed_out_subtitle">Sign in to sync history</string>
