@@ -82,7 +82,7 @@ internal class AdMobAds @Inject constructor(
     override val privacyOptionsRequired: StateFlow<Boolean> = optionsRequired.asStateFlow()
 
     private val sdkStarted = AtomicBoolean(false)
-    private val policy = InterstitialPolicy()
+    private val policy = InterstitialPolicy(BuildConfig.INTERSTITIAL_GRACE_MS, BuildConfig.INTERSTITIAL_MIN_INTERVAL_MS)
     private var interstitial: InterstitialAd? = null
     private var loading = false
 
