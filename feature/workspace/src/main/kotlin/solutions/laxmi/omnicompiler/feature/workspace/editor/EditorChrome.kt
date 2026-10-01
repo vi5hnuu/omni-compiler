@@ -24,6 +24,7 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -228,8 +229,12 @@ internal enum class RunButtonState(@StringRes val labelRes: Int, val icon: andro
     Detach(R.string.editor_detach, OmniIcons.Stop),
 }
 
+/** One overflow-menu entry. */
+internal data class MenuAction(val label: String, val onClick: () -> Unit)
+
+/** The ⋮ menu; [groups] (run, edit, project, help) are separated by dividers and empty groups are skipped. */
 @Composable
-internal fun OverflowMenu(items: List<Pair<String, () -> Unit>>) {
+internal fun OverflowMenu(groups: List<List<MenuAction>>) {
     var open by remember { mutableStateOf(false) }
     Box {
         OmniIconButton(OmniIcons.MoreVertical, stringResource(R.string.editor_more_options), { open = true })
@@ -239,15 +244,18 @@ internal fun OverflowMenu(items: List<Pair<String, () -> Unit>>) {
             containerColor = OmniTheme.colors.surfaceRaised,
             shape = androidx.compose.ui.graphics.RectangleShape,
         ) {
-            items.forEach { (label, action) ->
-                DropdownMenuItem(
-                    text = { Text(label, style = OmniTheme.typography.bodyStrong, color = OmniTheme.colors.textPrimary) },
-                    onClick = {
-                        open = false
-                        action()
-                    },
-                    modifier = Modifier.width(220.dp),
-                )
+            groups.filter { it.isNotEmpty() }.forEachIndexed { index, group ->
+                if (index > 0) HorizontalDivider(color = OmniTheme.colors.divider)
+                group.forEach { item ->
+                    DropdownMenuItem(
+                        text = { Text(item.label, style = OmniTheme.typography.bodyStrong, color = OmniTheme.colors.textPrimary) },
+                        onClick = {
+                            open = false
+                            item.onClick()
+                        },
+                        modifier = Modifier.width(220.dp),
+                    )
+                }
             }
         }
     }

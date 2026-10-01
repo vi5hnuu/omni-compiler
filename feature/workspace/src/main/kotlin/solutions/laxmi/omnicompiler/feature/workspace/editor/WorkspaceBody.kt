@@ -239,31 +239,43 @@ internal fun ColumnScope.WorkspaceBody(
             runButton = runButton,
             overflow = {
                 OverflowMenu(
-                    listOfNotNull(
-                        (stringResource(R.string.editor_menu_save_to_origin) to actions.onSaveToOrigin).takeIf { state.workspace?.project?.hasOrigin == true },
-                        (stringResource(R.string.editor_menu_source_control) to actions.onSourceControl).takeIf { state.workspace?.project?.remote != null },
-                        // Web files open in the preview; browser JavaScript runs in a page with a console.
-                        previewLabel(activeFile)?.let { label -> stringResource(label) to { actions.onPreview(activeFile.id) } },
-                        stringResource(R.string.editor_menu_run_with_input) to { openConsole(ConsoleTab.Input) },
-                        stringResource(R.string.editor_menu_find_replace) to {
-                            findWithReplace = true
-                            onSearchChange(true)
-                        },
-                        stringResource(R.string.editor_go_to_line) to { goingToLine = true },
-                        (stringResource(if (splitFile != null) R.string.editor_menu_unsplit else R.string.editor_menu_split) to {
-                            flushEditors()
-                            splitFileId = if (splitFile != null) null else projectFiles.firstOrNull { it.id != activeFile.id }?.id
-                        }).takeIf { wide && projectFiles.size > 1 },
-                        stringResource(R.string.editor_menu_benchmark) to { showBenchmark = true },
-                        stringResource(R.string.editor_menu_limits) to { showLimits = true },
-                        stringResource(R.string.editor_new_file) to onShowNewFile,
-                        stringResource(R.string.editor_menu_rename_project) to onRenameProject,
-                        stringResource(R.string.editor_menu_share_project) to actions.onShareProject,
-                        stringResource(R.string.editor_menu_change_language) to actions.onPickRuntime,
-                        stringResource(if (state.settings.wordWrap) R.string.editor_menu_wrap_off else R.string.editor_menu_wrap_on) to actions.onToggleWordWrap,
-                        stringResource(R.string.editor_menu_reset) to onConfirmReset,
-                        stringResource(R.string.editor_menu_appearance) to actions.onAppearance,
-                        stringResource(R.string.editor_shortcuts) to { showShortcuts = true },
+                    listOf(
+                        // Run
+                        listOfNotNull(
+                            // Web files open in the preview; browser JavaScript runs in a page with a console.
+                            previewLabel(activeFile)?.let { label -> MenuAction(stringResource(label)) { actions.onPreview(activeFile.id) } },
+                            MenuAction(stringResource(R.string.editor_menu_run_with_input)) { openConsole(ConsoleTab.Input) },
+                            MenuAction(stringResource(R.string.editor_menu_benchmark)) { showBenchmark = true },
+                            MenuAction(stringResource(R.string.editor_menu_limits)) { showLimits = true },
+                        ),
+                        // Edit
+                        listOf(
+                            MenuAction(stringResource(R.string.editor_menu_find_replace)) {
+                                findWithReplace = true
+                                onSearchChange(true)
+                            },
+                            MenuAction(stringResource(R.string.editor_go_to_line)) { goingToLine = true },
+                            MenuAction(stringResource(if (state.settings.wordWrap) R.string.editor_menu_wrap_off else R.string.editor_menu_wrap_on), actions.onToggleWordWrap),
+                        ),
+                        // File and project
+                        listOfNotNull(
+                            MenuAction(stringResource(R.string.editor_new_file), onShowNewFile),
+                            MenuAction(stringResource(if (splitFile != null) R.string.editor_menu_unsplit else R.string.editor_menu_split)) {
+                                flushEditors()
+                                splitFileId = if (splitFile != null) null else projectFiles.firstOrNull { it.id != activeFile.id }?.id
+                            }.takeIf { wide && projectFiles.size > 1 },
+                            MenuAction(stringResource(R.string.editor_menu_source_control), actions.onSourceControl).takeIf { state.workspace?.project?.remote != null },
+                            MenuAction(stringResource(R.string.editor_menu_save_to_origin), actions.onSaveToOrigin).takeIf { state.workspace?.project?.hasOrigin == true },
+                            MenuAction(stringResource(R.string.editor_menu_rename_project), onRenameProject),
+                            MenuAction(stringResource(R.string.editor_menu_share_project), actions.onShareProject),
+                            MenuAction(stringResource(R.string.editor_menu_change_language), actions.onPickRuntime),
+                            MenuAction(stringResource(R.string.editor_menu_reset), onConfirmReset),
+                        ),
+                        // Help
+                        listOf(
+                            MenuAction(stringResource(R.string.editor_menu_appearance), actions.onAppearance),
+                            MenuAction(stringResource(R.string.editor_shortcuts)) { showShortcuts = true },
+                        ),
                     ),
                 )
             },
