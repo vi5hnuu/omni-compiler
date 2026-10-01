@@ -107,7 +107,7 @@ fun EditorScreen(route: EditorRoute, navigator: Navigator) {
 
     EditorContent(
         state = state,
-        drawer = DrawerContent(drawerState, drawerProjects, drawerUsage),
+        drawer = DrawerContent(drawerState, drawerProjects, drawerUsage, viewModel.drawerDestinations),
         snackbar = snackbar,
         actions = EditorActions(
             onRetry = viewModel::retry,
@@ -163,7 +163,12 @@ fun EditorScreen(route: EditorRoute, navigator: Navigator) {
 }
 
 /** What the navigation drawer shows; kept apart from [EditorUiState] (see [EditorViewModel.drawerProjects]). */
-internal class DrawerContent(val state: DrawerState, val projects: List<ProjectSummary>, val usage: DrawerUsage?)
+internal class DrawerContent(
+    val state: DrawerState,
+    val projects: List<ProjectSummary>,
+    val usage: DrawerUsage?,
+    val destinations: List<DrawerDestination>,
+)
 
 /** Callbacks from the editor UI; grouped so the content composable stays previewable. */
 internal class EditorActions(
@@ -232,6 +237,7 @@ private fun EditorContent(state: EditorUiState, drawer: DrawerContent, snackbar:
                     user = state.user,
                     projects = drawer.projects,
                     usage = drawer.usage,
+                    destinations = drawer.destinations,
                     currentProjectId = workspace?.project?.id,
                     currentProjectName = workspace?.project?.name.orEmpty(),
                     files = workspace?.files.orEmpty(),

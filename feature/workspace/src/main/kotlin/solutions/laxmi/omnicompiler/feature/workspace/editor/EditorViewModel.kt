@@ -1,5 +1,6 @@
 package solutions.laxmi.omnicompiler.feature.workspace.editor
 
+import solutions.laxmi.omnicompiler.core.common.AppFeatures
 import solutions.laxmi.omnicompiler.core.data.project.SharedFile
 import solutions.laxmi.omnicompiler.core.data.project.ProjectExporter
 import androidx.lifecycle.ViewModel
@@ -78,6 +79,7 @@ class EditorViewModel @AssistedInject constructor(
     private val settingsRepository: SettingsRepository,
     private val account: AccountRepository,
     private val auth: AuthRepository,
+    features: AppFeatures,
 ) : ViewModel() {
 
     @AssistedFactory
@@ -139,13 +141,19 @@ class EditorViewModel @AssistedInject constructor(
     val drawerProjects: StateFlow<List<ProjectSummary>> = projects.observeSummaries("", ProjectFilter.ALL)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
+    /** Drawer destinations this build offers; Usage and API key are held back when account tools are off. */
+    val drawerDestinations: List<DrawerDestination> = DrawerDestination.entries.filter { destination ->
+        features.accountTools || (destination != DrawerDestination.Usage && destination != DrawerDestination.Developer)
+    }
+    private val showsUsage = features.accountTools
+
     private val usage = MutableStateFlow<DrawerUsage?>(null)
     val drawerUsage: StateFlow<DrawerUsage?> = usage
     private var usageRequest: Job? = null
 
     /** Refreshes the quota footer each time the drawer opens; a failure just keeps the last value. */
     fun onDrawerOpened() {
-        if (auth.session.value !is Session.Active || usageRequest?.isActive == true) return
+        if (!showsUsage || auth.session.value !is Session.Active || usageRequest?.isActive == true) return
         usageRequest = viewModelScope.launch {
             account.billing().onSuccess { billing ->
                 usage.value = DrawerUsage(billing.executionsUsed, billing.quotaLimit).takeIf { it.limit > 0 }

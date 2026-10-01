@@ -63,6 +63,7 @@ internal fun EditorDrawer(
     user: User?,
     projects: List<ProjectSummary>,
     usage: DrawerUsage?,
+    destinations: List<DrawerDestination>,
     currentProjectId: String?,
     currentProjectName: String,
     files: List<FileHeader>,
@@ -146,7 +147,7 @@ internal fun EditorDrawer(
                 }
             }
             item { Box(Modifier.height(8.dp)) }
-            items(DrawerDestination.entries) { destination ->
+            items(destinations) { destination ->
                 DrawerRow(selected = false, onClick = { onDestination(destination) }) {
                     Icon(destination.icon, null, tint = colors.textSecondary, modifier = Modifier.size(16.dp))
                     Text(stringResource(destination.labelRes), style = OmniTheme.typography.bodyStrong, color = colors.textPrimary, modifier = Modifier.weight(1f))
