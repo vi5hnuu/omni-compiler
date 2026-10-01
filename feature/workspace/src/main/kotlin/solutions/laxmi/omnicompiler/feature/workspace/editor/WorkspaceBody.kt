@@ -38,6 +38,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.pluralStringResource
@@ -289,6 +290,8 @@ internal fun ColumnScope.WorkspaceBody(
         BottomSheetScaffold(
             scaffoldState = scaffoldState,
             sheetPeekHeight = peekHeight,
+            // The console is part of the layout, not a floating card: full width on tablets and in landscape too.
+            sheetMaxWidth = Dp.Unspecified,
             sheetSwipeEnabled = !typing,
             sheetShape = RectangleShape,
             sheetContainerColor = colors.surface,
