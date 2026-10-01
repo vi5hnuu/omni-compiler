@@ -1,6 +1,7 @@
 package solutions.laxmi.omnicompiler.feature.auth
 
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.draw.drawBehind
@@ -66,10 +67,12 @@ internal fun AuthScaffold(
     Box(Modifier.fillMaxSize().background(OmniTheme.colors.background)) {
         Column(Modifier.fillMaxSize().navigationBarsPadding().imePadding()) {
             topBar()
-            BoxWithConstraints(Modifier.weight(1f)) {
+            BoxWithConstraints(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
                 // At least viewport-tall so the arrangement can use the whole screen; scrolls when taller.
+                // Capped and centred so landscape and tablets show a form, not edge-to-edge fields.
                 Column(
                     Modifier
+                        .widthIn(max = OmniDimens.formMaxWidth)
                         .verticalScroll(rememberScrollState())
                         .heightIn(min = maxHeight)
                         .padding(horizontal = OmniDimens.screenPadding),

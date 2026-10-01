@@ -78,8 +78,9 @@ fun WelcomeScreen(navigator: Navigator, appVersion: String) {
                 Text(stringResource(R.string.welcome_version, appVersion), style = OmniTheme.typography.monoSmall, color = colors.textTertiary)
             }
         },
-        // Hero at the top, sign-in choices just above the footer on tall screens (design A1).
-        contentArrangement = Arrangement.SpaceBetween,
+        // Hero and sign-in choices stay together as one block, centred between the top bar and the footer,
+        // so tall screens don't open a single empty gap between them (design A1).
+        contentArrangement = Arrangement.spacedBy(32.dp, Alignment.CenterVertically),
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
             if (viewModel.sessionExpired) InfoBanner(stringResource(R.string.welcome_session_expired), icon = OmniIcons.Info)
@@ -100,7 +101,7 @@ fun WelcomeScreen(navigator: Navigator, appVersion: String) {
                 color = colors.textSecondary,
             )
         }
-        Column(Modifier.padding(top = 24.dp, bottom = 16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Column(Modifier.padding(bottom = 16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             if (viewModel.googleAvailable) {
                 GoogleButton(stringResource(R.string.welcome_google), loading = busy == AuthAction.Google, enabled = busy == null) {
                     viewModel.signInWithGoogle(context.findActivityContext())
