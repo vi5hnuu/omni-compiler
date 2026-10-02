@@ -22,6 +22,7 @@ android {
 }
 
 dependencies {
+    implementation(libs.timber)
     api(projects.core.model)
     api(projects.core.common)
     implementation(projects.core.network)

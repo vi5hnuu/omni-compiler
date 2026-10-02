@@ -8,6 +8,7 @@ import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonPrimitive
 import retrofit2.HttpException
 import retrofit2.Response
+import timber.log.Timber
 import solutions.laxmi.omnicompiler.core.model.AppError
 import solutions.laxmi.omnicompiler.core.model.ErrorReason
 import solutions.laxmi.omnicompiler.core.model.Outcome
@@ -37,17 +38,20 @@ internal class ApiCallRunner @Inject constructor(private val json: Json) {
         } catch (e: CancellationException) {
             throw e
         } catch (e: HttpException) {
-            Outcome.Failure(mapHttp(e))
+            val error = mapHttp(e)
+            val request = e.response()?.raw()?.request
+            Timber.w("HTTP %d %s %s -> %s", e.code(), request?.method, request?.url, error)
+            Outcome.Failure(error)
         } catch (e: InterruptedIOException) {
-            Outcome.Failure(AppError.Timeout())
+            Outcome.Failure(AppError.Timeout()).also { Timber.w(e, "Request timed out") }
         } catch (e: UnknownHostException) {
-            Outcome.Failure(AppError.Offline())
+            Outcome.Failure(AppError.Offline()).also { Timber.w(e, "Host not resolved") }
         } catch (e: ConnectException) {
-            Outcome.Failure(AppError.Offline())
+            Outcome.Failure(AppError.Offline()).also { Timber.w(e, "Connection failed") }
         } catch (e: IOException) {
-            Outcome.Failure(AppError.Offline(reason = ErrorReason.NetworkError))
+            Outcome.Failure(AppError.Offline(reason = ErrorReason.NetworkError)).also { Timber.w(e, "Network I/O failed") }
         } catch (e: SerializationException) {
-            Outcome.Failure(AppError.Unknown(reason = ErrorReason.BadResponse))
+            Outcome.Failure(AppError.Unknown(reason = ErrorReason.BadResponse)).also { Timber.e(e, "Response didn't match the expected shape") }
         }
 
     private fun judgeError(e: HttpException): AppError {

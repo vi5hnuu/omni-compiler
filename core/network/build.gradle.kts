@@ -29,6 +29,7 @@ dependencies {
     implementation(projects.core.datastore)
     api(libs.okhttp)
     implementation(libs.okhttp.logging)
+    implementation(libs.timber)
     implementation(libs.retrofit)
     implementation(libs.retrofit.kotlinx.serialization)
     implementation(libs.kotlinx.serialization.json)

@@ -28,6 +28,7 @@ kotlinxSerialization = "1.11.0"
 kotlinxCoroutines = "1.11.0"
 retrofit = "3.0.0"
 okhttp = "5.5.0"
+timber = "5.0.1"
 tink = "1.23.0"
 soraEditor = "0.24.6"
 coil = "3.6.3"
@@ -113,6 +114,7 @@ retrofit-kotlinx-serialization = { group = "com.squareup.retrofit2", name = "con
 okhttp = { group = "com.squareup.okhttp3", name = "okhttp", version.ref = "okhttp" }
 okhttp-logging = { group = "com.squareup.okhttp3", name = "logging-interceptor", version.ref = "okhttp" }
 okhttp-mockwebserver = { group = "com.squareup.okhttp3", name = "mockwebserver3", version.ref = "okhttp" }
+timber = { group = "com.jakewharton.timber", name = "timber", version.ref = "timber" }
 
 # Editor + images
 sora-editor = { group = "io.github.rosemoe", name = "editor", version.ref = "soraEditor" }

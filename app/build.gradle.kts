@@ -90,6 +90,7 @@ dependencies {
 
     // Installs the bundled baseline profile so first launches run precompiled code paths.
     implementation(libs.androidx.profileinstaller)
+    implementation(libs.timber)
     baselineProfile(projects.baselineprofile)
 
     implementation(libs.androidx.core.ktx)

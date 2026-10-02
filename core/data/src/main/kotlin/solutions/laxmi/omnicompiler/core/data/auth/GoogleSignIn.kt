@@ -14,6 +14,7 @@ import solutions.laxmi.omnicompiler.core.data.BuildConfig
 import solutions.laxmi.omnicompiler.core.model.AppError
 import solutions.laxmi.omnicompiler.core.model.ErrorReason
 import solutions.laxmi.omnicompiler.core.model.Outcome
+import timber.log.Timber
 import javax.inject.Inject
 
 /** Result of the system Google account picker. */
@@ -50,12 +51,18 @@ internal class CredentialManagerGoogleIdTokenProvider @Inject constructor() : Go
                 GoogleIdTokenResult.Failed(AppError.Unknown(reason = ErrorReason.GoogleUnsupportedCredential))
             }
         } catch (e: GetCredentialCancellationException) {
+            // Also raised when Google rejects the app (e.g. no Android OAuth client for this package + signing key);
+            // Play services logs the real status under the "Auth.Api.Credentials" tag.
+            Timber.i(e, "Google sign-in cancelled")
             GoogleIdTokenResult.Cancelled
         } catch (e: NoCredentialException) {
+            Timber.w(e, "Google sign-in: no credential available")
             GoogleIdTokenResult.Failed(AppError.NotAvailable(reason = ErrorReason.GoogleNoAccount))
         } catch (e: GetCredentialException) {
+            Timber.w(e, "Google sign-in failed: %s", e.type)
             GoogleIdTokenResult.Failed(AppError.Unknown(reason = ErrorReason.GoogleFailed))
         } catch (e: GoogleIdTokenParsingException) {
+            Timber.w(e, "Google ID token could not be parsed")
             GoogleIdTokenResult.Failed(AppError.Unknown(reason = ErrorReason.GoogleInvalidToken))
         }
     }
