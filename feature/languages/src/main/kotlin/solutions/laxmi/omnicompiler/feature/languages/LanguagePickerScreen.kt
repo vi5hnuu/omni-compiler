@@ -26,7 +26,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.SnackbarHost
+import solutions.laxmi.omnicompiler.core.designsystem.component.OmniSnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -125,7 +125,7 @@ fun LanguagePickerScreen(route: LanguagePickerRoute, navigator: Navigator) {
                     items(state.languages, key = { it.base }) { LanguageRow(it, state.currentRuntimeId, viewModel::select) }
                 }
             }
-                SnackbarHost(snackbar, Modifier.align(Alignment.BottomCenter))
+                OmniSnackbarHost(snackbar, Modifier.align(Alignment.BottomCenter))
             }
             AdBanner()
         }

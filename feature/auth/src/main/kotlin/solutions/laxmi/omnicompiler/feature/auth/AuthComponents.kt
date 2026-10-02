@@ -25,7 +25,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.SnackbarHost
+import solutions.laxmi.omnicompiler.core.designsystem.component.OmniSnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -92,7 +92,7 @@ internal fun AuthScaffold(
                 ) { footer() }
             }
         }
-        SnackbarHost(snackbar, Modifier.align(Alignment.BottomCenter).navigationBarsPadding())
+        OmniSnackbarHost(snackbar, Modifier.align(Alignment.BottomCenter))
     }
 }
 

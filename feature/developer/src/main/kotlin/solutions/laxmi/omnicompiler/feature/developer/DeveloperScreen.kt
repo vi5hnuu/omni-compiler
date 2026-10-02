@@ -19,7 +19,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.SnackbarHost
+import solutions.laxmi.omnicompiler.core.designsystem.component.OmniSnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -158,7 +158,7 @@ fun DeveloperScreen(navigator: Navigator) {
                 }
             }
         }
-        SnackbarHost(snackbar, Modifier.align(Alignment.BottomCenter).navigationBarsPadding())
+        OmniSnackbarHost(snackbar, Modifier.align(Alignment.BottomCenter))
     }
     if (confirmRotate) {
         AlertDialog(

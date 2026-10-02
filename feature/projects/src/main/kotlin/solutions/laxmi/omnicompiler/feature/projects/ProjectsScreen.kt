@@ -30,7 +30,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.SnackbarHost
+import solutions.laxmi.omnicompiler.core.designsystem.component.OmniSnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -157,7 +157,7 @@ fun ProjectsScreen(navigator: Navigator) {
                 }
                 }
             }
-                SnackbarHost(snackbar, Modifier.align(Alignment.BottomCenter))
+                OmniSnackbarHost(snackbar, Modifier.align(Alignment.BottomCenter))
             }
             OmniButton(stringResource(R.string.projects_new), { creating = true }, Modifier.padding(16.dp), leadingIcon = OmniIcons.Plus, trailingIcon = null)
             AdBanner()

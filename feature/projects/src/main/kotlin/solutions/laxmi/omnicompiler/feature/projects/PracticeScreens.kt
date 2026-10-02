@@ -22,7 +22,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.material3.SnackbarHost
+import solutions.laxmi.omnicompiler.core.designsystem.component.OmniSnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -95,7 +95,7 @@ fun ExamplesScreen(navigator: Navigator) {
                     }
                 }
             }
-                SnackbarHost(snackbar, Modifier.align(Alignment.BottomCenter))
+                OmniSnackbarHost(snackbar, Modifier.align(Alignment.BottomCenter))
             }
             AdBanner()
         }
@@ -182,7 +182,7 @@ fun ProblemScreen(route: ProblemRoute, navigator: Navigator) {
                 OmniButton(picked?.let { stringResource(R.string.practice_solve_in, it.info.name) } ?: stringResource(R.string.practice_solve), { viewModel.solve(picked) }, Modifier.weight(1f), trailingIcon = OmniIcons.ArrowRight)
             }
         }
-        SnackbarHost(snackbar, Modifier.align(Alignment.BottomCenter).navigationBarsPadding())
+        OmniSnackbarHost(snackbar, Modifier.align(Alignment.BottomCenter))
     }
     if (confirmReplace) {
         ConfirmPrompt(
