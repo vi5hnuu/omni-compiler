@@ -239,6 +239,11 @@ internal fun ColumnScope.WorkspaceBody(
         flushEditors()
         console.runTests()
     }
+    // Run, Ctrl+Enter and the line hint run the tests, or the code once with the Input tab when there are none.
+    val runPrimary: () -> Unit = {
+        flushEditors()
+        console.runPrimary()
+    }
     // A page tab's primary action is its preview; Run would send the project's entry file to the judge instead.
     val previewsPage = isPage(activeFile)
     val runButton = when {
@@ -247,7 +252,7 @@ internal fun ColumnScope.WorkspaceBody(
         else -> RunButtonState.Detach
     }
     val stopOrRun: () -> Unit = when (runButton) {
-        RunButtonState.Run -> runTests
+        RunButtonState.Run -> runPrimary
         RunButtonState.Preview -> ({ actions.onPreview(activeFile.id) })
         RunButtonState.Stop, RunButtonState.Detach -> console::stop
     }
@@ -451,9 +456,9 @@ internal fun ColumnScope.WorkspaceBody(
                         settings = state.settings,
                         onTextChange = actions.onContentChanged,
                         diagnostics = remember(problems) { problems.map { EditorDiagnostic(it.line!!, it.column, it.message, it.isError) } },
-                        onRunShortcut = if (consoleState.runSettings.runOnCtrlEnter) runTests else null,
+                        onRunShortcut = if (consoleState.runSettings.runOnCtrlEnter) runPrimary else null,
                         lineHint = runHint(activeFile, currentText(editorState, activeFile.id, activeText), state.runtime?.language, consoleState.tests.size, latest, running),
-                        onLineHintClick = runTests,
+                        onLineHintClick = runPrimary,
                         modifier = paneModifier,
                     )
                 }

@@ -154,6 +154,9 @@ class ConsoleViewModel @AssistedInject constructor(
 
     fun runTests(testIds: Set<String>? = null) = run(RunOptions(RunMode.TESTS, testIds = testIds))
 
+    /** The Run button: the project's test cases, or one run with the Input tab's stdin when it has none. */
+    fun runPrimary() = if (uiState.value.tests.isEmpty()) runWithInput() else runTests()
+
     fun runWithInput() = run(RunOptions(RunMode.STDIN_ONLY, stdin = stdin.value))
 
     fun stop() {
