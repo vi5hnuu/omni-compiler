@@ -81,6 +81,9 @@ class CodeEditorState internal constructor(private val scope: CoroutineScope) {
     /** `id@revision` of the shown document; observable so per-document decorations apply once it is shown. */
     internal var boundKey by mutableStateOf<String?>(null)
 
+    /** Id of the document the view currently shows; set once its text is bound, so callers can act on it. */
+    var shownDocumentId by mutableStateOf<String?>(null); internal set
+
     /** Documents of recently shown files (text, undo, caret, scroll), reused when their tab is shown again. */
     internal val documents = DocumentCache()
 
@@ -266,6 +269,7 @@ class CodeEditorState internal constructor(private val scope: CoroutineScope) {
         editor = null
         documents.clear()
         boundDocumentId = null
+        shownDocumentId = null
         boundKey = null
         languageGrammar = null
         hasLanguage = false

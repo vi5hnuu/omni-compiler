@@ -44,22 +44,26 @@ import solutions.laxmi.omnicompiler.core.editor.CodeEditorState
 import solutions.laxmi.omnicompiler.core.editor.SearchOptions
 import solutions.laxmi.omnicompiler.feature.workspace.R
 
+/** Query and options to open the find bar with. */
+internal data class FindSeed(val query: String, val options: SearchOptions)
+
 /**
  * Find (and optionally replace) in the open file, replacing the breadcrumb. Matching and replacing are Sora's
  * `EditorSearcher`; this only holds the query, the options and the replacement text.
  */
 @Composable
-internal fun FindReplaceBar(state: CodeEditorState, startWithReplace: Boolean, onClose: () -> Unit) {
+internal fun FindReplaceBar(state: CodeEditorState, startWithReplace: Boolean, onClose: () -> Unit, seed: FindSeed? = null) {
     val colors = OmniTheme.colors
-    var query by rememberSaveable { mutableStateOf("") }
+    // A seed (from project search) pre-fills the bar so the opened file's matches are highlighted straight away.
+    var query by rememberSaveable(seed) { mutableStateOf(seed?.query.orEmpty()) }
     var replacement by rememberSaveable { mutableStateOf("") }
     var expanded by rememberSaveable(startWithReplace) { mutableStateOf(startWithReplace) }
-    var caseSensitive by rememberSaveable { mutableStateOf(false) }
-    var wholeWord by rememberSaveable { mutableStateOf(false) }
-    var regex by rememberSaveable { mutableStateOf(false) }
+    var caseSensitive by rememberSaveable(seed) { mutableStateOf(seed?.options?.caseSensitive ?: false) }
+    var wholeWord by rememberSaveable(seed) { mutableStateOf(seed?.options?.wholeWord ?: false) }
+    var regex by rememberSaveable(seed) { mutableStateOf(seed?.options?.regex ?: false) }
     val focus = remember { FocusRequester() }
     val options = SearchOptions(caseSensitive, wholeWord, regex)
-    LaunchedEffect(Unit) { focus.requestFocus() }
+    LaunchedEffect(Unit) { if (seed == null) focus.requestFocus() }
     // Re-run whenever the pattern or an option changes, so the count and highlights always match what's typed.
     LaunchedEffect(query, options) { state.search(query, options) }
 

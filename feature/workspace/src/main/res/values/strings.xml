@@ -331,4 +331,25 @@
     <string name="editor_menu_split">Split view</string>
     <string name="editor_menu_unsplit">Close split view</string>
     <string name="editor_menu_source_control">Source control</string>
+    <string name="project_search_title">Search in project</string>
+    <string name="project_search_placeholder">Search all files</string>
+    <string name="project_search_match_case">Match case</string>
+    <string name="project_search_whole_word">Whole word</string>
+    <string name="project_search_regex">Regex</string>
+    <string name="project_search_invalid_regex">Not a valid regular expression.</string>
+    <string name="project_search_none">No matches</string>
+    <!-- %1$d is the cap on listed matches (e.g. 500). -->
+    <string name="project_search_truncated">Showing the first %1$d matches</string>
+    <plurals name="project_search_match_count">
+        <item quantity="one">%1$d match</item>
+        <item quantity="other">%1$d matches</item>
+    </plurals>
+    <plurals name="project_search_file_count">
+        <item quantity="one">%1$d file</item>
+        <item quantity="other">%1$d files</item>
+    </plurals>
+    <!-- e.g. "12 matches in 3 files" -->
+    <string name="project_search_summary">%1$s in %2$s</string>
+    <!-- File header in results: file name and its match count. -->
+    <string name="project_search_file">%1$s · %2$d</string>
 </resources>

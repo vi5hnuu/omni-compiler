@@ -340,6 +340,7 @@ internal suspend fun CodeEditorState.show(document: EditorDocument, grammar: Gra
     documents.put(document.id, shown)
     boundDocumentId = document.id
     boundKey = document.key
+    shownDocumentId = document.id
     commentStyle = CommentStyle(document.lineComment, document.blockComment)
     isDirty = false
     lineCount = view.text.lineCount

@@ -1,5 +1,7 @@
 package solutions.laxmi.omnicompiler.feature.workspace.editor
 
+import solutions.laxmi.omnicompiler.feature.workspace.search.ProjectSearchSheet
+import solutions.laxmi.omnicompiler.feature.workspace.search.ProjectSearchHit
 import android.content.res.Configuration
 import solutions.laxmi.omnicompiler.core.model.OpenFile
 import kotlinx.coroutines.flow.flowOf
@@ -127,6 +129,10 @@ internal fun ColumnScope.WorkspaceBody(
     var findWithReplace by rememberSaveable { mutableStateOf(false) }
     var goingToLine by rememberSaveable { mutableStateOf(false) }
     var showShortcuts by rememberSaveable { mutableStateOf(false) }
+    var projectSearch by rememberSaveable { mutableStateOf(false) }
+    // A project-search result waits here until its file is the one the editor shows, then the caret moves to it.
+    var pendingHit by remember { mutableStateOf<ProjectSearchHit?>(null) }
+    var findSeed by remember { mutableStateOf<FindSeed?>(null) }
     // Split view: the second pane's file (never the primary's, so two panes never save over each other).
     var splitFileId by rememberSaveable { mutableStateOf<String?>(null) }
     var splitFraction by rememberSaveable { mutableStateOf(0.5f) }
@@ -147,6 +153,14 @@ internal fun ColumnScope.WorkspaceBody(
     val selectFile: (String) -> Unit = { id ->
         if (id == splitFileId) splitFileId = activeFile.id
         actions.onSelectFile(id)
+    }
+
+    LaunchedEffect(pendingHit, editorState.shownDocumentId) {
+        val hit = pendingHit ?: return@LaunchedEffect
+        if (editorState.shownDocumentId != hit.fileId) return@LaunchedEffect
+        pendingHit = null
+        onSearchChange(true)
+        editorState.goTo(hit.line, hit.column)
     }
 
     // Hardware-keyboard shortcuts raise these from inside the code view.
@@ -241,7 +255,11 @@ internal fun ColumnScope.WorkspaceBody(
             runEnabled = true,
             onMenu = onOpenDrawer,
             onRuntimeClick = actions.onPickRuntime,
-            onSearch = { onSearchChange(true) },
+            onSearch = {
+                // Search reads saved files, so pending edits are written first.
+                flushEditors()
+                projectSearch = true
+            },
             onToggleMinimap = actions.onToggleMinimap,
             onRun = stopOrRun,
             runButton = runButton,
@@ -313,7 +331,19 @@ internal fun ColumnScope.WorkspaceBody(
             onAdd = onShowNewFile,
         )
     }
-    if (searching) FindReplaceBar(editorState, startWithReplace = findWithReplace, onClose = { onSearchChange(false) }) else if (!typing) Breadcrumb(activeFile.name)
+    if (searching) {
+        FindReplaceBar(
+            editorState,
+            startWithReplace = findWithReplace,
+            onClose = {
+                findSeed = null
+                onSearchChange(false)
+            },
+            seed = findSeed,
+        )
+    } else if (!typing) {
+        Breadcrumb(activeFile.name)
+    }
 
     val problems = consoleState.problemsFor(activeFile.name, activeFile.isEntry)
     val sameLanguage = activeFile.isEntry || activeFile.name.substringAfterLast('.', "") == state.workspace?.entry?.name?.substringAfterLast('.', "")
@@ -470,6 +500,19 @@ internal fun ColumnScope.WorkspaceBody(
         }
     }
     if (showShortcuts) ShortcutsSheet(onDismiss = { showShortcuts = false })
+    val projectId = state.workspace?.project?.id
+    if (projectSearch && projectId != null) {
+        ProjectSearchSheet(
+            projectId = projectId,
+            onOpen = { hit, query, options ->
+                projectSearch = false
+                findSeed = FindSeed(query, options)
+                pendingHit = hit
+                if (hit.fileId != activeFile.id) selectFile(hit.fileId)
+            },
+            onDismiss = { projectSearch = false },
+        )
+    }
 
     if (creatingTest || editingTest != null) {
         TestEditorSheet(
