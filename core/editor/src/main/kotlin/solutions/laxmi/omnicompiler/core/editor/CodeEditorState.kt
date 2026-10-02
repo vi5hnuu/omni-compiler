@@ -107,6 +107,11 @@ class CodeEditorState internal constructor(private val scope: CoroutineScope) {
         editor?.undo()
     }
 
+    /** Closes the on-screen keyboard the code view opened (e.g. when the drawer covers the editor). */
+    fun hideKeyboard() {
+        editor?.hideSoftInput()
+    }
+
     fun redo() {
         editor?.redo()
     }

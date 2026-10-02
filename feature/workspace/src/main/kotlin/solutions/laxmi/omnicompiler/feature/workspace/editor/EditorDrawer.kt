@@ -1,5 +1,7 @@
 package solutions.laxmi.omnicompiler.feature.workspace.editor
 
+import solutions.laxmi.omnicompiler.core.ui.shownInitials
+import solutions.laxmi.omnicompiler.core.ui.shownName
 import androidx.annotation.StringRes
 import solutions.laxmi.omnicompiler.feature.workspace.R
 import androidx.compose.ui.res.stringResource
@@ -194,11 +196,11 @@ private fun AccountHeader(user: User?, onClick: () -> Unit) {
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Avatar(imageUrl = user?.profileUrl, initials = user?.initials ?: "?", size = 36.dp)
+        Avatar(imageUrl = user?.profileUrl, initials = user?.shownInitials() ?: "?", size = 36.dp)
         Column(Modifier.weight(1f)) {
-            Text(user?.displayName ?: stringResource(R.string.drawer_not_signed_in), style = OmniTheme.typography.titleSmall, color = colors.textPrimary, maxLines = 1)
+            Text(user?.shownName() ?: stringResource(R.string.drawer_not_signed_in), style = OmniTheme.typography.titleSmall, color = colors.textPrimary, maxLines = 1)
             Text(
-                user?.email ?: stringResource(if (user?.isGuest == true) R.string.drawer_guest_subtitle else R.string.drawer_signed_out_subtitle),
+                user?.email?.takeUnless { user.isGuest } ?: stringResource(if (user?.isGuest == true) R.string.drawer_guest_subtitle else R.string.drawer_signed_out_subtitle),
                 style = OmniTheme.typography.bodySmall,
                 color = colors.textTertiary,
                 maxLines = 1,

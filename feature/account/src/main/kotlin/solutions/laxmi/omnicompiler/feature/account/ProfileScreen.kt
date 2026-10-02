@@ -1,5 +1,7 @@
 package solutions.laxmi.omnicompiler.feature.account
 
+import solutions.laxmi.omnicompiler.core.ui.shownInitials
+import solutions.laxmi.omnicompiler.core.ui.shownName
 import solutions.laxmi.omnicompiler.core.ui.asString
 import androidx.compose.ui.platform.LocalResources
 import solutions.laxmi.omnicompiler.core.ui.R as CommonR
@@ -135,10 +137,15 @@ fun ProfileScreen(navigator: Navigator) {
 private fun Header(user: User) {
     val colors = OmniTheme.colors
     Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-        Avatar(user.profileUrl, user.initials, size = 56.dp)
+        Avatar(user.profileUrl, user.shownInitials(), size = 56.dp)
         Column(Modifier.weight(1f)) {
-            Text(user.displayName, style = OmniTheme.typography.title, color = colors.textPrimary)
-            Text(user.email ?: user.username.orEmpty(), style = OmniTheme.typography.bodySmall, color = colors.textTertiary)
+            Text(user.shownName(), style = OmniTheme.typography.title, color = colors.textPrimary)
+            // Guests have no e-mail and only a generated username, so the line explains where their data lives.
+            Text(
+                if (user.isGuest) stringResource(R.string.profile_guest_subtitle) else user.email ?: user.username.orEmpty(),
+                style = OmniTheme.typography.bodySmall,
+                color = colors.textTertiary,
+            )
         }
         OmniBadge(
             stringResource(

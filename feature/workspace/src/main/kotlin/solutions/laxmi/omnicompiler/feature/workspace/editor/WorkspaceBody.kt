@@ -155,6 +155,14 @@ internal fun ColumnScope.WorkspaceBody(
         actions.onSelectFile(id)
     }
 
+    // The drawer slides over the editor; a keyboard left open would cover its lower half.
+    LaunchedEffect(drawerOpen) {
+        if (drawerOpen) {
+            editorState.hideKeyboard()
+            splitState.hideKeyboard()
+        }
+    }
+
     LaunchedEffect(pendingHit, editorState.shownDocumentId) {
         val hit = pendingHit ?: return@LaunchedEffect
         if (editorState.shownDocumentId != hit.fileId) return@LaunchedEffect

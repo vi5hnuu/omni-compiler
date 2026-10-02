@@ -68,6 +68,7 @@
     <string name="profile_delete_explainer">Deleting your account erases your run history, API key and webhooks on the judge, then your sign-in. Projects on this device are removed too.</string>
     <string name="profile_delete_account">Delete account</string>
     <string name="profile_badge_guest">GUEST</string>
+    <string name="profile_guest_subtitle">Runs stay on this device</string>
     <!-- How this account signs in, shown as a badge beside the name. -->
     <string name="profile_badge_email">E-MAIL</string>
     <string name="profile_badge_google">GOOGLE</string>

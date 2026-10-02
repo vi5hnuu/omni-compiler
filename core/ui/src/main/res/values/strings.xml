@@ -135,4 +135,6 @@
     <string name="new_project_name">Name</string>
     <string name="new_project_search_languages">Search languages</string>
     <string name="new_project_create">Create project</string>
+    <!-- Name shown for guest accounts, which only have a generated username. -->
+    <string name="common_guest">Guest</string>
 </resources>
