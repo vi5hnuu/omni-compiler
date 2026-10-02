@@ -200,9 +200,11 @@ private fun createEditor(context: Context, state: CodeEditorState, onRunShortcut
         subscribeEvent(SelectionChangeEvent::class.java) { event, _ ->
             state.cursor = CursorPosition(event.left.line + 1, event.left.column + 1)
         }
+        // stopSearch() publishes this too, after clearing the pattern; Sora's counters throw without a query.
         subscribeEvent(PublishSearchResultEvent::class.java) { _, _ ->
-            state.searchMatches = searcher.matchedPositionCount
-            state.searchIndex = searcher.currentMatchedPositionIndex
+            val active = searcher.hasQuery()
+            state.searchMatches = if (active) searcher.matchedPositionCount else 0
+            state.searchIndex = if (active) searcher.currentMatchedPositionIndex else -1
         }
         subscribeEvent(EditorKeyEvent::class.java) { event, _ ->
             if (event.eventType != EditorKeyEvent.Type.DOWN) return@subscribeEvent
