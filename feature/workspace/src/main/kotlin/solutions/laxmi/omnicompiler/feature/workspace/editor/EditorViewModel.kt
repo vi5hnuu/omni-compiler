@@ -57,6 +57,8 @@ data class EditorUiState(
     val activeFileId: String? = null,
     val settings: EditorSettings = EditorSettings(),
     val user: User? = null,
+    /** Benchmark and run-limit actions are offered (debug builds; see AppFeatures.runTools). */
+    val runTools: Boolean = false,
 ) {
     val activeFile: FileHeader? get() = workspace?.files?.firstOrNull { it.id == activeFileId } ?: workspace?.entry
 }
@@ -79,7 +81,7 @@ class EditorViewModel @AssistedInject constructor(
     private val settingsRepository: SettingsRepository,
     private val account: AccountRepository,
     private val auth: AuthRepository,
-    features: AppFeatures,
+    private val features: AppFeatures,
 ) : ViewModel() {
 
     @AssistedFactory
@@ -131,6 +133,7 @@ class EditorViewModel @AssistedInject constructor(
             activeFileId = activeId?.takeIf { id -> ws?.files?.any { it.id == id } == true } ?: ws?.entry?.id,
             settings = settings,
             user = (session as? Session.Active)?.user,
+            runTools = features.runTools,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), EditorUiState())
 

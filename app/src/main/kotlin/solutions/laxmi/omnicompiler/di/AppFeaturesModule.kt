@@ -12,5 +12,5 @@ import solutions.laxmi.omnicompiler.core.common.AppFeatures
 object AppFeaturesModule {
     /** Debug builds keep every feature for development; release-type builds (Play, benchmarks) hide unfinished ones. */
     @Provides
-    fun providesAppFeatures(): AppFeatures = AppFeatures(accountTools = BuildConfig.DEBUG)
+    fun providesAppFeatures(): AppFeatures = AppFeatures(accountTools = BuildConfig.DEBUG, runTools = BuildConfig.DEBUG)
 }

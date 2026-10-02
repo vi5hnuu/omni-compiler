@@ -37,7 +37,8 @@
     <string name="editor_menu_change_language">Change language</string>
     <string name="editor_menu_wrap_on">Turn on word wrap</string>
     <string name="editor_menu_wrap_off">Turn off word wrap</string>
-    <string name="editor_menu_reset">Reset to starter code</string>
+    <!-- Replaces the entry file (named here) and the test cases with the language's sample; other files stay. -->
+    <string name="editor_menu_reset">Reset %1$s to sample</string>
     <string name="editor_menu_appearance">Editor appearance</string>
 
     <!-- Dialogs -->
@@ -302,7 +303,7 @@
     <string name="editor_go_to_line_hint">1–%1$d</string>
     <string name="editor_go">Go</string>
     <string name="editor_shortcuts">Keyboard shortcuts</string>
-    <string name="editor_menu_find_replace">Find and replace</string>
+    <string name="editor_menu_find_replace">Find and replace in file</string>
     <string name="shortcut_run">Run tests</string>
     <string name="shortcut_save">Save now</string>
     <string name="shortcut_find">Find</string>

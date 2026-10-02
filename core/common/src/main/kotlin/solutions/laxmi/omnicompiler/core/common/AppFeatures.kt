@@ -7,4 +7,6 @@ package solutions.laxmi.omnicompiler.core.common
 data class AppFeatures(
     /** Usage & plan and API key & webhooks screens; held back from Play releases until they are ready. */
     val accountTools: Boolean,
+    /** Benchmark and per-run limit controls in the editor menu; held back from Play releases. */
+    val runTools: Boolean,
 )

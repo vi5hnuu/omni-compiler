@@ -1,5 +1,6 @@
 package solutions.laxmi.omnicompiler.feature.workspace.editor
 
+import android.content.res.Configuration
 import solutions.laxmi.omnicompiler.core.model.OpenFile
 import kotlinx.coroutines.flow.flowOf
 import androidx.compose.ui.platform.LocalConfiguration
@@ -208,6 +209,7 @@ internal fun ColumnScope.WorkspaceBody(
     BackHandler(enabled = !drawerOpen && consoleExpanded) { collapseConsole() }
     BackHandler(enabled = !drawerOpen && !consoleExpanded && searching) { onSearchChange(false) }
 
+    val hardwareKeyboard = LocalConfiguration.current.keyboard != Configuration.KEYBOARD_NOKEYS
     val latest = consoleState.latest
     val running = consoleState.isRunning
     // Edits are debounced; persist them before the judge reads the project.
@@ -252,8 +254,8 @@ internal fun ColumnScope.WorkspaceBody(
                                 // Pages preview from the app-bar button; browser JavaScript runs in a page with a console.
                                 MenuAction(stringResource(R.string.editor_menu_run_in_browser), OmniIcons.ExternalLink) { actions.onPreview(activeFile.id) }.takeIf { isBrowserScript(activeFile) },
                                 MenuAction(stringResource(R.string.editor_menu_run_with_input), OmniIcons.Terminal) { openConsole(ConsoleTab.Input) },
-                                MenuAction(stringResource(R.string.editor_menu_benchmark), OmniIcons.Chart) { showBenchmark = true },
-                                MenuAction(stringResource(R.string.editor_menu_limits), OmniIcons.Timer) { showLimits = true },
+                                MenuAction(stringResource(R.string.editor_menu_benchmark), OmniIcons.Chart) { showBenchmark = true }.takeIf { state.runTools },
+                                MenuAction(stringResource(R.string.editor_menu_limits), OmniIcons.Timer) { showLimits = true }.takeIf { state.runTools },
                             ),
                         ),
                         MenuGroup(
@@ -280,14 +282,18 @@ internal fun ColumnScope.WorkspaceBody(
                                 MenuAction(stringResource(R.string.editor_menu_rename_project), OmniIcons.Edit, onRenameProject),
                                 MenuAction(stringResource(R.string.editor_menu_share_project), OmniIcons.Share, actions.onShareProject),
                                 MenuAction(stringResource(R.string.editor_menu_change_language), OmniIcons.Braces, actions.onPickRuntime),
-                                MenuAction(stringResource(R.string.editor_menu_reset), OmniIcons.Refresh, onConfirmReset),
+                                state.workspace?.entry?.let { entry ->
+                                    MenuAction(stringResource(R.string.editor_menu_reset, entry.name), OmniIcons.Refresh, onConfirmReset)
+                                },
                             ),
                         ),
                         MenuGroup(
                             stringResource(R.string.editor_menu_group_help),
-                            listOf(
+                            listOfNotNull(
                                 MenuAction(stringResource(R.string.editor_menu_appearance), OmniIcons.Settings, actions.onAppearance),
-                                MenuAction(stringResource(R.string.editor_shortcuts), OmniIcons.Keyboard) { showShortcuts = true },
+                                // The shortcuts need a hardware keyboard, so the list is offered only while one is attached.
+                                MenuAction(stringResource(R.string.editor_shortcuts), OmniIcons.Keyboard) { showShortcuts = true }
+                                    .takeIf { hardwareKeyboard },
                             ),
                         ),
                     ),
