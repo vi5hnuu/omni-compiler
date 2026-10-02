@@ -26,10 +26,6 @@ import java.util.regex.PatternSyntaxException
 @Immutable
 data class CursorPosition(val line: Int, val column: Int)
 
-/** One minimap row: leading indent and trimmed length, in characters. */
-@Immutable
-data class MinimapLine(val indent: Int, val length: Int)
-
 /** How find matches text (maps to Sora's search types). */
 @Immutable
 data class SearchOptions(val caseSensitive: Boolean = false, val wholeWord: Boolean = false, val regex: Boolean = false)
@@ -47,10 +43,6 @@ data class CommentStyle(val line: String?, val block: Pair<String, String>?)
 @Immutable
 data class SavedText(val documentId: String, val text: String)
 
-/** Visible window of the document as fractions of its total height (0..1). */
-@Immutable
-data class EditorViewport(val top: Float, val height: Float)
-
 /**
  * UI-facing handle to the native editor. Exposes observable editor facts (cursor, undo state,
  * minimap data) and imperative commands, so screens never touch the Sora view directly.
@@ -62,8 +54,6 @@ class CodeEditorState internal constructor(private val scope: CoroutineScope) {
     var canUndo by mutableStateOf(false); internal set
     var canRedo by mutableStateOf(false); internal set
     var lineCount by mutableStateOf(1); internal set
-    var minimap by mutableStateOf<List<MinimapLine>>(emptyList()); internal set
-    var viewport by mutableStateOf(EditorViewport(0f, 1f)); internal set
     var isDirty by mutableStateOf(false); internal set
 
     /** The text last saved from the view, with its file id: what the app sees once autosave settles. */
@@ -81,9 +71,6 @@ class CodeEditorState internal constructor(private val scope: CoroutineScope) {
     val commands: SharedFlow<EditorCommand> = commandChannel
 
     internal var commentStyle: CommentStyle = CommentStyle(null, null)
-
-    /** Top/height of the cursor row in view pixels, for the design's red active-line bar. */
-    var activeRow by mutableStateOf<Pair<Float, Float>?>(null); internal set
 
     internal var editor: CodeEditor? = null
     internal var onTextChanged: ((documentId: String, text: String) -> Unit)? = null
@@ -274,17 +261,6 @@ class CodeEditorState internal constructor(private val scope: CoroutineScope) {
 
     fun stopSearch() = search("")
 
-    /** Scrolls so the viewport starts at [fraction] of the document (minimap drag). */
-    fun scrollToFraction(fraction: Float) {
-        val editor = editor ?: return
-        val maxY = editor.scrollMaxY
-        val targetY = (fraction.coerceIn(0f, 1f) * (maxY + editor.height)).toInt().coerceIn(0, maxY)
-        editor.scroller.forceFinished(true)
-        editor.scroller.startScroll(editor.offsetX, editor.offsetY, 0, targetY - editor.offsetY, 0)
-        editor.scroller.computeScrollOffset()
-        editor.invalidate()
-    }
-
     /** The view is gone: drop its documents and language so a new view starts clean. */
     internal fun release() {
         editor = null
@@ -313,26 +289,11 @@ class CodeEditorState internal constructor(private val scope: CoroutineScope) {
         pendingSave = scope.launch {
             delay(SAVE_DEBOUNCE_MS)
             flush()
-            refreshMinimap()
-        }
-    }
-
-    internal fun refreshMinimap() {
-        val editor = editor ?: return
-        val snapshot = editor.text.toString()
-        scope.launch {
-            minimap = withContext(Dispatchers.Default) {
-                snapshot.lineSequence().take(MAX_MINIMAP_LINES).map { line ->
-                    val indent = line.indexOfFirst { !it.isWhitespace() }.let { if (it < 0) 0 else it }
-                    MinimapLine(indent, line.trim().length)
-                }.toList()
-            }
         }
     }
 
     private companion object {
         const val SAVE_DEBOUNCE_MS = 300L
-        const val MAX_MINIMAP_LINES = 4_000
     }
 }
 

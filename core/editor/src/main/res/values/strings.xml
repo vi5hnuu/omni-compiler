@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="editor_minimap">Minimap</string>
     <string name="editor_key_tab">Tab</string>
     <string name="editor_key_left">Move left</string>
     <string name="editor_key_right">Move right</string>

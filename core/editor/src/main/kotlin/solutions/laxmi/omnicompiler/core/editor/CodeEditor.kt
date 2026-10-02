@@ -7,10 +7,7 @@ import android.graphics.Typeface
 import android.view.KeyEvent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -20,9 +17,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.graphics.toArgb
@@ -38,7 +32,6 @@ import io.github.rosemoe.sora.lang.styling.inlayHint.InlayHintsContainer
 import io.github.rosemoe.sora.lang.styling.inlayHint.TextInlayHint
 import io.github.rosemoe.sora.event.EditorKeyEvent
 import io.github.rosemoe.sora.event.PublishSearchResultEvent
-import io.github.rosemoe.sora.event.ScrollEvent
 import io.github.rosemoe.sora.event.SelectionChangeEvent
 import io.github.rosemoe.sora.lang.EmptyLanguage
 import io.github.rosemoe.sora.lang.diagnostic.DiagnosticDetail
@@ -128,33 +121,27 @@ fun CodeEditor(
     }
     SideEffect { state.onTextChanged = { id, text -> currentOnTextChange(id, text) } }
 
-    Row(modifier.background(palette.background)) {
-        Box(Modifier.weight(1f).fillMaxHeight()) {
-            if (themesReady) AndroidView(
-                modifier = Modifier.fillMaxSize(),
-                factory = { ctx ->
-                    createEditor(ctx, state, onRunShortcut = { currentRunShortcut?.invoke() }, onLineHintClick = { currentLineHintClick() })
-                },
-                update = { editor ->
-                    editor.applySettings(context, state, effective, palette)
-                    editor.isEditable = !readOnly
-                    // Decorations belong to a document: apply them only once it is the one shown.
-                    if (document != null && state.boundKey == document.key) {
-                        editor.setDiagnostics(diagnostics)
-                        editor.setLineHint(lineHint)
-                    }
-                },
-                onRelease = { editor ->
-                    state.flush()
-                    state.release()
-                    editor.release()
-                },
-            )
-            ActiveLineBar(state, palette)
-        }
-        if (effective.minimap) {
-            Minimap(state, palette, errorLines = remember(diagnostics) { diagnostics.filter { it.isError }.map { it.line }.toSet() })
-        }
+    Box(modifier.background(palette.background)) {
+        if (themesReady) AndroidView(
+            modifier = Modifier.fillMaxSize(),
+            factory = { ctx ->
+                createEditor(ctx, state, onRunShortcut = { currentRunShortcut?.invoke() }, onLineHintClick = { currentLineHintClick() })
+            },
+            update = { editor ->
+                editor.applySettings(context, state, effective, palette)
+                editor.isEditable = !readOnly
+                // Decorations belong to a document: apply them only once it is the one shown.
+                if (document != null && state.boundKey == document.key) {
+                    editor.setDiagnostics(diagnostics)
+                    editor.setLineHint(lineHint)
+                }
+            },
+            onRelease = { editor ->
+                state.flush()
+                state.release()
+                editor.release()
+            },
+        )
     }
 
     // Show the document; restarting on a new key cancels a document still being prepared.
@@ -176,17 +163,6 @@ fun CodeEditor(
     }
 }
 
-/** Reads the row at draw time: it moves on every scroll frame and must not recompose the editor. */
-@Composable
-private fun ActiveLineBar(state: CodeEditorState, palette: EditorPalette) {
-    Spacer(
-        Modifier.fillMaxSize().drawBehind {
-            val (top, height) = state.activeRow ?: return@drawBehind
-            drawRect(palette.cursor, topLeft = Offset(0f, top), size = Size(2.dp.toPx(), height))
-        },
-    )
-}
-
 private fun createEditor(context: Context, state: CodeEditorState, onRunShortcut: () -> Unit, onLineHintClick: () -> Unit): CodeEditor =
     CodeEditor(context).apply {
         state.editor = this
@@ -201,7 +177,6 @@ private fun createEditor(context: Context, state: CodeEditorState, onRunShortcut
         setBlockLineWidth(1f)
         setCursorWidth(2 * dpUnit)
         setScrollBarEnabled(false)
-        setInterceptParentHorizontalScrollIfNeeded(true)
         setScalable(false)
         props.symbolPairAutoCompletion = true
         props.autoIndent = true
@@ -224,11 +199,6 @@ private fun createEditor(context: Context, state: CodeEditorState, onRunShortcut
         }
         subscribeEvent(SelectionChangeEvent::class.java) { event, _ ->
             state.cursor = CursorPosition(event.left.line + 1, event.left.column + 1)
-            updateActiveRow(state)
-        }
-        subscribeEvent(ScrollEvent::class.java) { _, _ ->
-            updateViewport(state)
-            updateActiveRow(state)
         }
         subscribeEvent(PublishSearchResultEvent::class.java) { _, _ ->
             state.searchMatches = searcher.matchedPositionCount
@@ -256,29 +226,7 @@ private fun createEditor(context: Context, state: CodeEditorState, onRunShortcut
             event.intercept()
         }
         setOnFocusChangeListener { _, focused -> state.hasFocus = focused }
-        addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ ->
-            updateViewport(state)
-            updateActiveRow(state)
-        }
     }
-
-private fun updateViewport(state: CodeEditorState) {
-    val editor = state.editor ?: return
-    val total = (editor.scrollMaxY + editor.height).toFloat().coerceAtLeast(1f)
-    state.viewport = EditorViewport(editor.offsetY / total, editor.height / total)
-}
-
-private fun updateActiveRow(state: CodeEditorState) {
-    val editor = state.editor ?: return
-    if (editor.cursor.isSelected) {
-        state.activeRow = null
-        return
-    }
-    val offset = editor.layout.getCharLayoutOffset(editor.cursor.leftLine, editor.cursor.leftColumn)
-    val rowHeight = editor.rowHeight.toFloat()
-    val top = offset[0] - rowHeight - editor.offsetY
-    state.activeRow = if (top + rowHeight < 0 || top > editor.height) null else top to rowHeight
-}
 
 private data class AppliedSettings(val settings: EditorSettings, val palette: EditorPalette)
 
@@ -308,6 +256,8 @@ private fun CodeEditor.applySettings(context: Context, state: CodeEditorState, s
         },
     )
     props.stickyScroll = settings.stickyScroll
+    // Sora's own minimap (code overview at the right edge).
+    props.showMinimap = settings.minimap
     setDisableSoftKbdIfHardKbdAvailable(settings.hardwareKeyboardOnly)
 
     val themes = ThemeRegistry.getInstance()
@@ -346,6 +296,9 @@ private fun EditorColorScheme.applyChrome(p: EditorPalette) {
     set(EditorColorScheme.DIAGNOSTIC_TOOLTIP_BRIEF_MSG, p.text)
     set(EditorColorScheme.DIAGNOSTIC_TOOLTIP_DETAILED_MSG, p.lineNumber)
     set(EditorColorScheme.DIAGNOSTIC_TOOLTIP_ACTION, p.matched)
+    set(EditorColorScheme.MINIMAP_BACKGROUND, p.background)
+    set(EditorColorScheme.MINIMAP_VIEWPORT, p.minimapViewport)
+    set(EditorColorScheme.MINIMAP_VIEWPORT_BORDER, p.minimapLine)
     set(EditorColorScheme.TEXT_ACTION_WINDOW_BACKGROUND, p.popup)
     set(EditorColorScheme.TEXT_ACTION_WINDOW_ICON_COLOR, p.text)
     set(EditorColorScheme.TEXT_INLAY_HINT_BACKGROUND, p.popup)
@@ -391,7 +344,6 @@ internal suspend fun CodeEditorState.show(document: EditorDocument, grammar: Gra
     canUndo = view.canUndo()
     canRedo = view.canRedo()
     cursor = CursorPosition(view.cursor.leftLine + 1, view.cursor.leftColumn + 1)
-    refreshMinimap()
     // setText drops inlay hints; force the next setLineHint to re-add it.
     view.setTag(R.id.omni_editor_line_hint, null)
     view.setTag(R.id.omni_editor_diagnostics, null)
