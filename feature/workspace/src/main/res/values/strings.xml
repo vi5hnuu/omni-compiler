@@ -72,6 +72,7 @@
 
     <!-- Drawer -->
     <string name="drawer_all_projects">All projects</string>
+    <string name="drawer_import_git">Import from GitHub/GitLab</string>
     <string name="drawer_examples">Examples &amp; problems</string>
     <string name="drawer_history">Run history</string>
     <string name="drawer_usage">Usage &amp; plan</string>

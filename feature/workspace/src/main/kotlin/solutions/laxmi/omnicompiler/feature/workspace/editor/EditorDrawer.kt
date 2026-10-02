@@ -50,6 +50,7 @@ import solutions.laxmi.omnicompiler.core.ui.fileBadgeFor
 /** Where drawer rows lead; the screen maps them to routes. */
 enum class DrawerDestination(@StringRes val labelRes: Int, val icon: ImageVector) {
     Projects(R.string.drawer_all_projects, OmniIcons.Folder),
+    ImportGit(R.string.drawer_import_git, OmniIcons.Download),
     Examples(R.string.drawer_examples, OmniIcons.Book),
     History(R.string.drawer_history, OmniIcons.History),
     Usage(R.string.drawer_usage, OmniIcons.Chart),

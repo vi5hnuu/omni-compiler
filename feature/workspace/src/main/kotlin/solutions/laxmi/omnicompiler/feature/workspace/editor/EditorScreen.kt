@@ -74,6 +74,7 @@ import solutions.laxmi.omnicompiler.core.navigation.LanguagePickerRoute
 import solutions.laxmi.omnicompiler.core.navigation.Navigator
 import solutions.laxmi.omnicompiler.core.navigation.ProfileRoute
 import solutions.laxmi.omnicompiler.core.navigation.ProjectsRoute
+import solutions.laxmi.omnicompiler.core.navigation.RepoImportRoute
 import solutions.laxmi.omnicompiler.core.navigation.SettingsRoute
 import solutions.laxmi.omnicompiler.core.navigation.SignUpRoute
 import solutions.laxmi.omnicompiler.core.navigation.UsageRoute
@@ -142,6 +143,7 @@ fun EditorScreen(route: EditorRoute, navigator: Navigator) {
                 navigator.navigate(
                     when (destination) {
                         DrawerDestination.Projects -> ProjectsRoute
+                        DrawerDestination.ImportGit -> RepoImportRoute
                         DrawerDestination.Examples -> ExamplesRoute
                         DrawerDestination.History -> HistoryRoute
                         DrawerDestination.Usage -> UsageRoute
