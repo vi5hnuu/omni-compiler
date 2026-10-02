@@ -209,10 +209,18 @@ internal class ProjectSync @Inject constructor(
         return checked.manifest.id
     }
 
+    /**
+     * Runtime for a single file, from its extension. Several families can share one (.py: Python and PyPy; .js:
+     * JavaScript, Bun, Deno), so the user's default language wins when it matches, then the family with the most
+     * runtimes, i.e. the mainstream implementation rather than the alphabetically first.
+     */
     private suspend fun runtimeForFile(name: String): solutions.laxmi.omnicompiler.core.model.Runtime? {
         val ext = name.substringAfterLast('.', "").lowercase()
         if (ext.isEmpty()) return null
-        return runtimes.languages.first().firstNotNullOfOrNull { language -> language.defaultRuntime?.takeIf { it.extension == ext } }
+        val candidates = runtimes.languages.first().filter { it.defaultRuntime?.extension == ext }
+        val preferredId = preferences.runSettings.first().defaultRuntimeId
+        val preferred = candidates.firstNotNullOfOrNull { language -> language.runtimes.firstOrNull { it.id == preferredId } }
+        return preferred ?: candidates.maxByOrNull { it.runtimes.size }?.defaultRuntime
     }
 
     /**
