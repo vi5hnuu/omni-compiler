@@ -60,6 +60,7 @@ fun ErrorReason.toUiText(): UiText = when (this) {
     is ErrorReason.UnknownFileLanguage -> UiText.Res(R.string.common_error_unknown_file_language, fileName)
     ErrorReason.DocumentOpenFailed -> UiText.Res(R.string.common_error_document_open_failed)
     is ErrorReason.DocumentTooLarge -> UiText.Res(R.string.common_error_document_too_large, maxKb)
+    ErrorReason.DocumentNotText -> UiText.Res(R.string.common_error_document_not_text)
     ErrorReason.DocumentReadFailed -> UiText.Res(R.string.common_error_document_read_failed)
     ErrorReason.DocumentNoPermission -> UiText.Res(R.string.common_error_document_no_permission)
     ErrorReason.RunInProgress -> UiText.Res(R.string.common_error_run_in_progress)

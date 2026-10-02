@@ -27,10 +27,32 @@
             android:name=".MainActivity"
             android:exported="true"
             android:theme="@style/Theme.OmniCompiler.Splash"
+            android:launchMode="singleTask"
             android:windowSoftInputMode="adjustResize">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <!-- "Open with" for source and text files from file managers; edited in place (ExternalFileScreen). -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <action android:name="android.intent.action.EDIT" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:scheme="content" />
+                <data android:mimeType="text/*" />
+                <data android:mimeType="application/json" />
+                <data android:mimeType="application/javascript" />
+                <data android:mimeType="application/x-javascript" />
+                <data android:mimeType="application/xml" />
+                <data android:mimeType="application/x-sh" />
+                <data android:mimeType="application/x-python" />
+                <data android:mimeType="application/x-python-code" />
+                <data android:mimeType="application/x-ruby" />
+                <data android:mimeType="application/x-php" />
+                <data android:mimeType="application/sql" />
+                <data android:mimeType="application/toml" />
+                <data android:mimeType="application/yaml" />
+                <data android:mimeType="application/x-yaml" />
             </intent-filter>
         </activity>
 

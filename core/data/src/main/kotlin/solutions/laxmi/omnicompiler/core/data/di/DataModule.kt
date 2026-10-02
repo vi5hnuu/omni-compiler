@@ -1,5 +1,7 @@
 package solutions.laxmi.omnicompiler.core.data.di
 
+import solutions.laxmi.omnicompiler.core.data.file.DefaultExternalFileRepository
+import solutions.laxmi.omnicompiler.core.data.file.ExternalFileRepository
 import solutions.laxmi.omnicompiler.core.data.git.GitRepository
 import solutions.laxmi.omnicompiler.core.data.git.DefaultGitRepository
 import solutions.laxmi.omnicompiler.core.data.project.ProjectFolderRepository
@@ -46,6 +48,7 @@ internal interface DataModule {
     @Binds fun bindsGuestPromptRepository(impl: DefaultGuestPromptRepository): GuestPromptRepository
     @Binds fun bindsGoogleIdTokenProvider(impl: CredentialManagerGoogleIdTokenProvider): GoogleIdTokenProvider
     @Binds fun bindsRuntimeRepository(impl: DefaultRuntimeRepository): RuntimeRepository
+    @Binds fun bindsExternalFileRepository(impl: DefaultExternalFileRepository): ExternalFileRepository
     @Binds fun bindsProjectRepository(impl: LocalProjectRepository): ProjectRepository
     @Binds fun bindsProjectFolderRepository(impl: DefaultProjectFolderRepository): ProjectFolderRepository
     @Binds fun bindsGitRepository(impl: DefaultGitRepository): GitRepository

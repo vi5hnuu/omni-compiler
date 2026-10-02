@@ -8,6 +8,8 @@ import solutions.laxmi.omnicompiler.core.model.AppTheme
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.foundation.isSystemInDarkTheme
 import android.graphics.Color
+import android.content.ContentResolver
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
@@ -33,7 +35,10 @@ class MainActivity : ComponentActivity() {
         installSplashScreen().setKeepOnScreenCondition { viewModel.gate.value == AppGate.Loading }
         super.onCreate(savedInstanceState)
         // Once per launch: consent first (the form only shows where the law requires it), then the ads SDK.
-        if (savedInstanceState == null) ads.start(this)
+        if (savedInstanceState == null) {
+            ads.start(this)
+            openSharedFile(intent)
+        }
         setContent {
             val appTheme by viewModel.appTheme.collectAsStateWithLifecycle()
             val dark = when (appTheme) {
@@ -50,10 +55,25 @@ class MainActivity : ComponentActivity() {
             CompositionLocalProvider(LocalAds provides ads) {
                 OmniTheme(darkTheme = dark) {
                     val gate by viewModel.gate.collectAsStateWithLifecycle()
-                    if (gate != AppGate.Loading) OmniNavHost(gate, BuildConfig.VERSION_NAME)
+                    val externalFile by viewModel.externalFile.collectAsStateWithLifecycle()
+                    if (gate != AppGate.Loading) {
+                        OmniNavHost(gate, BuildConfig.VERSION_NAME, externalFile, viewModel::onExternalFileOpened)
+                    }
                 }
             }
         }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        openSharedFile(intent)
+    }
+
+    /** "Open with" from a file manager: edit that file in place (only content URIs; file:// needs storage access). */
+    private fun openSharedFile(intent: Intent?) {
+        val uri = intent?.data?.takeIf { it.scheme == ContentResolver.SCHEME_CONTENT } ?: return
+        if (intent.action == Intent.ACTION_VIEW || intent.action == Intent.ACTION_EDIT) viewModel.openExternalFile(uri.toString())
     }
 
     override fun onStart() {

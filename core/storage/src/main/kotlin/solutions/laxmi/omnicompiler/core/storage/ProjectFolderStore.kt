@@ -2,8 +2,11 @@ package solutions.laxmi.omnicompiler.core.storage
 
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
+import android.os.Process
 import android.provider.DocumentsContract
+import android.provider.OpenableColumns
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -67,6 +70,15 @@ interface ProjectFolderStore {
     suspend fun readDocument(uri: String, maxBytes: Long, keepAccess: Boolean): PickedDocument
 
     suspend fun writeDocument(uri: String, content: String)
+
+    /**
+     * Reads a file another app handed over (ACTION_VIEW / ACTION_EDIT). Such URIs often come from a FileProvider,
+     * which offers only OpenableColumns, so the name comes from there and the type from the resolver.
+     */
+    suspend fun readSharedDocument(uri: String, maxBytes: Long): PickedDocument
+
+    /** Whether this app holds a write grant for [uri] (file managers may hand files over read-only). */
+    fun canWrite(uri: String): Boolean
 }
 
 /** A single document opened through the system picker. */
@@ -198,22 +210,41 @@ internal class SafProjectFolderStore @Inject constructor(
             val (name, mime) = resolver.query(parsed, arrayOf(DocumentsContract.Document.COLUMN_DISPLAY_NAME, DocumentsContract.Document.COLUMN_MIME_TYPE), null, null, null)
                 ?.use { c -> if (c.moveToFirst()) c.getString(0).orEmpty() to c.getString(1).orEmpty() else null }
                 ?: throw IOException("Can't read $uri")
-            val bytes = resolver.openInputStream(parsed)?.use { input ->
-                val out = java.io.ByteArrayOutputStream()
-                val buffer = ByteArray(8 * 1024)
-                while (true) {
-                    val read = input.read(buffer)
-                    if (read < 0) break
-                    out.write(buffer, 0, read)
-                    if (out.size() > maxBytes) throw FileTooLargeException(uri)
-                }
-                out.toByteArray()
-            } ?: throw IOException("Can't open $uri")
-            PickedDocument(name, mime, bytes)
+            PickedDocument(name, mime, readLimited(parsed, maxBytes))
         } catch (e: SecurityException) {
             throw AccessLostException(e)
         }
     }
+
+    override suspend fun readSharedDocument(uri: String, maxBytes: Long): PickedDocument = withContext(io) {
+        val parsed = Uri.parse(uri)
+        try {
+            val name = resolver.query(parsed, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)
+                ?.use { c -> if (c.moveToFirst()) c.getString(0) else null }
+                ?: parsed.lastPathSegment.orEmpty()
+            PickedDocument(name, resolver.getType(parsed).orEmpty(), readLimited(parsed, maxBytes))
+        } catch (e: SecurityException) {
+            throw AccessLostException(e)
+        }
+    }
+
+    override fun canWrite(uri: String): Boolean =
+        context.checkUriPermission(Uri.parse(uri), Process.myPid(), Process.myUid(), Intent.FLAG_GRANT_WRITE_URI_PERMISSION) ==
+            PackageManager.PERMISSION_GRANTED
+
+    /** Reads at most [maxBytes], failing fast instead of loading an oversized file into memory. */
+    private fun readLimited(uri: Uri, maxBytes: Long): ByteArray =
+        resolver.openInputStream(uri)?.use { input ->
+            val out = java.io.ByteArrayOutputStream()
+            val buffer = ByteArray(8 * 1024)
+            while (true) {
+                val read = input.read(buffer)
+                if (read < 0) break
+                out.write(buffer, 0, read)
+                if (out.size() > maxBytes) throw FileTooLargeException(uri.toString())
+            }
+            out.toByteArray()
+        } ?: throw IOException("Can't open $uri")
 
     override suspend fun writeDocument(uri: String, content: String) = withContext(io) {
         try {

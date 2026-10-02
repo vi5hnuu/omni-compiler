@@ -160,9 +160,17 @@ internal class ProjectSync @Inject constructor(
     suspend fun importFileLocked(root: ProjectRoot, documentUri: String): String? {
         val picked = store.readDocument(documentUri, MAX_FILE_BYTES, keepAccess = true)
         if (picked.bytes.any { it == 0.toByte() } || picked.name.isBlank()) return null
-        val runtime = runtimeForFile(picked.name) ?: throw UnknownLanguageException(picked.name)
-        val folder = store.createFolder(root, picked.name.substringBeforeLast('.').ifBlank { picked.name })
-        store.writeFile(root, folder.docId, picked.name, picked.bytes.decodeToString())
+        return createSingleFileLocked(root, picked.name, picked.bytes.decodeToString(), origin = documentUri)
+    }
+
+    /**
+     * New project whose only file is [fileName] with [text] (runtime chosen from its extension). [origin] links it
+     * back to the source document for "Save to origin"; null makes an independent copy.
+     */
+    suspend fun createSingleFileLocked(root: ProjectRoot, fileName: String, text: String, origin: String?): String? {
+        val runtime = runtimeForFile(fileName) ?: throw UnknownLanguageException(fileName)
+        val folder = store.createFolder(root, fileName.substringBeforeLast('.').ifBlank { fileName })
+        store.writeFile(root, folder.docId, fileName, text)
         val defaults = preferences.runSettings.first().defaultLimits.raisedTo(runtimes.defaultLimits(runtime.id))
         store.writeManifest(
             root,
@@ -171,10 +179,10 @@ internal class ProjectSync @Inject constructor(
                 id = ids.newId(),
                 name = folder.name,
                 runtimeId = runtime.id,
-                entry = picked.name,
+                entry = fileName,
                 limits = ManifestLimits(defaults.timeMs, defaults.memMb),
                 createdAt = time.now().toEpochMilliseconds(),
-                origin = documentUri,
+                origin = origin,
             ),
         )
         return indexFolderLocked(root, folder)

@@ -352,4 +352,11 @@
     <string name="project_search_summary">%1$s in %2$s</string>
     <!-- File header in results: file name and its match count. -->
     <string name="project_search_file">%1$s · %2$d</string>
+    <string name="external_saved">Saved to the original file</string>
+    <string name="external_saving">Saving…</string>
+    <string name="external_save_failed">Couldn\'t save. Changes are kept here.</string>
+    <string name="external_read_only">Read-only</string>
+    <string name="external_read_only_message">The app that shared this file allowed viewing only. Use Open as project to edit and run a copy.</string>
+    <string name="external_open_as_project">Open as project</string>
+    <string name="external_open_failed">Couldn\'t open this file</string>
 </resources>

@@ -75,7 +75,7 @@ data class EditorDocument(
 }
 
 /**
- * Code editor (Sora + TextMate) with the design's minimap and active-line marker.
+ * Code editor (Sora + TextMate); the minimap and current-line highlight are Sora's own.
  * The native view owns the text while a document is open; edits flow out via [onTextChange] (debounced).
  * A null [document] means its text is still loading: the view keeps showing what it has.
  *

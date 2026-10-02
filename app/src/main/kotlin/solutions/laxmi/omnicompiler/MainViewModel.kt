@@ -11,7 +11,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import solutions.laxmi.omnicompiler.core.data.auth.AuthRepository
 import solutions.laxmi.omnicompiler.core.model.Session
@@ -38,6 +40,19 @@ class MainViewModel @Inject constructor(
     }.stateIn(viewModelScope, SharingStarted.Eagerly, AppGate.Loading)
 
     /** Back in the foreground: the folder may have been removed, or files edited in another app. */
+    private val pendingExternalFile = MutableStateFlow<String?>(null)
+
+    /** A file another app asked us to open; the nav host opens it once and then calls [onExternalFileOpened]. */
+    val externalFile: StateFlow<String?> = pendingExternalFile.asStateFlow()
+
+    fun openExternalFile(uri: String) {
+        pendingExternalFile.value = uri
+    }
+
+    fun onExternalFileOpened() {
+        pendingExternalFile.value = null
+    }
+
     fun onForeground() {
         viewModelScope.launch {
             folders.recheck()

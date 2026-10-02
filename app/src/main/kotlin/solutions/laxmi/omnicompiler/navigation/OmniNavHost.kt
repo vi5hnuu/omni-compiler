@@ -1,5 +1,6 @@
 package solutions.laxmi.omnicompiler.navigation
 
+import solutions.laxmi.omnicompiler.core.navigation.ExternalFileRoute
 import solutions.laxmi.omnicompiler.feature.vcs.vcsEntries
 import solutions.laxmi.omnicompiler.core.navigation.ProjectFolderRoute
 import androidx.compose.foundation.background
@@ -36,7 +37,7 @@ import solutions.laxmi.omnicompiler.feature.settings.settingsEntries
 import solutions.laxmi.omnicompiler.feature.workspace.workspaceEntries
 
 @Composable
-fun OmniNavHost(gate: AppGate, appVersion: String) {
+fun OmniNavHost(gate: AppGate, appVersion: String, externalFile: String?, onExternalFileOpened: () -> Unit) {
     val backStack = rememberNavBackStack(
         when (gate) {
             AppGate.Ready -> EditorRoute()
@@ -50,6 +51,8 @@ fun OmniNavHost(gate: AppGate, appVersion: String) {
     // from an auth screen lands in the editor. Screens never route on session changes themselves.
     LaunchedEffect(gate) {
         val onAuthScreen = backStack.lastOrNull().isAuthRoute()
+        // A file opened from another app needs no account or projects folder, so it stays open whatever the gate.
+        if (backStack.lastOrNull() is ExternalFileRoute) return@LaunchedEffect
         when {
             gate == AppGate.SignedOut && !onAuthScreen -> navigator.resetTo(WelcomeRoute)
             // Projects live in a folder on the device; nothing past sign-in works until one is reachable.
@@ -57,6 +60,13 @@ fun OmniNavHost(gate: AppGate, appVersion: String) {
             gate == AppGate.Ready && (backStack.lastOrNull() == WelcomeRoute || backStack.lastOrNull() == ProjectFolderRoute()) ->
                 navigator.resetTo(EditorRoute())
         }
+    }
+
+    // "Open with" from a file manager opens on top of whatever is showing; back returns there.
+    LaunchedEffect(externalFile) {
+        externalFile ?: return@LaunchedEffect
+        navigator.navigate(ExternalFileRoute(externalFile))
+        onExternalFileOpened()
     }
 
     NavDisplay(

@@ -59,6 +59,8 @@ sealed interface ErrorReason {
     data class DocumentTooLarge(val maxKb: Int) : ErrorReason
     data object DocumentReadFailed : ErrorReason
     data object DocumentNoPermission : ErrorReason
+    /** The file isn't UTF-8 text (binary, or another encoding), so it can't be edited as code. */
+    data object DocumentNotText : ErrorReason
 
     // Runs
     data object RunInProgress : ErrorReason

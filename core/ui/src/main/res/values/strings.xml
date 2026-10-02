@@ -118,6 +118,7 @@
     <string name="common_error_export_failed">Couldn\'t prepare the export.</string>
     <string name="common_error_document_open_failed">Couldn\'t open that file.</string>
     <string name="common_error_document_too_large">File is larger than %1$d KB.</string>
+    <string name="common_error_document_not_text">This file isn\'t text, so it can\'t be opened in the editor.</string>
     <string name="common_error_document_read_failed">Couldn\'t read that file.</string>
     <string name="common_error_document_no_permission">No permission to read that file.</string>
     <string name="common_error_run_in_progress">A run is already in progress.</string>

@@ -99,6 +99,9 @@ interface ProjectRepository {
     /** Copies one picked file into a new project; the original stays linked so it can be saved back. */
     suspend fun importFile(documentUri: String): Outcome<String>
 
+    /** New project holding a copy of [text] as [fileName] (e.g. a file opened from another app). */
+    suspend fun importText(fileName: String, text: String): Outcome<String>
+
     /** Writes a project's entry file back to the document it was imported from. */
     suspend fun saveToOrigin(projectId: String): Outcome<Unit>
 
@@ -419,6 +422,12 @@ internal class LocalProjectRepository @Inject constructor(
 
     override suspend fun importFile(documentUri: String): Outcome<String> = try {
         imported(onDisk { root -> sync.importFileLocked(root, documentUri) })
+    } catch (e: UnknownLanguageException) {
+        Outcome.Failure(AppError.Validation(reason = ErrorReason.UnknownFileLanguage(e.fileName)))
+    }
+
+    override suspend fun importText(fileName: String, text: String): Outcome<String> = try {
+        imported(onDisk { root -> sync.createSingleFileLocked(root, fileName, text, origin = null) })
     } catch (e: UnknownLanguageException) {
         Outcome.Failure(AppError.Validation(reason = ErrorReason.UnknownFileLanguage(e.fileName)))
     }

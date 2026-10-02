@@ -21,6 +21,8 @@ import kotlinx.serialization.Serializable
 @Serializable data class LanguagePickerRoute(val projectId: String) : Route
 /** Renders a project's HTML or Markdown file, or runs a JavaScript project in a browser page ([fileId] null). */
 @Serializable data class PreviewRoute(val projectId: String, val fileId: String? = null) : Route
+/** A file another app asked us to open (content URI), edited where it lives. */
+@Serializable data class ExternalFileRoute(val uri: String) : Route
 @Serializable data object ProjectsRoute : Route
 @Serializable data object ExamplesRoute : Route
 @Serializable data class ProblemRoute(val slug: String) : Route
