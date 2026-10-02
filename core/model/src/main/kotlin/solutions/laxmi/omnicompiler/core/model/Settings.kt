@@ -26,7 +26,8 @@ data class EditorSettings(
     val ligatures: Boolean = true,
     val indentGuides: Boolean = true,
     val lineSpacing: LineSpacing = LineSpacing.NORMAL,
-    val minimap: Boolean = true,
+    /** Off by default: Sora's (experimental) minimap draws over the right edge of long lines. */
+    val minimap: Boolean = false,
     val symbolRow: Boolean = true,
     val autocomplete: Boolean = true,
     val wordWrap: Boolean = false,
