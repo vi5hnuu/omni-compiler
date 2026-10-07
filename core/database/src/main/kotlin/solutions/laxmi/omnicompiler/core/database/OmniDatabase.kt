@@ -43,7 +43,7 @@ import javax.inject.Singleton
         SubmissionCursorEntity::class,
         PendingRunEntity::class,
     ],
-    version = 5,
+    version = 6,
     exportSchema = true,
 )
 abstract class OmniDatabase : RoomDatabase() {

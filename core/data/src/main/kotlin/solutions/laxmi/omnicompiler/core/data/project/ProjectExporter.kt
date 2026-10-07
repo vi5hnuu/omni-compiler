@@ -66,9 +66,10 @@ internal class CacheProjectExporter @Inject constructor(
     private suspend fun write(name: String, mime: String, block: (File) -> Unit): Outcome<SharedFile> = withContext(io) {
         try {
             val dir = File(context.cacheDir, EXPORT_DIR).apply { mkdirs() }
-            // Old exports are disposable; keep the cache from growing.
-            dir.listFiles()?.forEach { it.delete() }
-            val file = File(dir, name.replace(Regex("[^A-Za-z0-9._-]"), "_"))
+            // Old exports are disposable, but a recent one may still be read by the app it was shared with.
+            val cutoff = System.currentTimeMillis() - EXPORT_TTL_MS
+            dir.listFiles()?.filter { it.lastModified() < cutoff }?.forEach { it.delete() }
+            val file = File(dir, safeFileName(name, MAX_EXPORT_NAME).ifEmpty { FALLBACK_NAME })
             block(file)
             Outcome.Success(SharedFile(FileProvider.getUriForFile(context, authority, file).toString(), mime, file.name))
         } catch (e: IOException) {
@@ -80,6 +81,9 @@ internal class CacheProjectExporter @Inject constructor(
         /** Must match the FileProvider declared in the app manifest and res/xml/file_paths.xml. */
         const val AUTHORITY_SUFFIX = ".files"
         const val EXPORT_DIR = "exports"
+        const val EXPORT_TTL_MS = 60 * 60 * 1000L
+        const val MAX_EXPORT_NAME = 120
+        const val FALLBACK_NAME = "export"
         const val MIME_ZIP = "application/zip"
         const val MIME_TEXT = "text/plain"
     }

@@ -35,8 +35,11 @@ interface ProjectFolderStore {
     /** The grant is still held and the folder still exists. */
     suspend fun isAccessible(root: ProjectRoot): Boolean
 
-    /** Every candidate project folder under [root], with its manifest text and top-level entries. */
-    suspend fun scan(root: ProjectRoot): List<ScannedFolder>
+    /**
+     * Every candidate project folder under [root], with its manifest and top-level entries. The manifest text is not
+     * read when [skipManifest] says the caller already knows it (unchanged since it was last read); it is null then.
+     */
+    suspend fun scan(root: ProjectRoot, skipManifest: (folder: DocEntry, manifest: DocEntry) -> Boolean = { _, _ -> false }): List<ScannedFolder>
 
     suspend fun scanFolder(root: ProjectRoot, folder: DocEntry): ScannedFolder
 
@@ -54,7 +57,8 @@ interface ProjectFolderStore {
     /** Overwrites an existing file; returns its fresh metadata (the new last-modified time). */
     suspend fun updateFile(root: ProjectRoot, docId: String, content: String): DocEntry
 
-    suspend fun writeManifest(root: ProjectRoot, folderDocId: String, manifest: ProjectManifest, corruptBackup: String? = null)
+    /** Replaces the manifest atomically (temp file renamed over it); returns the written manifest's metadata. */
+    suspend fun writeManifest(root: ProjectRoot, folderDocId: String, manifest: ProjectManifest, corruptBackup: String? = null): DocEntry
 
     suspend fun rename(root: ProjectRoot, docId: String, name: String): DocEntry
 
@@ -70,6 +74,9 @@ interface ProjectFolderStore {
     suspend fun readDocument(uri: String, maxBytes: Long, keepAccess: Boolean): PickedDocument
 
     suspend fun writeDocument(uri: String, content: String)
+
+    /** Gives back a grant taken with `keepAccess` (e.g. the project linked to it was deleted); grants are capped per app. */
+    fun releaseDocument(uri: String)
 
     /**
      * Reads a file another app handed over (ACTION_VIEW / ACTION_EDIT). Such URIs often come from a FileProvider,
@@ -124,19 +131,23 @@ internal class SafProjectFolderStore @Inject constructor(
         }
     }
 
-    override suspend fun scan(root: ProjectRoot): List<ScannedFolder> = withContext(io) {
+    override suspend fun scan(root: ProjectRoot, skipManifest: (folder: DocEntry, manifest: DocEntry) -> Boolean): List<ScannedFolder> = withContext(io) {
         val tree = tree(root)
-        tree.children(root.docId).filter { it.isDirectory && !it.isHidden }.map { folder -> scanFolder(tree, folder) }
+        tree.children(root.docId).filter { it.isDirectory && !it.isHidden }.map { folder -> scanFolder(tree, folder, skipManifest) }
     }
 
     override suspend fun scanFolder(root: ProjectRoot, folder: DocEntry): ScannedFolder = withContext(io) { scanFolder(tree(root), folder) }
 
-    private fun scanFolder(tree: DocumentTree, folder: DocEntry): ScannedFolder {
+    private fun scanFolder(
+        tree: DocumentTree,
+        folder: DocEntry,
+        skipManifest: (folder: DocEntry, manifest: DocEntry) -> Boolean = { _, _ -> false },
+    ): ScannedFolder {
         val entries = tree.children(folder.docId)
         val meta = entries.firstOrNull { it.isDirectory && it.name == ProjectLayout.META_DIR }
         val manifest = meta?.let { tree.child(it.docId, ProjectLayout.MANIFEST) }
-        val text = manifest?.let { tree.readText(it.docId, MAX_MANIFEST_BYTES).decodeToString() }
-        return ScannedFolder(folder, text, entries.filter { it !== meta })
+        val text = manifest?.takeUnless { skipManifest(folder, it) }?.let { tree.readText(it.docId, MAX_MANIFEST_BYTES).decodeToString() }
+        return ScannedFolder(folder, text, entries.filter { it !== meta }, manifest)
     }
 
     override suspend fun entry(root: ProjectRoot, docId: String): DocEntry? = withContext(io) { tree(root).entry(docId) }
@@ -168,15 +179,21 @@ internal class SafProjectFolderStore @Inject constructor(
         tree.entry(docId) ?: throw IOException("Written file vanished")
     }
 
-    override suspend fun writeManifest(root: ProjectRoot, folderDocId: String, manifest: ProjectManifest, corruptBackup: String?) = withContext(io) {
+    override suspend fun writeManifest(root: ProjectRoot, folderDocId: String, manifest: ProjectManifest, corruptBackup: String?): DocEntry = withContext(io) {
         val tree = tree(root)
         val meta = tree.child(folderDocId, ProjectLayout.META_DIR)?.docId ?: tree.createDirectory(folderDocId, ProjectLayout.META_DIR)
+        val existing = tree.children(meta)
         if (corruptBackup != null) {
-            val backup = tree.child(meta, ProjectLayout.MANIFEST_BACKUP)?.docId ?: tree.createFile(meta, ProjectLayout.MANIFEST_BACKUP)
+            val backup = existing.firstOrNull { it.name == ProjectLayout.MANIFEST_BACKUP }?.docId ?: tree.createFile(meta, ProjectLayout.MANIFEST_BACKUP)
             tree.writeText(backup, corruptBackup)
         }
-        val file = tree.child(meta, ProjectLayout.MANIFEST)?.docId ?: tree.createFile(meta, ProjectLayout.MANIFEST)
-        tree.writeText(file, ManifestCodec.encode(manifest))
+        // Write a temp file, then swap it in: if the app dies mid-write the old manifest (or, between delete and
+        // rename, none) is left, never a truncated one; a missing manifest is restored from the index.
+        val temp = existing.firstOrNull { it.name == ProjectLayout.MANIFEST_TEMP }?.docId ?: tree.createFile(meta, ProjectLayout.MANIFEST_TEMP)
+        tree.writeText(temp, ManifestCodec.encode(manifest))
+        existing.firstOrNull { it.name == ProjectLayout.MANIFEST }?.let { tree.delete(it.docId) }
+        val written = tree.rename(temp, ProjectLayout.MANIFEST)
+        tree.entry(written) ?: throw IOException("Written manifest vanished")
     }
 
     override suspend fun rename(root: ProjectRoot, docId: String, name: String): DocEntry = withContext(io) {
@@ -204,9 +221,7 @@ internal class SafProjectFolderStore @Inject constructor(
     override suspend fun readDocument(uri: String, maxBytes: Long, keepAccess: Boolean): PickedDocument = withContext(io) {
         val parsed = Uri.parse(uri)
         try {
-            if (keepAccess) {
-                resolver.takePersistableUriPermission(parsed, Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
-            }
+            if (keepAccess) keepAccess(parsed)
             val (name, mime) = resolver.query(parsed, arrayOf(DocumentsContract.Document.COLUMN_DISPLAY_NAME, DocumentsContract.Document.COLUMN_MIME_TYPE), null, null, null)
                 ?.use { c -> if (c.moveToFirst()) c.getString(0).orEmpty() to c.getString(1).orEmpty() else null }
                 ?: throw IOException("Can't read $uri")
@@ -225,6 +240,27 @@ internal class SafProjectFolderStore @Inject constructor(
             PickedDocument(name, resolver.getType(parsed).orEmpty(), readLimited(parsed, maxBytes))
         } catch (e: SecurityException) {
             throw AccessLostException(e)
+        }
+    }
+
+    /** Read-write when the provider allows it; read-only providers (some cloud drives) still grant reading. */
+    private fun keepAccess(uri: Uri) {
+        try {
+            resolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
+        } catch (e: SecurityException) {
+            resolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }
+    }
+
+    override fun releaseDocument(uri: String) {
+        val parsed = Uri.parse(uri)
+        val held = resolver.persistedUriPermissions.firstOrNull { it.uri == parsed } ?: return
+        val flags = (if (held.isReadPermission) Intent.FLAG_GRANT_READ_URI_PERMISSION else 0) or
+            (if (held.isWritePermission) Intent.FLAG_GRANT_WRITE_URI_PERMISSION else 0)
+        try {
+            resolver.releasePersistableUriPermission(parsed, flags)
+        } catch (e: SecurityException) {
+            // Already gone (revoked by the user or the provider): nothing left to release.
         }
     }
 

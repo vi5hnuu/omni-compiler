@@ -5,10 +5,12 @@ import solutions.laxmi.omnicompiler.core.model.ProjectIssue
 /** One project folder as found on disk, before any checks. */
 data class ScannedFolder(
     val folder: DocEntry,
-    /** Raw manifest text; null when `.omni/project.json` doesn't exist. */
+    /** Raw manifest text; null when `.omni/project.json` doesn't exist (or wasn't read, see [ProjectFolderStore.scan]). */
     val manifestText: String?,
     /** Top-level entries of the folder, excluding the hidden `.omni` metadata folder. */
     val entries: List<DocEntry>,
+    /** The manifest document as found; null when there is none. */
+    val manifest: DocEntry? = null,
 )
 
 /** The outcome of checking one folder: a manifest that is valid to use, the files to index, and what was wrong. */

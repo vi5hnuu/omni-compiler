@@ -23,7 +23,7 @@ interface ProjectDao {
                (SELECT GROUP_CONCAT(name, char(10)) FROM (SELECT name FROM files WHERE project_id = p.id ORDER BY is_entry DESC, position)) AS file_names,
                (SELECT COUNT(*) FROM test_cases WHERE project_id = p.id) AS test_count
         FROM projects p
-        WHERE (:query = '' OR p.name LIKE '%' || :query || '%')
+        WHERE (:query = '' OR p.name LIKE '%' || :query || '%' ESCAPE '\')
         ORDER BY p.updated_at DESC
         """,
     )
@@ -43,6 +43,9 @@ interface ProjectDao {
 
     @Query("SELECT * FROM projects")
     suspend fun all(): List<ProjectEntity>
+
+    @Query("UPDATE projects SET manifest_modified = :modified WHERE id = :id")
+    suspend fun setManifestModified(id: String, modified: Long)
 
     @Query("UPDATE projects SET folder_doc_id = :folderDocId WHERE id = :id")
     suspend fun setFolder(id: String, folderDocId: String)

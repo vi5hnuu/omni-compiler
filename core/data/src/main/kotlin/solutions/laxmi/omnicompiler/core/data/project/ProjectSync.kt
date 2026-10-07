@@ -71,8 +71,20 @@ internal class ProjectSync @Inject constructor(
             val taken = mutableSetOf<String>()
             val seen = mutableSetOf<String>()
             val indexed = projects.all().filter { it.folderDocId != null }.associateBy { it.folderDocId }
-            store.scan(root).forEach { folder ->
-                val checked = validator.validate(folder, taken, knownManifest(folder, indexed[folder.folder.docId])) ?: return@forEach
+            // A manifest whose last-modified time matches what the index recorded hasn't changed since the app read or
+            // wrote it, so it isn't fetched from the provider again (most of a resume's rescan cost).
+            val unchanged = { folder: DocEntry, manifest: DocEntry ->
+                val known = indexed[folder.docId]?.manifestModified ?: 0L
+                known != 0L && known == manifest.lastModified
+            }
+            store.scan(root, unchanged).forEach { scanned ->
+                val project = indexed[scanned.folder.docId]
+                val folder = if (scanned.manifestText == null && scanned.manifest != null && project != null) {
+                    scanned.copy(manifestText = ManifestCodec.encode(manifestOf(project)))
+                } else {
+                    scanned
+                }
+                val checked = validator.validate(folder, taken, knownManifest(folder, project)) ?: return@forEach
                 taken += checked.manifest.id
                 seen += checked.manifest.id
                 apply(root, folder, checked)
@@ -107,7 +119,8 @@ internal class ProjectSync @Inject constructor(
     suspend fun writeManifestLocked(root: ProjectRoot, projectId: String) {
         val project = projects.get(projectId) ?: return
         val folder = project.folderDocId ?: return
-        store.writeManifest(root, folder, manifestOf(project))
+        val written = store.writeManifest(root, folder, manifestOf(project))
+        projects.setManifestModified(project.id, written.lastModified)
     }
 
     private suspend fun manifestOf(project: ProjectEntity): ProjectManifest {
@@ -238,7 +251,8 @@ internal class ProjectSync @Inject constructor(
             // The folder name wins on clashes (it may have been suffixed); keep the index in step.
             val project = exported.copy(name = folder.name)
             if (project.name != exported.name) projects.upsert(project)
-            store.writeManifest(root, folder.docId, manifestOf(project))
+            val manifest = store.writeManifest(root, folder.docId, manifestOf(project))
+            projects.setManifestModified(project.id, manifest.lastModified)
             files.list(project.id).forEach { file ->
                 val written = store.writeFile(root, folder.docId, file.name, file.content)
                 files.setDiskState(file.id, written.docId, written.lastModified, written.size)
@@ -248,8 +262,10 @@ internal class ProjectSync @Inject constructor(
     }
 
     private suspend fun apply(root: ProjectRoot, scanned: ScannedFolder, checked: ValidatedProject) {
-        if (checked.rewriteManifest) {
+        val manifestEntry = if (checked.rewriteManifest) {
             store.writeManifest(root, checked.folder.docId, checked.manifest, corruptBackup = scanned.manifestText.takeIf { checked.backupCorrupt })
+        } else {
+            scanned.manifest
         }
         val manifest = checked.manifest
         val issues = checked.issues.toMutableList()
@@ -305,6 +321,7 @@ internal class ProjectSync @Inject constructor(
                     issues = issues.toStored(),
                     originUri = manifest.origin,
                     remoteJson = manifest.remote?.let(ManifestCodec::encodeRemote),
+                    manifestModified = manifestEntry?.lastModified ?: 0,
                 ),
             )
             val gone = existing.values.filter { row -> rows.none { it.id == row.id } }.map { it.id }

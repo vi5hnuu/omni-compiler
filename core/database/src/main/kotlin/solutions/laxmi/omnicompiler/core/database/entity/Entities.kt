@@ -26,6 +26,8 @@ data class ProjectEntity(
     @ColumnInfo(name = "origin_uri") val originUri: String? = null,
     /** JSON of the tracked GitHub/GitLab folder (ManifestRemote); null for local-only projects. */
     @ColumnInfo(name = "remote_json") val remoteJson: String? = null,
+    /** Last-modified time of `.omni/project.json` as last read or written; an unchanged manifest isn't read again on rescans. */
+    @ColumnInfo(name = "manifest_modified", defaultValue = "0") val manifestModified: Long = 0,
 )
 
 @Entity(
@@ -194,6 +196,7 @@ data class ProjectSummaryRow(
     @ColumnInfo(name = "issues") val issues: String,
     @ColumnInfo(name = "origin_uri") val originUri: String?,
     @ColumnInfo(name = "remote_json") val remoteJson: String?,
+    @ColumnInfo(name = "manifest_modified") val manifestModified: Long,
     @ColumnInfo(name = "file_names") val fileNames: String?,
     @ColumnInfo(name = "test_count") val testCount: Int,
 )

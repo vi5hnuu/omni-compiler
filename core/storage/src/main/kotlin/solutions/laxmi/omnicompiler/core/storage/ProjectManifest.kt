@@ -91,6 +91,8 @@ object ProjectLayout {
     const val META_DIR = ".omni"
     const val MANIFEST = "project.json"
     const val MANIFEST_BACKUP = "project.json.bak"
+    /** Written first and renamed over the manifest, so an interrupted write never leaves a half-written manifest. */
+    const val MANIFEST_TEMP = "project.json.tmp"
     /** Subfolder created inside the user's pick unless the pick already holds projects. */
     const val ROOT_DIR = "OmniCompiler"
 }

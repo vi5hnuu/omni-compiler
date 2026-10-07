@@ -76,7 +76,8 @@ interface ProjectRepository {
     suspend fun create(runtime: Runtime, template: ProjectTemplate? = null): Outcome<String>
     suspend fun duplicate(projectId: String): Outcome<String>
     suspend fun rename(projectId: String, name: String): Outcome<Unit>
-    suspend fun delete(projectId: String)
+    /** Deletes the project's folder and its index entry; nothing is removed when the folder can't be deleted. */
+    suspend fun delete(projectId: String): Outcome<Unit>
     suspend fun markOpened(projectId: String)
     suspend fun changeRuntime(projectId: String, runtime: Runtime): Outcome<Unit>
     suspend fun setLimits(projectId: String, limits: Limits)
@@ -149,7 +150,7 @@ internal class LocalProjectRepository @Inject constructor(
     override val lastProjectId: Flow<String?> = preferences.lastProjectId
 
     override fun observeSummaries(query: String, filter: ProjectFilter): Flow<List<ProjectSummary>> =
-        projects.observeSummaries(query.trim()).map { rows ->
+        projects.observeSummaries(query.trim().escapeLike()).map { rows ->
             rows.map { it.toModel() }.filter(filter::matches)
         }
 
@@ -252,12 +253,15 @@ internal class LocalProjectRepository @Inject constructor(
         }
     }
 
-    override suspend fun delete(projectId: String) {
-        val project = projects.get(projectId) ?: return
+    override suspend fun delete(projectId: String): Outcome<Unit> {
+        val project = projects.get(projectId) ?: return Outcome.Success(Unit)
         val folder = project.folderDocId
-        if (folder != null) onDisk { root -> store.delete(root, folder) }
+        // Keep the index when the folder survives: dropping it would only make the project reappear on the next rescan.
+        if (folder != null) onDisk { root -> store.delete(root, folder) }.let { if (it is Outcome.Failure) return it }
         projects.delete(projectId)
+        project.originUri?.let(store::releaseDocument)
         if (preferences.lastProjectId.first() == projectId) preferences.setLastProjectId(null)
+        return Outcome.Success(Unit)
     }
 
     override suspend fun markOpened(projectId: String) {
@@ -534,6 +538,9 @@ internal class LocalProjectRepository @Inject constructor(
     private suspend fun saveManifest(projectId: String) {
         onDisk { root -> sync.writeManifestLocked(root, projectId) }
     }
+
+    /** `%` and `_` are LIKE wildcards; the summaries query declares `\` as its escape character. */
+    private fun String.escapeLike() = replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
 
     private fun TestCaseDraft.toEntity(projectId: String, position: Int) =
         TestCaseEntity(ids.newId(), projectId, name, stdin, expected, position)

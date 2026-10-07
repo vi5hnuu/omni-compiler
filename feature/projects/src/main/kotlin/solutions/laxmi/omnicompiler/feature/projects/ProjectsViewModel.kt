@@ -142,9 +142,7 @@ class ProjectsViewModel @Inject constructor(
         }
     }
 
-    fun delete(projectId: String) {
-        viewModelScope.launch { projects.delete(projectId) }
-    }
+    fun delete(projectId: String) = launchReporting { projects.delete(projectId) }
 
     fun export(projectId: String) {
         viewModelScope.launch {
