@@ -7,6 +7,10 @@ package solutions.laxmi.omnicompiler.core.model
 sealed interface ErrorReason {
     // Transport
     data object Offline : ErrorReason
+    /** The device has a network but the server couldn't be reached (DNS failure, refused connection, server down). */
+    data object ServerUnreachable : ErrorReason
+    /** The TLS handshake failed (captive portal, intercepting proxy, wrong device clock). */
+    data object SecureConnectionFailed : ErrorReason
     data object Timeout : ErrorReason
     data object NetworkError : ErrorReason
     data object BadResponse : ErrorReason
@@ -38,6 +42,12 @@ sealed interface ErrorReason {
     data object GitNothingToCommit : ErrorReason
     data object GitResolveConflictsFirst : ErrorReason
     data object GitRequestFailed : ErrorReason
+    /** 403: the token lacks a scope, SSO isn't authorised, or the repository forbids it. */
+    data object GitAccessDenied : ErrorReason
+    /** 403/429 with the host's rate-limit headers. */
+    data object GitRateLimited : ErrorReason
+    /** 404: the repository, branch or path doesn't exist or the token can't see it. */
+    data object GitNotFound : ErrorReason
     /** No runtime matches the imported file's extension. */
     data class UnknownFileLanguage(val fileName: String) : ErrorReason
     data object FileNotFound : ErrorReason

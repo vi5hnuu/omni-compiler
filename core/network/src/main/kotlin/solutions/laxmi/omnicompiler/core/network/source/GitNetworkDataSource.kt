@@ -22,6 +22,7 @@ import solutions.laxmi.omnicompiler.core.network.dto.GhTreeEntryDto
 import solutions.laxmi.omnicompiler.core.network.dto.GhUpdateRefDto
 import solutions.laxmi.omnicompiler.core.network.dto.GlCommitActionDto
 import solutions.laxmi.omnicompiler.core.network.dto.GlCreateCommitDto
+import solutions.laxmi.omnicompiler.core.network.error.transportError
 import java.io.IOException
 import javax.inject.Inject
 
@@ -140,6 +141,13 @@ internal class RetrofitGitNetworkDataSource @Inject constructor(
 
     private fun bearer(token: String) = "Bearer $token"
 
+    /** GitHub sends `X-RateLimit-Remaining: 0` (or `Retry-After` for secondary limits); GitLab sends `RateLimit-Remaining`. */
+    private fun HttpException.isRateLimited(): Boolean {
+        val headers = response()?.headers() ?: return code() == 429
+        return code() == 429 || headers["Retry-After"] != null ||
+            headers["X-RateLimit-Remaining"] == "0" || headers["RateLimit-Remaining"] == "0"
+    }
+
     /** Encodes each path segment but keeps the slashes GitHub routes on. */
     private fun segments(path: String) = path.split('/').filter { it.isNotEmpty() }.joinToString("/") { Uri.encode(it) }
 
@@ -149,13 +157,20 @@ internal class RetrofitGitNetworkDataSource @Inject constructor(
         Outcome.Failure(
             when (e.code()) {
                 401 -> AppError.Unauthorized(reason = ErrorReason.GitTokenRejected)
+                // Both hosts answer an exhausted quota with 403/429 plus their rate-limit headers.
+                403, 429 -> if (e.isRateLimited()) {
+                    AppError.RateLimited(reason = ErrorReason.GitRateLimited)
+                } else {
+                    AppError.Forbidden(reason = ErrorReason.GitAccessDenied)
+                }
+                404 -> AppError.NotFound(reason = ErrorReason.GitNotFound)
                 // 409/422 on a fast-forward-only ref update: the branch moved underneath us.
                 409, 422 -> AppError.Conflict(reason = ErrorReason.GitPullFirst)
                 else -> AppError.Unknown(reason = ErrorReason.GitRequestFailed)
             },
         )
     } catch (e: IOException) {
-        Outcome.Failure(AppError.Offline(reason = ErrorReason.NetworkError))
+        Outcome.Failure(transportError(e))
     } catch (e: SerializationException) {
         Outcome.Failure(AppError.Unknown(reason = ErrorReason.BadResponse))
     }

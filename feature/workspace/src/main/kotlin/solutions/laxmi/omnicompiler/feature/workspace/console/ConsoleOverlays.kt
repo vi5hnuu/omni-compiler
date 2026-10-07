@@ -321,7 +321,8 @@ internal fun OfflineQueueCard(
                         color = colors.textTertiary,
                     )
                 }
-                if (state.online) OmniTextButton(stringResource(R.string.offline_send_now), onSendNow)
+                // Offered even when no network is detected: the detection can be wrong, and a failed try just keeps the run queued.
+                OmniTextButton(stringResource(R.string.offline_send_now), onSendNow)
                 OmniTextButton(stringResource(CommonR.string.common_cancel), { onCancel(run) }, color = colors.textSecondary)
             }
         }

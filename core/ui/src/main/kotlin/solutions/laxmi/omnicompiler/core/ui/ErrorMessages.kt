@@ -22,6 +22,8 @@ fun AppError.toUiText(): UiText {
 
 fun ErrorReason.toUiText(): UiText = when (this) {
     ErrorReason.Offline -> UiText.Res(R.string.common_error_offline)
+    ErrorReason.ServerUnreachable -> UiText.Res(R.string.common_error_server_unreachable)
+    ErrorReason.SecureConnectionFailed -> UiText.Res(R.string.common_error_secure_connection)
     ErrorReason.Timeout -> UiText.Res(R.string.common_error_timeout)
     ErrorReason.NetworkError -> UiText.Res(R.string.common_error_network)
     ErrorReason.BadResponse -> UiText.Res(R.string.common_error_bad_response)
@@ -57,6 +59,9 @@ fun ErrorReason.toUiText(): UiText = when (this) {
     ErrorReason.GitNothingToCommit -> UiText.Res(R.string.common_error_git_nothing)
     ErrorReason.GitResolveConflictsFirst -> UiText.Res(R.string.common_error_git_conflicts)
     ErrorReason.GitRequestFailed -> UiText.Res(R.string.common_error_git_failed)
+    ErrorReason.GitAccessDenied -> UiText.Res(R.string.common_error_git_access_denied)
+    ErrorReason.GitRateLimited -> UiText.Res(R.string.common_error_git_rate_limited)
+    ErrorReason.GitNotFound -> UiText.Res(R.string.common_error_git_not_found)
     is ErrorReason.UnknownFileLanguage -> UiText.Res(R.string.common_error_unknown_file_language, fileName)
     ErrorReason.DocumentOpenFailed -> UiText.Res(R.string.common_error_document_open_failed)
     is ErrorReason.DocumentTooLarge -> UiText.Res(R.string.common_error_document_too_large, maxKb)
