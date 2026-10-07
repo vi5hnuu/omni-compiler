@@ -117,6 +117,9 @@ interface SubmissionDao {
     @Query("SELECT * FROM submission_cursor WHERE `key` = 0")
     suspend fun cursor(): SubmissionCursorEntity?
 
+    @Query("SELECT * FROM submission_cursor WHERE `key` = 0")
+    fun observeCursor(): Flow<SubmissionCursorEntity?>
+
     @Upsert
     suspend fun upsertAll(items: List<SubmissionEntity>)
 

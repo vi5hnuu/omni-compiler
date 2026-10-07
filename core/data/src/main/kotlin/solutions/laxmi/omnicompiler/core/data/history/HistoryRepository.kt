@@ -9,6 +9,7 @@ import androidx.paging.PagingData
 import androidx.paging.map
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.combine
 import solutions.laxmi.omnicompiler.core.common.TimeSource
 import solutions.laxmi.omnicompiler.core.database.dao.SubmissionDao
 import solutions.laxmi.omnicompiler.core.database.entity.SubmissionEntity
@@ -33,11 +34,14 @@ data class CachedHistorySummary(
     val verdictCounts: Map<Verdict, Int>,
     val total: Int,
     val medianTimeMs: Int?,
+    /** Every page has been cached; until then the counts cover only the runs loaded so far. */
+    val complete: Boolean = false,
 )
 
 /** Server-side run history (`/me/submissions`), cached for offline viewing and local filtering. */
 interface HistoryRepository {
-    fun submissions(verdict: Verdict?): Flow<PagingData<Submission>>
+    /** [refreshOnStart] false reuses the cache fetched earlier in the same visit instead of refetching from the top. */
+    fun submissions(verdict: Verdict?, refreshOnStart: Boolean = true): Flow<PagingData<Submission>>
     val summary: Flow<CachedHistorySummary>
 
     /** Last 7 local days, oldest first, from cached submissions. The window is computed each time collection starts. */
@@ -54,18 +58,19 @@ internal class DefaultHistoryRepository @Inject constructor(
 ) : HistoryRepository {
 
     @OptIn(ExperimentalPagingApi::class)
-    override fun submissions(verdict: Verdict?): Flow<PagingData<Submission>> = Pager(
+    override fun submissions(verdict: Verdict?, refreshOnStart: Boolean): Flow<PagingData<Submission>> = Pager(
         config = PagingConfig(pageSize = SubmissionsRemoteMediator.PAGE_SIZE, enablePlaceholders = false),
-        remoteMediator = SubmissionsRemoteMediator(network, dao),
+        remoteMediator = SubmissionsRemoteMediator(network, dao, refreshOnStart),
         pagingSourceFactory = { dao.pagingSource(verdict?.code) },
     ).flow.map { data -> data.map { it.toModel() } }
 
-    override val summary: Flow<CachedHistorySummary> = dao.observeSince(0).map { rows ->
+    override val summary: Flow<CachedHistorySummary> = combine(dao.observeSince(0), dao.observeCursor()) { rows, cursor ->
         val times = rows.mapNotNull { it.totalTimeMs }.sorted()
         CachedHistorySummary(
             verdictCounts = rows.mapNotNull { Verdict.fromCode(it.verdict) }.groupingBy { it }.eachCount(),
             total = rows.size,
             medianTimeMs = times.median(),
+            complete = cursor?.endReached == true,
         )
     }
 

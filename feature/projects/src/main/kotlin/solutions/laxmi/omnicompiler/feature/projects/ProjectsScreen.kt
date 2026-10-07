@@ -52,6 +52,9 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import solutions.laxmi.omnicompiler.core.designsystem.component.EmptyState
+import solutions.laxmi.omnicompiler.core.designsystem.component.InfoBanner
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import solutions.laxmi.omnicompiler.core.designsystem.component.OmniButton
 import solutions.laxmi.omnicompiler.core.designsystem.component.OmniIconButton
 import solutions.laxmi.omnicompiler.core.designsystem.component.OmniTab
@@ -108,9 +111,9 @@ fun ProjectsScreen(navigator: Navigator) {
                 Box {
                     OmniIconButton(OmniIcons.MoreVertical, stringResource(R.string.projects_more), { menu = true })
                     DropdownMenu(menu, { menu = false }, containerColor = colors.surfaceRaised, shape = RectangleShape) {
-                        DropdownMenuItem(text = { Text(stringResource(R.string.projects_import_folder)) }, onClick = { menu = false; pickFolder.launch(null) })
-                        DropdownMenuItem(text = { Text(stringResource(R.string.projects_open_file)) }, onClick = { menu = false; pickFile.launch(arrayOf("*/*")) })
-                        DropdownMenuItem(text = { Text(stringResource(R.string.projects_import_git)) }, onClick = { menu = false; navigator.navigate(RepoImportRoute) })
+                        DropdownMenuItem(text = { Text(stringResource(R.string.projects_import_folder)) }, enabled = !state.importing, onClick = { menu = false; pickFolder.launch(null) })
+                        DropdownMenuItem(text = { Text(stringResource(R.string.projects_open_file)) }, enabled = !state.importing, onClick = { menu = false; pickFile.launch(arrayOf("*/*")) })
+                        DropdownMenuItem(text = { Text(stringResource(R.string.projects_import_git)) }, enabled = !state.importing, onClick = { menu = false; navigator.navigate(RepoImportRoute) })
                     }
                 }
             }
@@ -126,17 +129,21 @@ fun ProjectsScreen(navigator: Navigator) {
                 selectedIndex = filters.indexOf(state.filter),
                 onSelect = { viewModel.setFilter(filters[it]) },
             )
+            if (state.importing) {
+                InfoBanner(stringResource(R.string.projects_importing), Modifier.padding(horizontal = 16.dp, vertical = 8.dp), icon = OmniIcons.Download)
+            }
             // Messages appear above "New project" and the banner, never over them.
             Box(Modifier.weight(1f)) {
+            // Pull to refresh works on the empty state too: projects copied into the folder by another app appear.
+            PullToRefreshBox(isRefreshing = state.refreshing, onRefresh = viewModel::refresh, modifier = Modifier.fillMaxSize()) {
             if (state.projects.isEmpty()) {
                 EmptyState(
                     title = stringResource(if (state.query.isBlank()) R.string.projects_empty_title else R.string.projects_no_matches),
                     message = stringResource(R.string.projects_empty_message),
                     icon = OmniIcons.Folder,
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()),
                 )
             } else {
-                PullToRefreshBox(isRefreshing = state.refreshing, onRefresh = viewModel::refresh, modifier = Modifier.fillMaxSize()) {
                 LazyColumn(Modifier.fillMaxSize()) {
                     items(state.projects, key = { it.summary.project.id }) { row ->
                         ProjectRow(

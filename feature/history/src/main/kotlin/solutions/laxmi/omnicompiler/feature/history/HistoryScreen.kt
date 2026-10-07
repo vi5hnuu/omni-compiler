@@ -27,6 +27,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
@@ -186,9 +187,12 @@ private fun WeekChart(week: List<DayActivity>) {
 @Composable
 private fun VerdictFilters(state: HistoryUiState, onSelect: (Verdict?) -> Unit) {
     Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(16.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-        OmniChip(stringResource(R.string.history_filter_all), state.filter == null, { onSelect(null) }, count = state.summary.total.toString())
+        // Counts come from the runs cached so far; "+" marks that older runs haven't been loaded yet.
+        val resources = LocalResources.current
+        val count = { n: Int -> if (state.summary.complete || n == 0) n.toString() else resources.getString(R.string.history_count_more, n) }
+        OmniChip(stringResource(R.string.history_filter_all), state.filter == null, { onSelect(null) }, count = count(state.summary.total))
         listOf(Verdict.AC, Verdict.WA, Verdict.TLE, Verdict.CE, Verdict.RE, Verdict.MLE, Verdict.IE).forEach { verdict ->
-            OmniChip(verdict.code, state.filter == verdict, { onSelect(verdict) }, count = (state.summary.verdictCounts[verdict] ?: 0).toString())
+            OmniChip(verdict.code, state.filter == verdict, { onSelect(verdict) }, count = count(state.summary.verdictCounts[verdict] ?: 0))
         }
     }
 }
@@ -196,10 +200,11 @@ private fun VerdictFilters(state: HistoryUiState, onSelect: (Verdict?) -> Unit) 
 @Composable
 private fun DayHeader(dayStart: Long) {
     val locale = LocalConfiguration.current.locales[0]
+    val dayFormat = remember(locale) { SimpleDateFormat("EEE d MMM", locale) }
     val label = when {
         DateUtils.isToday(dayStart) -> stringResource(R.string.history_today)
         DateUtils.isToday(dayStart + DateUtils.DAY_IN_MILLIS) -> stringResource(R.string.history_yesterday)
-        else -> SimpleDateFormat("EEE d MMM", locale).format(Date(dayStart))
+        else -> dayFormat.format(Date(dayStart))
     }
     Text(
         label.uppercase(),
@@ -213,6 +218,7 @@ private fun DayHeader(dayStart: Long) {
 private fun SubmissionRow(submission: Submission, runtimeName: RuntimeName?, onClick: () -> Unit) {
     val colors = OmniTheme.colors
     val locale = LocalConfiguration.current.locales[0]
+    val timeFormat = remember(locale) { SimpleDateFormat("HH:mm", locale) }
     Row(
         Modifier
             .fillMaxWidth()
@@ -234,7 +240,7 @@ private fun SubmissionRow(submission: Submission, runtimeName: RuntimeName?, onC
         Column(horizontalAlignment = Alignment.End) {
             Text(formatDuration(submission.totalTimeMs), style = OmniTheme.typography.mono, color = colors.textSecondary)
             Text(
-                SimpleDateFormat("HH:mm", locale).format(Date(submission.createdAt.toEpochMilliseconds())),
+                timeFormat.format(Date(submission.createdAt.toEpochMilliseconds())),
                 style = OmniTheme.typography.monoSmall,
                 color = colors.textTertiary,
             )

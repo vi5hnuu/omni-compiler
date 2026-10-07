@@ -39,6 +39,9 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import solutions.laxmi.omnicompiler.core.designsystem.component.OmniBadge
+import solutions.laxmi.omnicompiler.core.designsystem.component.EmptyState
+import com.mikepenz.markdown.m3.Markdown
+import com.mikepenz.markdown.m3.markdownColor
 import solutions.laxmi.omnicompiler.core.designsystem.component.OmniButton
 import solutions.laxmi.omnicompiler.core.designsystem.component.OmniButtonStyle
 import solutions.laxmi.omnicompiler.core.designsystem.component.OmniChip
@@ -139,7 +142,11 @@ fun ProblemScreen(route: ProblemRoute, navigator: Navigator) {
         Column(Modifier.fillMaxSize().navigationBarsPadding()) {
             OmniTopBar(problem?.title ?: stringResource(R.string.practice_problem), onBack = navigator::back)
             if (problem == null) {
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { OmniSpinner() }
+                if (state.loading) {
+                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { OmniSpinner() }
+                } else {
+                    EmptyState(stringResource(R.string.practice_problem_missing_title), stringResource(R.string.practice_problem_missing_message), icon = OmniIcons.Search)
+                }
                 return@Column
             }
             LazyColumn(Modifier.weight(1f), contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -150,7 +157,8 @@ fun ProblemScreen(route: ProblemRoute, navigator: Navigator) {
                     }
                 }
                 item { Text(problem.tagline, style = OmniTheme.typography.bodyStrong, color = colors.textPrimary) }
-                items(problem.statement) { paragraph -> Text(paragraph.replace("`", ""), style = OmniTheme.typography.body, color = colors.textSecondary) }
+                // Statements use Markdown (inline code, emphasis), as on the web playground.
+                items(problem.statement) { paragraph -> ProblemMarkdown(paragraph) }
                 if (problem.examples.isNotEmpty()) item { SectionLabel(stringResource(R.string.practice_examples), Modifier.padding(horizontal = 0.dp)) }
                 items(problem.examples) { example ->
                     Column(Modifier.fillMaxWidth().background(colors.surfaceRaised).padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -163,7 +171,7 @@ fun ProblemScreen(route: ProblemRoute, navigator: Navigator) {
                 }
                 if (problem.constraints.isNotEmpty()) {
                     item { SectionLabel(stringResource(R.string.practice_constraints), Modifier.padding(horizontal = 0.dp)) }
-                    items(problem.constraints) { Text("·  ${it.replace("`", "")}", style = OmniTheme.typography.mono, color = colors.textSecondary) }
+                    items(problem.constraints) { ProblemMarkdown("- $it") }
                 }
                 item {
                     Text(stringResource(R.string.practice_starters, pluralStringResource(R.plurals.practice_languages, state.solutionLanguages.size, state.solutionLanguages.size), testCount(problem.tests.size)), style = OmniTheme.typography.bodySmall, color = colors.textTertiary)
@@ -215,6 +223,16 @@ private fun PracticeEvents(events: kotlinx.coroutines.flow.Flow<PracticeEvent>, 
             }
         }
     }
+}
+
+@Composable
+private fun ProblemMarkdown(text: String) {
+    val colors = OmniTheme.colors
+    Markdown(
+        content = text,
+        colors = markdownColor(text = colors.textSecondary, codeBackground = colors.surfaceRaised),
+        modifier = Modifier.fillMaxWidth(),
+    )
 }
 
 @Composable

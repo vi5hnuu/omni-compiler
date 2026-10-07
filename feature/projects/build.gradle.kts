@@ -8,4 +8,5 @@ android {
 
 dependencies {
     implementation(projects.core.ads)
+    implementation(libs.markdown.renderer.m3)
 }

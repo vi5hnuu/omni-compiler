@@ -24,6 +24,8 @@
     <string name="practice_tab_examples">Examples</string>
     <string name="practice_tab_problems">Problems</string>
     <string name="practice_problem">Problem</string>
+    <string name="practice_problem_missing_title">Problem not found</string>
+    <string name="practice_problem_missing_message">This problem isn\'t in this version of the app.</string>
     <string name="practice_examples">Examples</string>
     <string name="practice_input">Input</string>
     <string name="practice_output">Output</string>
@@ -56,6 +58,7 @@
     <string name="folder_working">Setting up…</string>
     <string name="projects_more">More options</string>
     <string name="projects_import_folder">Import folder</string>
+    <string name="projects_importing">Importing… large folders and cloud drives can take a moment.</string>
     <string name="projects_open_file">Open file</string>
     <string name="projects_issue_more">(+%1$d more)</string>
     <string name="projects_issue_imported">Imported: no project settings were found, so the language was guessed from the files.</string>

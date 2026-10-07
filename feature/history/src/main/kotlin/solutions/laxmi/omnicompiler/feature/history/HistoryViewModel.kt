@@ -56,8 +56,11 @@ class HistoryViewModel @Inject constructor(
     private val filter = MutableStateFlow<Verdict?>(null)
     private val stats = MutableStateFlow<UsageStats?>(null)
 
+    /** The first page is fetched once per visit; changing the filter then works from the cache. */
+    private var refreshedThisVisit = false
+
     val items: Flow<PagingData<HistoryItem>> = filter
-        .flatMapLatest { verdict -> history.submissions(verdict) }
+        .flatMapLatest { verdict -> history.submissions(verdict, refreshOnStart = !refreshedThisVisit).also { refreshedThisVisit = true } }
         .map { data ->
             data.map<Submission, HistoryItem> { HistoryItem.Row(it) }
                 .insertSeparators { before, after ->

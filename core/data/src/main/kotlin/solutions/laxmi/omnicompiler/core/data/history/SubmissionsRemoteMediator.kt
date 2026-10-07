@@ -16,9 +16,11 @@ import solutions.laxmi.omnicompiler.core.network.source.JudgeNetworkDataSource
 internal class SubmissionsRemoteMediator(
     private val network: JudgeNetworkDataSource,
     private val dao: SubmissionDao,
+    /** False when the cache was already refreshed during this visit (e.g. only the verdict filter changed). */
+    private val refreshOnStart: Boolean,
 ) : RemoteMediator<Int, SubmissionEntity>() {
 
-    override suspend fun initialize() = InitializeAction.LAUNCH_INITIAL_REFRESH
+    override suspend fun initialize() = if (refreshOnStart) InitializeAction.LAUNCH_INITIAL_REFRESH else InitializeAction.SKIP_INITIAL_REFRESH
 
     override suspend fun load(loadType: LoadType, state: PagingState<Int, SubmissionEntity>): MediatorResult {
         val before = when (loadType) {
