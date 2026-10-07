@@ -43,7 +43,19 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import solutions.laxmi.omnicompiler.core.data.git.FileComparison
 import solutions.laxmi.omnicompiler.core.data.git.GitRepository
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.selection.SelectionContainer
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.ui.graphics.RectangleShape
+import solutions.laxmi.omnicompiler.core.designsystem.component.SheetHandle
+import solutions.laxmi.omnicompiler.core.ui.clipForDisplay
 import solutions.laxmi.omnicompiler.core.designsystem.component.EmptyState
 import solutions.laxmi.omnicompiler.core.designsystem.component.OmniBadge
 import solutions.laxmi.omnicompiler.core.designsystem.component.OmniButton
@@ -65,6 +77,9 @@ import solutions.laxmi.omnicompiler.core.ui.asString
 import solutions.laxmi.omnicompiler.core.ui.toUiText
 
 data class SourceControlUiState(val status: SourceStatus? = null, val working: Boolean = false)
+
+/** A file opened side by side: its local text and its text at the tracked commit. */
+data class OpenComparison(val fileName: String, val comparison: FileComparison)
 
 @HiltViewModel(assistedFactory = SourceControlViewModel.Factory::class)
 class SourceControlViewModel @AssistedInject constructor(
@@ -106,6 +121,25 @@ class SourceControlViewModel @AssistedInject constructor(
     }
 
     fun resolve(fileName: String, keepMine: Boolean) = run(success = null) { git.resolve(route.projectId, fileName, keepMine) }
+
+    private val comparisonState = MutableStateFlow<OpenComparison?>(null)
+    val comparison: StateFlow<OpenComparison?> = comparisonState
+
+    fun compare(fileName: String) {
+        if (working.value) return
+        viewModelScope.launch {
+            working.value = true
+            when (val result = git.compare(route.projectId, fileName)) {
+                is Outcome.Success -> comparisonState.value = OpenComparison(fileName, result.value)
+                is Outcome.Failure -> messages.send(result.error.toUiText())
+            }
+            working.value = false
+        }
+    }
+
+    fun closeComparison() {
+        comparisonState.value = null
+    }
 
     private fun run(success: UiText?, block: suspend () -> Outcome<Unit>) {
         if (working.value) return
@@ -152,6 +186,7 @@ fun SourceControlScreen(route: SourceControlRoute, navigator: Navigator) {
                             Text(name, style = OmniTheme.typography.mono, color = colors.status.limit.text)
                             Text(stringResource(R.string.git_conflict_note), style = OmniTheme.typography.bodySmall, color = colors.textTertiary)
                             Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                                OmniTextButton(stringResource(R.string.git_compare), { viewModel.compare(name) }, enabled = !state.working, color = colors.textSecondary)
                                 OmniTextButton(stringResource(R.string.git_keep_mine), { viewModel.resolve(name, keepMine = true) }, enabled = !state.working)
                                 OmniTextButton(stringResource(R.string.git_take_theirs), { viewModel.resolve(name, keepMine = false) }, enabled = !state.working, color = colors.textSecondary)
                             }
@@ -163,7 +198,7 @@ fun SourceControlScreen(route: SourceControlRoute, navigator: Navigator) {
                     item { Text(stringResource(R.string.git_no_changes), style = OmniTheme.typography.bodySmall, color = colors.textTertiary, modifier = Modifier.padding(horizontal = 16.dp)) }
                 }
                 items(status.changes, key = { it.name }) { change ->
-                    OmniListRow(title = change.name, trailing = { ChangeBadge(change.kind) })
+                    OmniListRow(title = change.name, trailing = { ChangeBadge(change.kind) }, onClick = { viewModel.compare(change.name) })
                 }
             }
             OmniTextField(
@@ -183,6 +218,45 @@ fun SourceControlScreen(route: SourceControlRoute, navigator: Navigator) {
             )
         }
         OmniSnackbarHost(snackbar, Modifier.align(Alignment.BottomCenter).padding(bottom = 140.dp))
+    }
+    val comparison by viewModel.comparison.collectAsStateWithLifecycle()
+    comparison?.let { open -> ComparisonSheet(open, branch = status?.remote?.branch.orEmpty(), onDismiss = viewModel::closeComparison) }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ComparisonSheet(open: OpenComparison, branch: String, onDismiss: () -> Unit) {
+    val colors = OmniTheme.colors
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        shape = RectangleShape,
+        containerColor = colors.surface,
+        scrimColor = colors.scrim,
+        dragHandle = { SheetHandle() },
+    ) {
+        Column(
+            Modifier.fillMaxWidth().fillMaxHeight(0.9f).navigationBarsPadding().verticalScroll(rememberScrollState()).padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Text(open.fileName, style = OmniTheme.typography.title, color = colors.textPrimary)
+            ComparedText(stringResource(R.string.git_compare_local), open.comparison.local)
+            ComparedText(stringResource(R.string.git_compare_remote, branch), open.comparison.remote)
+        }
+    }
+}
+
+@Composable
+private fun ComparedText(label: String, text: String?) {
+    val colors = OmniTheme.colors
+    Text(label.uppercase(), style = OmniTheme.typography.overline, color = colors.textTertiary)
+    SelectionContainer {
+        Text(
+            text?.let { clipForDisplay(it) ?: it } ?: stringResource(R.string.git_compare_missing),
+            style = OmniTheme.typography.mono,
+            color = if (text == null) colors.textTertiary else colors.textPrimary,
+            modifier = Modifier.fillMaxWidth().background(colors.surfaceRaised).horizontalScroll(rememberScrollState()).padding(10.dp),
+        )
     }
 }
 

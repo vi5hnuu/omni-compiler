@@ -23,6 +23,8 @@ import solutions.laxmi.omnicompiler.core.network.dto.GhUpdateRefDto
 import solutions.laxmi.omnicompiler.core.network.dto.GlCommitActionDto
 import solutions.laxmi.omnicompiler.core.network.dto.GlCreateCommitDto
 import solutions.laxmi.omnicompiler.core.network.error.transportError
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withPermit
 import java.io.IOException
 import javax.inject.Inject
 
@@ -65,8 +67,8 @@ internal class RetrofitGitNetworkDataSource @Inject constructor(
 
     override suspend fun branches(host: GitHost, token: String, repoId: String) = call {
         when (host) {
-            GitHost.GITHUB -> github.branches(bearer(token), repoId).map { it.name }
-            GitHost.GITLAB -> gitlab.branches(token, repoId).map { it.name }
+            GitHost.GITHUB -> allPages { page -> github.branches(bearer(token), repoId, page) }.map { it.name }
+            GitHost.GITLAB -> allPages { page -> gitlab.branches(token, repoId, page) }.map { it.name }
         }
     }
 
@@ -82,7 +84,8 @@ internal class RetrofitGitNetworkDataSource @Inject constructor(
             GitHost.GITHUB -> github.contents(bearer(token), repoId, segments(path), ref).map {
                 RemoteEntry(it.name, it.path, it.type == "dir", it.sha, it.size)
             }
-            GitHost.GITLAB -> gitlab.tree(token, repoId, path, ref).map { RemoteEntry(it.name, it.path, it.type == "tree", it.id, null) }
+            // A truncated listing would make pull treat the missing files as deleted upstream, so every page is read.
+            GitHost.GITLAB -> allPages { page -> gitlab.tree(token, repoId, path, ref, page) }.map { RemoteEntry(it.name, it.path, it.type == "tree", it.id, null) }
         }.sortedWith(compareByDescending<RemoteEntry> { it.isFolder }.thenBy { it.name.lowercase() })
     }
 
@@ -108,10 +111,13 @@ internal class RetrofitGitNetworkDataSource @Inject constructor(
             GitHost.GITHUB -> {
                 val auth = bearer(token)
                 val baseTree = github.commit(auth, repoId, baseCommit).tree.sha
+                // A few at a time: GitHub's secondary rate limits punish bursts of content-creating requests.
+                val uploads = Semaphore(MAX_PARALLEL_REQUESTS)
                 val entries = coroutineScope {
                     changes.map { change ->
                         async {
-                            GhTreeEntryDto(change.path, sha = change.content?.let { github.createBlob(auth, repoId, GhCreateBlobDto(it)).sha })
+                            val sha = change.content?.let { uploads.withPermit { github.createBlob(auth, repoId, GhCreateBlobDto(it)).sha } }
+                            GhTreeEntryDto(change.path, sha = sha)
                         }
                     }.awaitAll()
                 }
@@ -140,6 +146,17 @@ internal class RetrofitGitNetworkDataSource @Inject constructor(
     }
 
     private fun bearer(token: String) = "Bearer $token"
+
+    /** Reads a 100-per-page listing to the end (bounded, so a huge repository can't loop forever). */
+    private suspend fun <T> allPages(fetch: suspend (page: Int) -> List<T>): List<T> {
+        val all = mutableListOf<T>()
+        for (page in 1..MAX_PAGES) {
+            val items = fetch(page)
+            all += items
+            if (items.size < PAGE_SIZE) break
+        }
+        return all
+    }
 
     /** GitHub sends `X-RateLimit-Remaining: 0` (or `Retry-After` for secondary limits); GitLab sends `RateLimit-Remaining`. */
     private fun HttpException.isRateLimited(): Boolean {
@@ -173,5 +190,11 @@ internal class RetrofitGitNetworkDataSource @Inject constructor(
         Outcome.Failure(transportError(e))
     } catch (e: SerializationException) {
         Outcome.Failure(AppError.Unknown(reason = ErrorReason.BadResponse))
+    }
+
+    private companion object {
+        const val PAGE_SIZE = 100
+        const val MAX_PAGES = 20
+        const val MAX_PARALLEL_REQUESTS = 4
     }
 }

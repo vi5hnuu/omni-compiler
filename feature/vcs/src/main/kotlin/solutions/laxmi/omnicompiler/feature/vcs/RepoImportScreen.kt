@@ -148,7 +148,8 @@ private fun RepoList(state: RepoImportUiState, viewModel: RepoImportViewModel, m
         }
         if (state.loading) {
             item { CentredSpinner(Modifier.fillMaxWidth().padding(16.dp)) }
-        } else if (state.canLoadMore && state.query.isBlank()) {
+        } else if (state.canLoadMore) {
+            // Search filters the repositories loaded so far, so loading more stays available while searching.
             item { OmniTextButton(stringResource(R.string.git_load_more), viewModel::loadMore, Modifier.padding(16.dp)) }
         }
         if (state.error != null) item { ErrorLine(state.error.asString()) }

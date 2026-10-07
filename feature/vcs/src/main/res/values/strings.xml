@@ -36,6 +36,12 @@
     <string name="git_conflicts">Conflicts</string>
     <string name="git_conflict_note">Changed here and on the server. Your version is kept until you choose.</string>
     <string name="git_keep_mine">Keep mine</string>
+    <string name="git_compare">Compare</string>
+    <string name="git_compare_local">On this device</string>
+    <string name="git_compare_remote">On %1$s (last pull or push)</string>
+    <string name="git_compare_missing">(not present)</string>
+    <string name="git_disconnect_title">Disconnect %1$s?</string>
+    <string name="git_disconnect_message">The token is removed from this device. Projects keep tracking their repositories; reconnect to pull or push again.</string>
     <string name="git_take_theirs">Take theirs</string>
     <string name="git_changes">Changes</string>
     <string name="git_no_changes">No changes since the last pull or push.</string>

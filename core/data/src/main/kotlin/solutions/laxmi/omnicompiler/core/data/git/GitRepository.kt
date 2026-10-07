@@ -6,6 +6,8 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOn
@@ -55,7 +57,12 @@ interface GitRepository {
 
     /** Settles a conflict: keep the local version (it will overwrite the remote on push) or take the remote one. */
     suspend fun resolve(projectId: String, fileName: String, keepMine: Boolean): Outcome<Unit>
+
+    /** A file's local text and its text at the tracked commit (null where it doesn't exist), to review before push or resolve. */
+    suspend fun compare(projectId: String, fileName: String): Outcome<FileComparison>
 }
+
+data class FileComparison(val local: String?, val remote: String?)
 
 @Singleton
 internal class DefaultGitRepository @Inject constructor(
@@ -93,7 +100,7 @@ internal class DefaultGitRepository @Inject constructor(
         val head = network.head(repo.host, token, repo.id, branch).valueOr { return@withToken it }
         val entries = network.list(repo.host, token, repo.id, head, path).valueOr { return@withToken it }
         // Only the folder's own files, as the judge runs a flat workspace; very large files are left out.
-        val candidates = entries.filter { !it.isFolder && (it.size ?: 0) <= ProjectSync.MAX_FILE_BYTES }.take(ProjectSync.MAX_FILES)
+        val candidates = entries.filter { !it.isFolder && !isBinaryName(it.name) && (it.size ?: 0) <= ProjectSync.MAX_FILE_BYTES }.take(ProjectSync.MAX_FILES)
         val fetched = fetchTexts(repo, token, candidates).valueOr { return@withToken it }
         val name = path.substringAfterLast('/').ifEmpty { repo.fullName.substringAfterLast('/') }
         val remote = ProjectRemote(repo.host, repo.id, repo.fullName, branch, path, head, fetched.mapValues { (fileName, _) -> candidates.first { it.name == fileName }.sha })
@@ -179,6 +186,19 @@ internal class DefaultGitRepository @Inject constructor(
         }
     }
 
+    override suspend fun compare(projectId: String, fileName: String): Outcome<FileComparison> {
+        val workspace = projects.snapshot(projectId) ?: return notFound()
+        val remote = workspace.project.remote ?: return notFound()
+        val local = workspace.files.firstOrNull { it.name == fileName }?.content
+        val sha = remote.baseBlobs[fileName] ?: return Outcome.Success(FileComparison(local, remote = null))
+        return withToken(remote.host) { token ->
+            when (val text = network.blobText(remote.host, token, remote.repoId, sha)) {
+                is Outcome.Success -> Outcome.Success(FileComparison(local, text.value))
+                is Outcome.Failure -> text
+            }
+        }
+    }
+
     private suspend fun currentStatus(projectId: String): SourceStatus? = projects.snapshot(projectId)?.let(::statusOf)
 
     private fun statusOf(workspace: ProjectWorkspace): SourceStatus? {
@@ -203,9 +223,15 @@ internal class DefaultGitRepository @Inject constructor(
     private suspend fun fetchTexts(remote: ProjectRemote, token: String, entries: List<RemoteEntry>) =
         fetchTexts(remote.host, remote.repoId, token, entries)
 
-    /** Downloads blobs in parallel; binary files (NUL bytes) are skipped rather than corrupted. */
+    /**
+     * Downloads blobs a few at a time; files known to be binary by name aren't fetched at all, and any other binary
+     * file (NUL bytes) is skipped rather than corrupted.
+     */
     private suspend fun fetchTexts(host: GitHost, repoId: String, token: String, entries: List<RemoteEntry>): Outcome<Map<String, String>> = coroutineScope {
-        val results = entries.map { entry -> async { entry.name to network.blobText(host, token, repoId, entry.sha) } }.awaitAll()
+        val downloads = Semaphore(MAX_PARALLEL_DOWNLOADS)
+        val results = entries.filter { !isBinaryName(it.name) }
+            .map { entry -> async { entry.name to downloads.withPermit { network.blobText(host, token, repoId, entry.sha) } } }
+            .awaitAll()
         results.firstOrNull { it.second is Outcome.Failure }?.let { return@coroutineScope it.second as Outcome.Failure }
         Outcome.Success(results.mapNotNull { (name, result) -> (result as Outcome.Success).value.takeIf { '\u0000' !in it }?.let { name to it } }.toMap())
     }
@@ -219,6 +245,16 @@ internal class DefaultGitRepository @Inject constructor(
 
     private companion object {
         const val DEFAULT_MESSAGE = "Update from Omni Compiler"
+        const val MAX_PARALLEL_DOWNLOADS = 4
+
+        /** Extensions that are never editable source; checked before downloading so large assets aren't fetched. */
+        val BINARY_EXTENSIONS = setOf(
+            "png", "jpg", "jpeg", "gif", "webp", "bmp", "ico", "pdf", "zip", "gz", "tgz", "bz2", "xz", "7z", "rar", "jar",
+            "war", "class", "so", "dll", "dylib", "exe", "bin", "o", "a", "lib", "apk", "aab", "mp3", "mp4", "mov", "wav",
+            "ogg", "ttf", "otf", "woff", "woff2", "psd", "sqlite", "db",
+        )
+
+        fun isBinaryName(name: String) = name.substringAfterLast('.', "").lowercase() in BINARY_EXTENSIONS
 
         fun remotePath(remote: ProjectRemote, name: String) = if (remote.path.isEmpty()) name else "${remote.path.trimEnd('/')}/$name"
 

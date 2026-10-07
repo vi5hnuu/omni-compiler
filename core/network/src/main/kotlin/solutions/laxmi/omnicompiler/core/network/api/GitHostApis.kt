@@ -38,7 +38,7 @@ internal interface GitHubApi {
     suspend fun repos(@Header("Authorization") auth: String, @Query("page") page: Int): List<GhRepoDto>
 
     @GET("repos/{repo}/branches?per_page=100")
-    suspend fun branches(@Header("Authorization") auth: String, @Path("repo", encoded = true) repo: String): List<GhBranchDto>
+    suspend fun branches(@Header("Authorization") auth: String, @Path("repo", encoded = true) repo: String, @Query("page") page: Int): List<GhBranchDto>
 
     @GET("repos/{repo}/branches/{branch}")
     suspend fun branch(@Header("Authorization") auth: String, @Path("repo", encoded = true) repo: String, @Path("branch", encoded = true) branch: String): GhBranchDto
@@ -85,13 +85,19 @@ internal interface GitLabApi {
     suspend fun projects(@Header("PRIVATE-TOKEN") token: String, @Query("page") page: Int): List<GlProjectDto>
 
     @GET("projects/{id}/repository/branches?per_page=100")
-    suspend fun branches(@Header("PRIVATE-TOKEN") token: String, @Path("id") id: String): List<GlBranchDto>
+    suspend fun branches(@Header("PRIVATE-TOKEN") token: String, @Path("id") id: String, @Query("page") page: Int): List<GlBranchDto>
 
     @GET("projects/{id}/repository/branches/{branch}")
     suspend fun branch(@Header("PRIVATE-TOKEN") token: String, @Path("id") id: String, @Path("branch") branch: String): GlBranchDto
 
     @GET("projects/{id}/repository/tree?per_page=100")
-    suspend fun tree(@Header("PRIVATE-TOKEN") token: String, @Path("id") id: String, @Query("path") path: String, @Query("ref") ref: String): List<GlTreeEntryDto>
+    suspend fun tree(
+        @Header("PRIVATE-TOKEN") token: String,
+        @Path("id") id: String,
+        @Query("path") path: String,
+        @Query("ref") ref: String,
+        @Query("page") page: Int,
+    ): List<GlTreeEntryDto>
 
     @GET("projects/{id}/repository/blobs/{sha}/raw")
     suspend fun rawBlob(@Header("PRIVATE-TOKEN") token: String, @Path("id") id: String, @Path("sha") sha: String): ResponseBody

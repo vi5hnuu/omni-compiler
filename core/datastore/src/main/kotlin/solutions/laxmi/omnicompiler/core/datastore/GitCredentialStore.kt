@@ -21,6 +21,7 @@ interface GitCredentialStore {
     suspend fun token(host: String): StoredGitToken?
     suspend fun save(host: String, token: StoredGitToken)
     suspend fun remove(host: String)
+    suspend fun clear()
 }
 
 @Singleton
@@ -37,5 +38,9 @@ internal class EncryptedGitCredentialStore @Inject constructor(
 
     override suspend fun remove(host: String) {
         dataStore.updateData { current -> StoredGitCredentials(current?.tokens.orEmpty() - host) }
+    }
+
+    override suspend fun clear() {
+        dataStore.updateData { null }
     }
 }
