@@ -8,6 +8,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.NavBackStack
@@ -37,7 +41,7 @@ import solutions.laxmi.omnicompiler.feature.settings.settingsEntries
 import solutions.laxmi.omnicompiler.feature.workspace.workspaceEntries
 
 @Composable
-fun OmniNavHost(gate: AppGate, appVersion: String, externalFile: String?, onExternalFileOpened: () -> Unit) {
+fun OmniNavHost(gate: AppGate, userId: String?, appVersion: String, externalFile: String?, onExternalFileOpened: () -> Unit) {
     val backStack = rememberNavBackStack(
         when (gate) {
             AppGate.Ready -> EditorRoute()
@@ -46,18 +50,23 @@ fun OmniNavHost(gate: AppGate, appVersion: String, externalFile: String?, onExte
         },
     )
     val navigator = remember(backStack) { BackStackNavigator(backStack) }
+    val top = backStack.lastOrNull()
+    var routedUserId by rememberSaveable { mutableStateOf(userId) }
 
-    // Session gate: signing out anywhere (or a dead refresh token) returns to Welcome; signing in
-    // from an auth screen lands in the editor. Screens never route on session changes themselves.
-    LaunchedEffect(gate) {
-        val onAuthScreen = backStack.lastOrNull().isAuthRoute()
+    // The only place that routes on session and folder changes: signing out anywhere (or a dead refresh token)
+    // returns to Welcome, and a sign-in completed on an auth screen continues to the editor or, without a projects
+    // folder yet, to the folder picker. Auth screens never navigate on sign-in themselves. Re-evaluated when the top
+    // route changes too, so a gate change that happened under an external file applies once it is closed.
+    LaunchedEffect(gate, userId, top) {
+        val signedInHere = userId != null && userId != routedUserId
+        routedUserId = userId
         // A file opened from another app needs no account or projects folder, so it stays open whatever the gate.
-        if (backStack.lastOrNull() is ExternalFileRoute) return@LaunchedEffect
+        if (top is ExternalFileRoute) return@LaunchedEffect
         when {
-            gate == AppGate.SignedOut && !onAuthScreen -> navigator.resetTo(WelcomeRoute)
+            gate == AppGate.SignedOut && !top.isAuthRoute() -> navigator.resetTo(WelcomeRoute)
             // Projects live in a folder on the device; nothing past sign-in works until one is reachable.
-            gate == AppGate.NeedsFolder && backStack.lastOrNull() !is ProjectFolderRoute -> navigator.resetTo(ProjectFolderRoute())
-            gate == AppGate.Ready && (backStack.lastOrNull() == WelcomeRoute || backStack.lastOrNull() == ProjectFolderRoute()) ->
+            gate == AppGate.NeedsFolder && top !is ProjectFolderRoute -> navigator.resetTo(ProjectFolderRoute())
+            gate == AppGate.Ready && (top == WelcomeRoute || top == ProjectFolderRoute() || (signedInHere && top.isAuthRoute())) ->
                 navigator.resetTo(EditorRoute())
         }
     }

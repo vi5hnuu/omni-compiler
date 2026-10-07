@@ -19,7 +19,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -37,7 +39,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import solutions.laxmi.omnicompiler.core.designsystem.component.InfoBanner
 import solutions.laxmi.omnicompiler.core.designsystem.component.OmniButton
 import solutions.laxmi.omnicompiler.core.designsystem.component.OmniButtonStyle
-import solutions.laxmi.omnicompiler.core.designsystem.component.OmniCompactButton
 import solutions.laxmi.omnicompiler.core.designsystem.component.OmniTextButton
 import solutions.laxmi.omnicompiler.core.designsystem.icon.OmniIcons
 import solutions.laxmi.omnicompiler.core.designsystem.theme.OmniTheme
@@ -140,7 +141,7 @@ private fun DemoCard() {
         Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("C+", style = OmniTheme.typography.badge, color = colors.accentText)
             Text(stringResource(R.string.welcome_demo_file), style = OmniTheme.typography.mono, color = colors.textSecondary, modifier = Modifier.weight(1f))
-            OmniCompactButton(stringResource(R.string.welcome_run_demo), OmniIcons.Play, {}, height = 26.dp, enabled = true)
+            DemoRunChip()
         }
         Column(Modifier.background(p.background).fillMaxWidth().padding(vertical = 8.dp)) {
             code.forEachIndexed { i, line ->
@@ -156,5 +157,19 @@ private fun DemoCard() {
             Text(stringResource(R.string.welcome_demo_meta), style = OmniTheme.typography.monoSmall, color = colors.textTertiary, modifier = Modifier.weight(1f))
             VerdictStrip(List(3) { VerdictState.Done(Verdict.AC) })
         }
+    }
+}
+
+/** The demo's Run button, drawn only: it is part of the sample picture, so it takes no taps and isn't announced as a button. */
+@Composable
+private fun DemoRunChip() {
+    val colors = OmniTheme.colors
+    Row(
+        Modifier.height(26.dp).background(colors.accent).padding(start = 10.dp, end = 12.dp).clearAndSetSemantics { },
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        Icon(OmniIcons.Play, null, tint = colors.onAccent, modifier = Modifier.size(11.dp))
+        Text(stringResource(R.string.welcome_run_demo), style = OmniTheme.typography.button, color = colors.onAccent)
     }
 }

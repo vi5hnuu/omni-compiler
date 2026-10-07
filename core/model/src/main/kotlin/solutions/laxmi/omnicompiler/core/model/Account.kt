@@ -20,8 +20,9 @@ data class User(
     val isGuest: Boolean get() = accountType == AccountType.GUEST
     val hasPassword: Boolean get() = provider == AuthProvider.LOCAL
 
+    /** Name, else username, else e-mail; empty when the account has none (the UI supplies a localized label). */
     val displayName: String
-        get() = listOfNotNull(firstName, lastName).joinToString(" ").ifBlank { username ?: email ?: "Guest" }
+        get() = listOfNotNull(firstName, lastName).joinToString(" ").ifBlank { username ?: email.orEmpty() }
 
     val initials: String
         get() {

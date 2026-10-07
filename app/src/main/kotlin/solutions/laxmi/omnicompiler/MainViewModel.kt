@@ -5,6 +5,7 @@ import solutions.laxmi.omnicompiler.core.data.project.ProjectFolderRepository
 import solutions.laxmi.omnicompiler.core.data.project.FolderStatus
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
 import solutions.laxmi.omnicompiler.core.model.AppTheme
 import solutions.laxmi.omnicompiler.core.data.settings.SettingsRepository
 import androidx.lifecycle.ViewModel
@@ -38,6 +39,11 @@ class MainViewModel @Inject constructor(
             else -> AppGate.Ready
         }
     }.stateIn(viewModelScope, SharingStarted.Eagerly, AppGate.Loading)
+
+    /** Who is signed in; a change while an auth screen shows means that screen's sign-in just succeeded. */
+    val userId: StateFlow<String?> = auth.session
+        .map { (it as? Session.Active)?.user?.id }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
     /** Back in the foreground: the folder may have been removed, or files edited in another app. */
     private val pendingExternalFile = MutableStateFlow<String?>(null)

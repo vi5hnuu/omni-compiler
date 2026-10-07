@@ -144,4 +144,11 @@
     <string name="new_project_create">Create project</string>
     <!-- Name shown for guest accounts, which only have a generated username. -->
     <string name="common_guest">Guest</string>
+    <string name="common_your_account">Your account</string>
+    <string name="sign_out_title">Sign out?</string>
+    <string name="sign_out_message">Your projects stay on this device. Queued runs and connected GitHub/GitLab accounts are removed.</string>
+    <string name="sign_out_guest_title">Sign out of the guest account?</string>
+    <string name="sign_out_guest_message">A guest account can\'t be signed back into: its run history is lost for good. Projects stay on this device. Create an account first to keep your history.</string>
+    <string name="sign_out_confirm">Sign out</string>
+    <string name="sign_out_create_account">Create account</string>
 </resources>

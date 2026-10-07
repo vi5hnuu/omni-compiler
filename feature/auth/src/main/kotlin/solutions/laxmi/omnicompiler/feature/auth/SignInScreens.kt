@@ -40,7 +40,6 @@ import solutions.laxmi.omnicompiler.core.designsystem.component.OmniTextField
 import solutions.laxmi.omnicompiler.core.designsystem.icon.OmniIcons
 import solutions.laxmi.omnicompiler.core.designsystem.theme.OmniTheme
 import solutions.laxmi.omnicompiler.core.navigation.CheckInboxRoute
-import solutions.laxmi.omnicompiler.core.navigation.EditorRoute
 import solutions.laxmi.omnicompiler.core.navigation.ForgotPasswordRoute
 import solutions.laxmi.omnicompiler.core.navigation.Navigator
 import solutions.laxmi.omnicompiler.core.navigation.SignInRoute
@@ -55,8 +54,8 @@ internal fun AuthEvents(viewModel: SignInMethodsViewModel, navigator: Navigator,
             when (event) {
                 is AuthEvent.Message -> snackbar.showSnackbar(event.text.asString(resources))
                 is AuthEvent.CheckInbox -> navigator.navigate(CheckInboxRoute(event.email))
-                // New sessions are routed by the app's session gate; an existing one (guest) just returns.
-                AuthEvent.SignedIn -> navigator.resetTo(EditorRoute())
+                // The app's session gate routes every completed sign-in (editor, or the folder picker first).
+                AuthEvent.SignedIn -> Unit
                 AuthEvent.Converted -> navigator.back()
             }
         }

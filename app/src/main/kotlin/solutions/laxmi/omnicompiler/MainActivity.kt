@@ -55,9 +55,10 @@ class MainActivity : ComponentActivity() {
             CompositionLocalProvider(LocalAds provides ads) {
                 OmniTheme(darkTheme = dark) {
                     val gate by viewModel.gate.collectAsStateWithLifecycle()
+                    val userId by viewModel.userId.collectAsStateWithLifecycle()
                     val externalFile by viewModel.externalFile.collectAsStateWithLifecycle()
                     if (gate != AppGate.Loading) {
-                        OmniNavHost(gate, BuildConfig.VERSION_NAME, externalFile, viewModel::onExternalFileOpened)
+                        OmniNavHost(gate, userId, BuildConfig.VERSION_NAME, externalFile, viewModel::onExternalFileOpened)
                     }
                 }
             }
