@@ -21,8 +21,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.SheetValue
-import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.material3.ModalBottomSheetProperties
+import androidx.activity.compose.BackHandler
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
@@ -68,12 +68,13 @@ import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun OmniSheet(onDismiss: () -> Unit, canHide: () -> Boolean = { true }, content: @Composable () -> Unit) {
-    val currentCanHide by rememberUpdatedState(canHide)
+private fun OmniSheet(onDismiss: () -> Unit, holdOpen: Boolean = false, onCloseAttempt: () -> Unit = {}, content: @Composable () -> Unit) {
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        // A sheet with unsaved input can't be swiped away; onDismiss decides (e.g. asks first).
-        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true, confirmValueChange = { it != SheetValue.Hidden || currentCanHide() }),
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        // While [holdOpen] (unsaved input), swipes and outside taps don't close it, and Back asks via [onCloseAttempt].
+        sheetGesturesEnabled = !holdOpen,
+        properties = ModalBottomSheetProperties(shouldDismissOnBackPress = !holdOpen, shouldDismissOnClickOutside = !holdOpen),
         shape = RectangleShape,
         containerColor = OmniTheme.colors.surface,
         scrimColor = OmniTheme.colors.scrim,
@@ -83,7 +84,10 @@ private fun OmniSheet(onDismiss: () -> Unit, canHide: () -> Boolean = { true }, 
             Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(bottom = 16.dp).navigationBarsPadding().imePadding()
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(14.dp),
-        ) { content() }
+        ) {
+            BackHandler(enabled = holdOpen, onBack = onCloseAttempt)
+            content()
+        }
     }
 }
 
@@ -125,7 +129,7 @@ internal fun TestEditorSheet(
             dismissButton = { OmniTextButton(stringResource(R.string.sheet_test_keep_editing), { confirmingDiscard = false }, color = OmniTheme.colors.textSecondary) },
         )
     }
-    OmniSheet(onDismiss = { if (dirty) confirmingDiscard = true else onDismiss() }, canHide = { !dirty }) {
+    OmniSheet(onDismiss = onDismiss, holdOpen = dirty, onCloseAttempt = { confirmingDiscard = true }) {
         SheetTitle(stringResource(if (initial == null) R.string.sheet_test_new else R.string.sheet_test_edit), stringResource(R.string.sheet_test_hint))
         OmniTextField(name, { name = it }, label = stringResource(R.string.sheet_test_name), placeholder = stringResource(R.string.sheet_test_name_placeholder))
         OmniTextField(

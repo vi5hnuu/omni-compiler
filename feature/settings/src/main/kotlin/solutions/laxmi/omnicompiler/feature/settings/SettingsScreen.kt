@@ -53,6 +53,7 @@ import solutions.laxmi.omnicompiler.core.navigation.ProfileRoute
 import solutions.laxmi.omnicompiler.core.navigation.WelcomeRoute
 import solutions.laxmi.omnicompiler.core.ui.LanguageTile
 import solutions.laxmi.omnicompiler.core.ui.SignOutDialog
+import solutions.laxmi.omnicompiler.core.ui.shownName
 import solutions.laxmi.omnicompiler.core.navigation.SignUpRoute
 import solutions.laxmi.omnicompiler.core.ui.openUrl
 
@@ -135,7 +136,7 @@ fun SettingsScreen(navigator: Navigator, appVersion: String) {
             SectionLabel(stringResource(R.string.settings_account))
             val user = state.user
             OmniListRow(
-                title = user?.let { if (it.isGuest) stringResource(R.string.settings_guest_account) else it.email ?: it.displayName } ?: stringResource(R.string.settings_not_signed_in),
+                title = user?.let { if (it.isGuest) stringResource(R.string.settings_guest_account) else it.email ?: it.shownName() } ?: stringResource(R.string.settings_not_signed_in),
                 subtitle = stringResource(if (user == null) R.string.settings_sign_in_note else R.string.settings_account_note),
                 trailing = { Chevron() },
                 onClick = { navigator.navigate(if (user == null) WelcomeRoute else ProfileRoute) },

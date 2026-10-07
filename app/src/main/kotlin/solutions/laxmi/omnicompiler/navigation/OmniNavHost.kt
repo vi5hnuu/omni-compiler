@@ -59,7 +59,9 @@ fun OmniNavHost(gate: AppGate, userId: String?, appVersion: String, externalFile
     // route changes too, so a gate change that happened under an external file applies once it is closed.
     LaunchedEffect(gate, userId, top) {
         val signedInHere = userId != null && userId != routedUserId
-        routedUserId = userId
+        // Gate and user arrive as separate updates; the sign-in counts as routed only once the gate agrees with it
+        // (signed in ⇔ a user), so whichever update comes first, the routing below still sees the sign-in.
+        if ((gate == AppGate.SignedOut) == (userId == null)) routedUserId = userId
         // A file opened from another app needs no account or projects folder, so it stays open whatever the gate.
         if (top is ExternalFileRoute) return@LaunchedEffect
         when {

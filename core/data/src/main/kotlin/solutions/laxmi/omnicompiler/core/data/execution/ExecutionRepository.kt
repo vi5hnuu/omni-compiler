@@ -148,7 +148,8 @@ internal class DefaultExecutionRepository @Inject constructor(
                 live.value.containsKey(record.projectId) -> Unit
                 row.id in newestPerProject && record.jobId != null -> {
                     publish(record)
-                    trackers[record.projectId] = scope.launch { track(record, entryFileName = null) }
+                    // A short budget: the job may be long gone, and the project stays blocked while it is followed.
+                    trackers[record.projectId] = scope.launch { track(record, entryFileName = null, maxPolls = RESUME_POLLS) }
                 }
                 else -> finish(record.copy(phase = RunPhase.LOST), diagnostic = null)
             }
@@ -208,7 +209,12 @@ internal class DefaultExecutionRepository @Inject constructor(
                 when (val result = network.cancel(jobId)) {
                     is Outcome.Success -> finish(record.copy(phase = RunPhase.CANCELLED), diagnostic = null, cancelTracker = true)
                     // 409: a worker already took it; it can't be cancelled, only detached.
-                    is Outcome.Failure -> if (result.error is AppError.Conflict) detach(record) else return result
+                    // 409: a worker already took it; it can't be cancelled, only detached. Any other failure (job gone,
+                    // server unreachable) also stops following it, so the project isn't left blocked, and is reported.
+                    is Outcome.Failure -> {
+                        detach(record)
+                        if (result.error !is AppError.Conflict) return result
+                    }
                 }
             }
             RunPhase.RUNNING -> detach(record)
@@ -383,7 +389,7 @@ internal class DefaultExecutionRepository @Inject constructor(
         return Outcome.Success(Unit)
     }
 
-    private suspend fun track(start: RunRecord, entryFileName: String?) {
+    private suspend fun track(start: RunRecord, entryFileName: String?, maxPolls: Int = MAX_POLLS) {
         val jobId = requireNotNull(start.jobId)
         var current = start
         var diagnostic: CompileDiagnostic? = null
@@ -406,7 +412,7 @@ internal class DefaultExecutionRepository @Inject constructor(
         } catch (e: IOException) {
             // Socket unavailable or dropped: the job keeps running server-side, so poll instead.
         }
-        val job = pollUntilDone(jobId) { partial -> current = current.mergeJob(partial); publish(current) }
+        val job = pollUntilDone(jobId, maxPolls) { partial -> current = current.mergeJob(partial); publish(current) }
         current = if (job != null) current.mergeJob(job).copy(phase = if (job.status == JobStatus.FAILED && job.verdict == null) RunPhase.FAILED else RunPhase.DONE)
         else current.copy(phase = RunPhase.LOST)
         val withProblems = current.copy(problems = CompilerOutputParser.parse(current.compileOutput, diagnostic, entryFileName))
@@ -415,12 +421,15 @@ internal class DefaultExecutionRepository @Inject constructor(
     }
 
     /** Fetches the job until it is terminal; results from GET carry stdin/expected that frames lack. */
-    private suspend fun pollUntilDone(jobId: String, onProgress: (JudgeJob) -> Unit): JudgeJob? {
-        repeat(MAX_POLLS) { attempt ->
-            val job = network.job(jobId).getOrNull()
-            if (job != null) {
-                if (job.status.isTerminal) return job
-                onProgress(job)
+    private suspend fun pollUntilDone(jobId: String, maxPolls: Int = MAX_POLLS, onProgress: (JudgeJob) -> Unit): JudgeJob? {
+        repeat(maxPolls) { attempt ->
+            when (val result = network.job(jobId)) {
+                is Outcome.Success -> {
+                    if (result.value.status.isTerminal) return result.value
+                    onProgress(result.value)
+                }
+                // The judge no longer knows the job (expired or never accepted): nothing left to wait for.
+                is Outcome.Failure -> if (result.error is AppError.NotFound) return null
             }
             delay(if (attempt < FAST_POLLS) POLL_INTERVAL_MS else SLOW_POLL_INTERVAL_MS)
         }
@@ -485,6 +494,8 @@ internal class DefaultExecutionRepository @Inject constructor(
         const val MAX_TESTS = 100
         const val MAX_SOURCE_BYTES = 64 * 1024
         const val MAX_POLLS = 600
+        /** About 12 s of fast polling for a run picked up again after the app restarted. */
+        const val RESUME_POLLS = 15
         const val FAST_POLLS = 40
         const val POLL_INTERVAL_MS = 800L
         const val SLOW_POLL_INTERVAL_MS = 2_000L

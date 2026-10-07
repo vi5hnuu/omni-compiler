@@ -56,6 +56,7 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.ui.graphics.RectangleShape
 import solutions.laxmi.omnicompiler.core.designsystem.component.SheetHandle
 import solutions.laxmi.omnicompiler.core.ui.clipForDisplay
+import solutions.laxmi.omnicompiler.core.ui.R as CommonR
 import solutions.laxmi.omnicompiler.core.designsystem.component.EmptyState
 import solutions.laxmi.omnicompiler.core.designsystem.component.OmniBadge
 import solutions.laxmi.omnicompiler.core.designsystem.component.OmniButton
@@ -249,14 +250,27 @@ private fun ComparisonSheet(open: OpenComparison, branch: String, onDismiss: () 
 @Composable
 private fun ComparedText(label: String, text: String?) {
     val colors = OmniTheme.colors
+    var showAll by remember(text) { mutableStateOf(false) }
+    val clipped = remember(text) { text?.let(::clipForDisplay) }
     Text(label.uppercase(), style = OmniTheme.typography.overline, color = colors.textTertiary)
     SelectionContainer {
         Text(
-            text?.let { clipForDisplay(it) ?: it } ?: stringResource(R.string.git_compare_missing),
+            when {
+                text == null -> stringResource(R.string.git_compare_missing)
+                clipped != null && !showAll -> clipped
+                else -> text
+            },
             style = OmniTheme.typography.mono,
             color = if (text == null) colors.textTertiary else colors.textPrimary,
             modifier = Modifier.fillMaxWidth().background(colors.surfaceRaised).horizontalScroll(rememberScrollState()).padding(10.dp),
         )
+    }
+    // Deciding keep-mine / take-theirs on part of a file would be guesswork: say it's cut, and offer the rest.
+    if (clipped != null && !showAll) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text(stringResource(CommonR.string.common_output_clipped), style = OmniTheme.typography.bodySmall, color = colors.textTertiary, modifier = Modifier.weight(1f))
+            OmniTextButton(stringResource(CommonR.string.common_show_full_output), { showAll = true })
+        }
     }
 }
 

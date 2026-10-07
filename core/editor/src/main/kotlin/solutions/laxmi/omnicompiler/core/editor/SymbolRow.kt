@@ -73,22 +73,29 @@ private fun SymbolKey(label: String, width: Int, highlighted: Boolean = false, d
             .drawBehind { drawLine(colors.hairline, Offset(size.width - 0.5f, 0f), Offset(size.width - 0.5f, size.height), 1f) }
             .then(
                 if (repeats) {
-                    // Caret and line moves repeat while held, like a hardware key, instead of needing a tap per step.
+                    // Caret and line moves repeat while held, like a hardware key. Nothing happens on touch-down: a swipe
+                    // that scrolls the row starts on a key too, and must not move the caret or a line.
                     Modifier
                         .pointerInput(Unit) {
                             coroutineScope {
-                                detectTapGestures(onPress = {
-                                    currentOnClick()
-                                    val repeater = launch {
-                                        delay(REPEAT_DELAY_MS)
-                                        while (true) {
-                                            currentOnClick()
-                                            delay(REPEAT_INTERVAL_MS)
+                                var repeated = false
+                                detectTapGestures(
+                                    onPress = {
+                                        repeated = false
+                                        val repeater = launch {
+                                            delay(viewConfiguration.longPressTimeoutMillis)
+                                            repeated = true
+                                            while (true) {
+                                                currentOnClick()
+                                                delay(REPEAT_INTERVAL_MS)
+                                            }
                                         }
-                                    }
-                                    tryAwaitRelease()
-                                    repeater.cancel()
-                                })
+                                        tryAwaitRelease()
+                                        repeater.cancel()
+                                    },
+                                    // A quick tap acts once; after a hold the repeats already acted.
+                                    onTap = { if (!repeated) currentOnClick() },
+                                )
                             }
                         }
                         .semantics {
@@ -110,5 +117,4 @@ private fun SymbolKey(label: String, width: Int, highlighted: Boolean = false, d
     }
 }
 
-private const val REPEAT_DELAY_MS = 400L
 private const val REPEAT_INTERVAL_MS = 60L
