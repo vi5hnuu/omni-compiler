@@ -302,7 +302,8 @@ class CodeEditorState internal constructor(private val scope: CoroutineScope) {
     }
 
     private companion object {
-        const val SAVE_DEBOUNCE_MS = 300L
+        /** Each save writes the file through the storage provider; running, switching files and backgrounding flush at once. */
+        const val SAVE_DEBOUNCE_MS = 1_000L
     }
 }
 

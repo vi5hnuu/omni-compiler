@@ -22,8 +22,6 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 import solutions.laxmi.omnicompiler.core.data.account.AccountRepository
 import solutions.laxmi.omnicompiler.core.data.auth.AuthRepository
 import solutions.laxmi.omnicompiler.core.data.project.ProjectRepository
@@ -92,9 +90,6 @@ class EditorViewModel @AssistedInject constructor(
     private val projectId = MutableStateFlow(route.projectId)
     private val activeFileId = MutableStateFlow<String?>(null)
     private val startupError = MutableStateFlow<UiText?>(null)
-
-    /** Autosaves are written one at a time, in order, so an older buffer can never overwrite a newer one. */
-    private val saveLock = Mutex()
 
     private val events = Channel<EditorEvent>(Channel.BUFFERED)
     val eventFlow = events.receiveAsFlow()
@@ -182,8 +177,9 @@ class EditorViewModel @AssistedInject constructor(
     /** An open file's text; collected only by the pane showing it. */
     fun observeFile(fileId: String): Flow<OpenFile?> = projects.observeFile(fileId)
 
+    /** The repository orders saves and finishes them even if this screen goes away mid-write. */
     fun onContentChanged(fileId: String, text: String) {
-        viewModelScope.launch { saveLock.withLock { projects.updateFileContent(fileId, text) } }
+        viewModelScope.launch { projects.updateFileContent(fileId, text) }
     }
 
     fun toggleMinimap() = updateSettings { it.copy(minimap = !it.minimap) }

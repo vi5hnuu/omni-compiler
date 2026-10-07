@@ -6,7 +6,13 @@ import solutions.laxmi.omnicompiler.core.data.mapper.toManifest
 import solutions.laxmi.omnicompiler.core.model.ProjectRemote
 import solutions.laxmi.omnicompiler.core.storage.ProjectRoot
 import solutions.laxmi.omnicompiler.core.storage.ProjectFolderStore
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import solutions.laxmi.omnicompiler.core.common.ApplicationScope
 import androidx.room.withTransaction
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
@@ -131,7 +137,14 @@ internal class LocalProjectRepository @Inject constructor(
     private val lock: ProjectDiskLock,
     private val ids: IdGenerator,
     private val time: TimeSource,
+    @ApplicationScope private val appScope: CoroutineScope,
 ) : ProjectRepository {
+
+    /**
+     * Orders editor saves and snapshots. Saves queue on it in call order, and a snapshot waits behind every save
+     * requested before it, so a run (or search, export, push) never reads text older than what was typed.
+     */
+    private val saveLock = Mutex()
 
     override val lastProjectId: Flow<String?> = preferences.lastProjectId
 
@@ -157,7 +170,7 @@ internal class LocalProjectRepository @Inject constructor(
         }
 
     override suspend fun snapshot(projectId: String): ProjectWorkspace? =
-        projects.withChildren(projectId)?.let {
+        saveLock.withLock { projects.withChildren(projectId) }?.let {
             ProjectWorkspace(
                 project = it.project.toModel(),
                 files = it.files.sortedWith(compareByDescending<FileEntity> { f -> f.isEntry }.thenBy { f -> f.position }).map { f -> f.toModel() },
@@ -304,15 +317,30 @@ internal class LocalProjectRepository @Inject constructor(
         saveManifest(projectId)
     }
 
+    /**
+     * Runs in the application scope, so a screen closing mid-save (Back, switching projects) can't cancel the write.
+     * Started undispatched: the save takes its place on [saveLock] before this call returns control to the caller,
+     * ahead of any snapshot requested afterwards.
+     */
     override suspend fun updateFileContent(fileId: String, content: String) {
-        val file = files.get(fileId) ?: return
-        val docId = file.docId
-        // Disk and index change under one lock: a rescan in between would see the newer file, take it for an
-        // edit made in another app and reload the editor mid-typing.
-        if (docId != null && onDisk { root -> indexContent(fileId, content, store.updateFile(root, docId, content)) } is Outcome.Success) return
-        // The folder can't be reached: the index still keeps the text, and the next save retries the disk.
-        indexContent(fileId, content, written = null)
+        appScope.async(start = CoroutineStart.UNDISPATCHED) { saveLock.withLock { writeFileContent(fileId, content) } }.await()
     }
+
+    private suspend fun writeFileContent(fileId: String, content: String) {
+        val file = files.get(fileId) ?: return
+        val docId = file.docId ?: return indexContent(fileId, content, written = null)
+        // Index first, then disk, both under the disk lock: a rescan in between would see the older file, take it
+        // for an edit made in another app and reload the editor mid-typing.
+        val onDiskToo = onDisk { root ->
+            indexContent(fileId, content, written = null)
+            files.setDiskStateOf(fileId, store.updateFile(root, docId, content))
+        }
+        // The folder can't be reached: the index still keeps the text, and the next save retries the disk.
+        if (onDiskToo is Outcome.Failure) indexContent(fileId, content, written = null)
+    }
+
+    private suspend fun FileDao.setDiskStateOf(fileId: String, written: DocEntry) =
+        setDiskState(fileId, written.docId, written.lastModified, written.size)
 
     /** Edits count as activity: Projects ordering and "open most recent" follow them. */
     private suspend fun indexContent(fileId: String, content: String, written: DocEntry?) = db.withTransaction {

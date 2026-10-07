@@ -1,5 +1,8 @@
 package solutions.laxmi.omnicompiler.core.data.file
 
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.async
+import solutions.laxmi.omnicompiler.core.common.ApplicationScope
 import solutions.laxmi.omnicompiler.core.data.project.ProjectSync
 import solutions.laxmi.omnicompiler.core.model.AppError
 import solutions.laxmi.omnicompiler.core.model.ErrorReason
@@ -25,6 +28,7 @@ interface ExternalFileRepository {
 
 internal class DefaultExternalFileRepository @Inject constructor(
     private val store: ProjectFolderStore,
+    @ApplicationScope private val appScope: CoroutineScope,
 ) : ExternalFileRepository {
 
     override suspend fun open(uri: String): Outcome<ExternalFile> = try {
@@ -43,8 +47,9 @@ internal class DefaultExternalFileRepository @Inject constructor(
         Outcome.Failure(AppError.Unknown(reason = ErrorReason.DocumentReadFailed))
     }
 
+    /** Written in the application scope: leaving the screen (Back) must not cut the write-back to the user's file short. */
     override suspend fun save(uri: String, text: String): Outcome<Unit> = try {
-        store.writeDocument(uri, text)
+        appScope.async { store.writeDocument(uri, text) }.await()
         Outcome.Success(Unit)
     } catch (e: AccessLostException) {
         Outcome.Failure(AppError.Forbidden(reason = ErrorReason.DocumentNoPermission))
