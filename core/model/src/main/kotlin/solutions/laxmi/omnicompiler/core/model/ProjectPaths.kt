@@ -10,6 +10,12 @@ object ProjectPaths {
     const val MAX_LENGTH = 255
     const val MAX_SEGMENT = 128
 
+    /**
+     * Root files the judge runs in place of the runtime's own build and run commands when present. They drive a
+     * build; they're never the program a project was written in.
+     */
+    val BUILD_SCRIPTS = setOf("compile.sh", "run.sh")
+
     /** Folders that belong to the app (`.omni`) or to version control (`.git`); never part of a project's files. */
     private val INTERNAL_FOLDERS = setOf(".omni", ".git")
 

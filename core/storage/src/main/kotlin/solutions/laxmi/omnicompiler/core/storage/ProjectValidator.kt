@@ -59,8 +59,9 @@ class ProjectValidator(
     fun validate(folder: ScannedFolder, takenIds: Set<String>, known: ProjectManifest? = null): ValidatedProject? {
         val issues = mutableListOf<ProjectIssue>()
         val files = acceptedFiles(folder, issues)
-        // The judge writes the entry at the workspace root, so only a root file can be it.
-        val rootFiles = files.filter { ProjectPaths.isRoot(it.path) }
+        // The judge writes the entry at the workspace root, so only a root file can be it. Build scripts go last so a
+        // Java folder with a compile.sh is still guessed as Java; a folder of nothing but scripts can still run one.
+        val rootFiles = files.filter { ProjectPaths.isRoot(it.path) }.sortedBy { it.path in ProjectPaths.BUILD_SCRIPTS }
         val parsed = folder.manifestText?.let(ManifestCodec::decode)
         val corrupt = folder.manifestText != null && parsed == null
 
