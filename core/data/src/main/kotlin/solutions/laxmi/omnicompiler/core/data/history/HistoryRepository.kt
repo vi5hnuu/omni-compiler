@@ -13,6 +13,7 @@ import solutions.laxmi.omnicompiler.core.common.TimeSource
 import solutions.laxmi.omnicompiler.core.database.dao.SubmissionDao
 import solutions.laxmi.omnicompiler.core.database.entity.SubmissionEntity
 import solutions.laxmi.omnicompiler.core.model.JobStatus
+import solutions.laxmi.omnicompiler.core.model.median
 import solutions.laxmi.omnicompiler.core.model.Outcome
 import solutions.laxmi.omnicompiler.core.model.Submission
 import solutions.laxmi.omnicompiler.core.model.UsageStats
@@ -64,7 +65,7 @@ internal class DefaultHistoryRepository @Inject constructor(
         CachedHistorySummary(
             verdictCounts = rows.mapNotNull { Verdict.fromCode(it.verdict) }.groupingBy { it }.eachCount(),
             total = rows.size,
-            medianTimeMs = times.takeIf { it.isNotEmpty() }?.let { it[it.size / 2] },
+            medianTimeMs = times.median(),
         )
     }
 

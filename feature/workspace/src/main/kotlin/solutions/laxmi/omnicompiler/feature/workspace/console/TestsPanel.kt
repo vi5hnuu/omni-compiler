@@ -1,6 +1,8 @@
 package solutions.laxmi.omnicompiler.feature.workspace.console
 
 import solutions.laxmi.omnicompiler.core.ui.tone
+import solutions.laxmi.omnicompiler.core.ui.clipForDisplay
+import androidx.compose.foundation.verticalScroll
 import solutions.laxmi.omnicompiler.core.ui.formatDuration
 import solutions.laxmi.omnicompiler.core.ui.R as CommonR
 import solutions.laxmi.omnicompiler.feature.workspace.R
@@ -273,8 +275,10 @@ internal fun CodeBlock(label: String, text: String, highlight: Set<Int>, modifie
     val clipboard = LocalClipboardManager.current
     Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Text(label.uppercase(), style = OmniTheme.typography.overline, color = if (accentLabel) colors.accentText else colors.textTertiary)
+        // Huge outputs render their beginning only; Copy still takes the whole text.
+        val shown = remember(text) { clipForDisplay(text) ?: text }
         val content = buildAnnotatedString {
-            val lines = text.replace("\r\n", "\n").trimEnd('\n').split('\n')
+            val lines = shown.replace("\r\n", "\n").trimEnd('\n').split('\n')
             lines.forEachIndexed { i, line ->
                 if (i in highlight) withStyle(SpanStyle(background = colors.status.rejected.highlight)) { append(line.ifEmpty { " " }) } else append(line)
                 if (i < lines.lastIndex) append('\n')
@@ -282,7 +286,8 @@ internal fun CodeBlock(label: String, text: String, highlight: Set<Int>, modifie
         }
         // Copy sits inside the block's corner so side-by-side blocks (expected | output) keep their labels aligned.
         Box(Modifier.fillMaxWidth().heightIn(min = 36.dp, max = 180.dp).background(colors.surfaceRaised)) {
-            Box(Modifier.horizontalScroll(rememberScrollState()).padding(start = 8.dp, top = 8.dp, bottom = 8.dp, end = if (text.isEmpty()) 8.dp else 36.dp)) {
+            // Scrolls both ways inside its capped height, so long expected/actual text can be read, not only copied.
+            Box(Modifier.verticalScroll(rememberScrollState()).horizontalScroll(rememberScrollState()).padding(start = 8.dp, top = 8.dp, bottom = 8.dp, end = if (text.isEmpty()) 8.dp else 36.dp)) {
                 SelectionContainer {
                     Text(if (text.isEmpty()) AnnotatedString(stringResource(R.string.tests_empty_block)) else content, style = OmniTheme.typography.mono, color = if (text.isEmpty()) colors.textTertiary else colors.textPrimary)
                 }

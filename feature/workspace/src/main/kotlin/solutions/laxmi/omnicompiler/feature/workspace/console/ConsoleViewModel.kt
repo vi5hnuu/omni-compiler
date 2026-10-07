@@ -160,7 +160,10 @@ class ConsoleViewModel @AssistedInject constructor(
     fun runWithInput() = run(RunOptions(RunMode.STDIN_ONLY, stdin = stdin.value))
 
     fun stop() {
-        viewModelScope.launch { executions.stop(projectId) }
+        viewModelScope.launch {
+            val result = executions.stop(projectId)
+            if (result is Outcome.Failure) report(result.error)
+        }
     }
 
     fun clearConsole() {

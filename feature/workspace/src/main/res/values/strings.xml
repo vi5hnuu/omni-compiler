@@ -108,6 +108,10 @@
     <string name="console_close">Close console</string>
     <string name="console_stdin_prompt" translatable="false">stdin ›</string>
     <string name="console_stdin_placeholder">custom input, then Run</string>
+    <plurals name="console_stdin_lines">
+        <item quantity="one">%1$d line of input · Edit</item>
+        <item quantity="other">%1$d lines of input · Edit</item>
+    </plurals>
     <string name="console_no_runs_title">No runs yet</string>
     <string name="console_no_runs_message">Tap Run to execute your tests, or use the Input tab to run with custom stdin.</string>
     <string name="console_command_tests">$ run %1$s · %2$s</string>

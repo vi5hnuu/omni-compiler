@@ -68,5 +68,12 @@ data class BenchmarkResult(
     private val times get() = runs.mapNotNull { it.totalTimeMs }.sorted()
     val minMs: Int? get() = times.firstOrNull()
     val maxMs: Int? get() = times.lastOrNull()
-    val medianMs: Int? get() = times.takeIf { it.isNotEmpty() }?.let { it[it.size / 2] }
+    val medianMs: Int? get() = times.median()
+}
+
+/** Median of already sorted values; an even count averages the two middle ones. */
+fun List<Int>.median(): Int? = when {
+    isEmpty() -> null
+    size % 2 == 1 -> this[size / 2]
+    else -> (this[size / 2 - 1] + this[size / 2]) / 2
 }
