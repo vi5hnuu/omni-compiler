@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -120,7 +121,7 @@ fun OmniChip(
 @Composable
 fun <T> OmniSegmented(options: List<T>, selected: T, label: (T) -> String, onSelect: (T) -> Unit, modifier: Modifier = Modifier) {
     val colors = OmniTheme.colors
-    Row(modifier.border(1.dp, colors.border)) {
+    Row(modifier.border(1.dp, colors.border).selectableGroup()) {
         options.forEach { option ->
             val isSelected = option == selected
             Box(
@@ -128,7 +129,7 @@ fun <T> OmniSegmented(options: List<T>, selected: T, label: (T) -> String, onSel
                     .weight(1f)
                     .height(34.dp)
                     .background(if (isSelected) colors.textPrimary else Color.Transparent)
-                    .clickable(role = Role.RadioButton) { onSelect(option) },
+                    .selectable(selected = isSelected, role = Role.RadioButton) { onSelect(option) },
                 contentAlignment = Alignment.Center,
             ) {
                 Text(label(option), style = OmniTheme.typography.label, color = if (isSelected) colors.background else colors.textSecondary)

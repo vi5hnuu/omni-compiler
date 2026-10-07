@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -55,6 +56,7 @@ fun OmniButton(
     val colors = OmniTheme.colors
     val interaction = remember { MutableInteractionSource() }
     val pressed by interaction.collectIsPressedAsState()
+    val focused by interaction.collectIsFocusedAsState()
     val (container, content) = when (style) {
         OmniButtonStyle.Primary -> (if (pressed) colors.accentStrong else colors.accent) to colors.onAccent
         OmniButtonStyle.Secondary -> (if (pressed) colors.surfaceRaised else colors.surfaceMuted) to colors.textPrimary
@@ -68,7 +70,14 @@ fun OmniButton(
             .height(height)
             .alpha(if (enabled) 1f else DISABLED_ALPHA)
             .background(container)
-            .then(if (style == OmniButtonStyle.Outline) Modifier.border(1.dp, colors.borderStrong) else Modifier)
+            .then(
+                when {
+                    // Keyboard and D-pad users need to see which button has focus; there's no ripple to show it.
+                    focused -> Modifier.border(OmniDimens.focusRing, colors.ring)
+                    style == OmniButtonStyle.Outline -> Modifier.border(1.dp, colors.borderStrong)
+                    else -> Modifier
+                },
+            )
             .clickable(interaction, indication = null, enabled = clickable, role = Role.Button, onClick = onClick)
             .padding(horizontal = OmniDimens.space14),
         verticalAlignment = Alignment.CenterVertically,
@@ -100,11 +109,13 @@ fun OmniCompactButton(
 ) {
     val interaction = remember { MutableInteractionSource() }
     val pressed by interaction.collectIsPressedAsState()
+    val focused by interaction.collectIsFocusedAsState()
     Row(
         modifier = modifier
             .height(height)
             .alpha(if (enabled) 1f else DISABLED_ALPHA)
             .background(if (pressed) OmniTheme.colors.accentStrong else container)
+            .then(if (focused) Modifier.border(OmniDimens.focusRing, OmniTheme.colors.ring) else Modifier)
             .clickable(interaction, indication = null, enabled = enabled, role = Role.Button, onClick = onClick)
             .padding(start = 10.dp, end = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
