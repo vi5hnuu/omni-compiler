@@ -125,7 +125,7 @@ private fun ProjectPage(
     val currentFiles by rememberUpdatedState(files)
     var view by remember { mutableStateOf<WebView?>(null) }
     val currentConsole by rememberUpdatedState(onConsole)
-    val pageUrl = "https://${WebViewAssetLoader.DEFAULT_DOMAIN}$PROJECT_PATH${Uri.encode(pageName)}"
+    val pageUrl = "https://${WebViewAssetLoader.DEFAULT_DOMAIN}$PROJECT_PATH${encodePath(pageName)}"
     val loader = remember {
         WebViewAssetLoader.Builder()
             .addPathHandler(PROJECT_PATH) { path ->
@@ -265,6 +265,9 @@ private fun mimeTypeOf(path: String): String = when (path.substringAfterLast('.'
     "md" -> "text/markdown"
     else -> "text/plain"
 }
+
+/** Encodes each segment of a project path but keeps its slashes, so pages in subfolders resolve relative links. */
+internal fun encodePath(path: String): String = path.split('/').joinToString("/") { Uri.encode(it) }
 
 private const val PROJECT_PATH = "/project/"
 private const val RELOAD_DEBOUNCE_MS = 800L

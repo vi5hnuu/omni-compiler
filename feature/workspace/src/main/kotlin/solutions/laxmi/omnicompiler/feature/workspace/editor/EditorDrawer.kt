@@ -44,6 +44,9 @@ import solutions.laxmi.omnicompiler.core.designsystem.icon.OmniIcons
 import solutions.laxmi.omnicompiler.core.designsystem.theme.OmniTheme
 import solutions.laxmi.omnicompiler.core.model.ProjectSummary
 import solutions.laxmi.omnicompiler.core.model.FileHeader
+import solutions.laxmi.omnicompiler.core.model.ProjectPaths
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import solutions.laxmi.omnicompiler.core.model.User
 import solutions.laxmi.omnicompiler.core.ui.Avatar
 import solutions.laxmi.omnicompiler.core.ui.VerdictBadge
@@ -79,11 +82,18 @@ internal fun EditorDrawer(
     onDestination: (DrawerDestination) -> Unit,
 ) {
     val colors = OmniTheme.colors
-    // Large projects would push navigation out of reach: show a few files (always including the open one).
+    // Files as a folder tree; folders start closed except the ones holding the open file.
+    var expanded by rememberSaveable { mutableStateOf(emptyList<String>()) }
+    val activePath = files.firstOrNull { it.id == activeFileId }?.name
+    LaunchedEffect(activePath) {
+        activePath?.let { path -> expanded = (expanded + ProjectPaths.ancestors(path)).distinct() }
+    }
+    val rows = remember(files, expanded) { fileTree(files, expanded.toSet()) }
+    // Large projects would push navigation out of reach: show a few rows (always including the open file).
     var showAllFiles by rememberSaveable { mutableStateOf(false) }
-    val shownFiles = if (showAllFiles || files.size <= MAX_DRAWER_FILES + 1) files else {
-        val first = files.take(MAX_DRAWER_FILES)
-        first + files.filter { it.id == activeFileId && it !in first }
+    val shownRows = if (showAllFiles || rows.size <= MAX_DRAWER_FILES + 1) rows else {
+        val first = rows.take(MAX_DRAWER_FILES)
+        first + rows.filter { it is TreeRow.File && it.file.id == activeFileId && it !in first }
     }
     Column(
         Modifier
@@ -124,19 +134,33 @@ internal fun EditorDrawer(
                 }
             }
             item { SectionLabel(stringResource(R.string.drawer_project_files, currentProjectName)) }
-            items(shownFiles, key = { it.id }) { file ->
-                DrawerRow(selected = file.id == activeFileId, onClick = { onFile(file) }) {
-                    Text(
-                        fileBadgeFor(file.name, entryShortCode, file.isEntry),
-                        style = OmniTheme.typography.badge,
-                        color = colors.textTertiary,
-                        modifier = Modifier.width(20.dp),
-                    )
-                    Text(file.name, style = OmniTheme.typography.bodySmall, color = colors.textPrimary, maxLines = 1, modifier = Modifier.weight(1f))
-                    fileRole(file)?.let { Text(stringResource(it), style = OmniTheme.typography.monoSmall, color = colors.textTertiary) }
+            items(shownRows, key = { it.key }) { row ->
+                when (row) {
+                    is TreeRow.Folder -> DrawerRow(
+                        selected = false,
+                        onClick = { expanded = if (row.expanded) expanded - row.path else expanded + row.path },
+                        modifier = Modifier.padding(start = TREE_INDENT * row.depth),
+                    ) {
+                        Icon(if (row.expanded) OmniIcons.ChevronDown else OmniIcons.ChevronRight, null, tint = colors.textTertiary, modifier = Modifier.size(12.dp))
+                        Icon(OmniIcons.Folder, null, tint = colors.textSecondary, modifier = Modifier.size(14.dp))
+                        Text(row.name, style = OmniTheme.typography.bodySmall, color = colors.textPrimary, maxLines = 1, modifier = Modifier.weight(1f))
+                    }
+                    is TreeRow.File -> {
+                        val file = row.file
+                        DrawerRow(selected = file.id == activeFileId, onClick = { onFile(file) }, modifier = Modifier.padding(start = TREE_INDENT * row.depth)) {
+                            Text(
+                                fileBadgeFor(file.name, entryShortCode, file.isEntry),
+                                style = OmniTheme.typography.badge,
+                                color = colors.textTertiary,
+                                modifier = Modifier.width(20.dp),
+                            )
+                            Text(ProjectPaths.basename(file.name), style = OmniTheme.typography.bodySmall, color = colors.textPrimary, maxLines = 1, modifier = Modifier.weight(1f))
+                            fileRole(file)?.let { Text(stringResource(it), style = OmniTheme.typography.monoSmall, color = colors.textTertiary) }
+                        }
+                    }
                 }
             }
-            if (files.size > shownFiles.size || showAllFiles) {
+            if (rows.size > shownRows.size || showAllFiles) {
                 item(key = "files-toggle") {
                     DrawerRow(selected = false, onClick = { showAllFiles = !showAllFiles }) {
                         Text(
@@ -213,7 +237,12 @@ private fun AccountHeader(user: User?, onClick: () -> Unit) {
 }
 
 @Composable
-private fun DrawerRow(selected: Boolean, onClick: () -> Unit, content: @Composable androidx.compose.foundation.layout.RowScope.() -> Unit) {
+private fun DrawerRow(
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    content: @Composable androidx.compose.foundation.layout.RowScope.() -> Unit,
+) {
     val colors = OmniTheme.colors
     Row(
         Modifier
@@ -222,12 +251,51 @@ private fun DrawerRow(selected: Boolean, onClick: () -> Unit, content: @Composab
             .background(if (selected) colors.surfaceRaised else Color.Transparent)
             .drawBehind { if (selected) drawRect(colors.accent, size = size.copy(width = 2.dp.toPx())) }
             .clickable(role = Role.Button, onClick = onClick)
-            .padding(horizontal = 16.dp),
+            .padding(horizontal = 16.dp)
+            .then(modifier),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp),
         content = content,
     )
 }
+
+/** One line of the drawer's file tree. */
+private sealed interface TreeRow {
+    val key: String
+
+    data class Folder(val path: String, val name: String, val depth: Int, val expanded: Boolean) : TreeRow {
+        override val key get() = "dir:$path"
+    }
+
+    data class File(val file: FileHeader, val depth: Int) : TreeRow {
+        override val key get() = file.id
+    }
+}
+
+/**
+ * The visible rows of a tree built from file paths: in each folder its subfolders, then its files, by name; at the
+ * root the entry file comes first. Closed folders hide what's inside them.
+ */
+private fun fileTree(files: List<FileHeader>, expanded: Set<String>): List<TreeRow> {
+    val rows = mutableListOf<TreeRow>()
+    fun addLevel(prefix: String, depth: Int, inside: List<FileHeader>) {
+        val (direct, nested) = inside.partition { '/' !in it.name.removePrefix(prefix) }
+        if (depth == 0) direct.filter { it.isEntry }.forEach { rows += TreeRow.File(it, depth) }
+        nested.groupBy { it.name.removePrefix(prefix).substringBefore('/') }
+            .toSortedMap(String.CASE_INSENSITIVE_ORDER)
+            .forEach { (name, contents) ->
+                val path = prefix + name
+                val open = path in expanded
+                rows += TreeRow.Folder(path, name, depth, open)
+                if (open) addLevel("$path/", depth + 1, contents)
+            }
+        direct.filter { depth > 0 || !it.isEntry }.sortedBy { it.name.lowercase() }.forEach { rows += TreeRow.File(it, depth) }
+    }
+    addLevel("", 0, files)
+    return rows
+}
+
+private val TREE_INDENT = 12.dp
 
 @StringRes
 private fun fileRole(file: FileHeader): Int? = when {

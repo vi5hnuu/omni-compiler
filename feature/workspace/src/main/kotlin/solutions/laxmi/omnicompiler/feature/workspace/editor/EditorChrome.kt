@@ -58,6 +58,7 @@ import solutions.laxmi.omnicompiler.core.designsystem.theme.OmniDimens
 import solutions.laxmi.omnicompiler.core.designsystem.theme.OmniTheme
 import solutions.laxmi.omnicompiler.core.editor.CodeEditorState
 import solutions.laxmi.omnicompiler.core.model.FileHeader
+import solutions.laxmi.omnicompiler.core.model.ProjectPaths
 import solutions.laxmi.omnicompiler.core.ui.fileBadgeFor
 
 /** E1 app bar: menu, project + runtime picker, search, minimap toggle, overflow, Run. */
@@ -147,6 +148,8 @@ internal fun FileTabs(
     onAdd: () -> Unit,
 ) {
     val colors = OmniTheme.colors
+    // Tabs show a file's own name; two open files with the same name also show their folder to tell them apart.
+    val clashing = remember(files) { files.groupingBy { ProjectPaths.basename(it.name) }.eachCount().filterValues { it > 1 }.keys }
     Row(
         Modifier
             .fillMaxWidth()
@@ -176,8 +179,13 @@ internal fun FileTabs(
                         style = OmniTheme.typography.badge.copy(fontSize = OmniTheme.typography.monoSmall.fontSize * 0.95f),
                         color = if (active && file.isEntry) colors.accentText else colors.textTertiary,
                     )
+                    val baseName = ProjectPaths.basename(file.name)
+                    val folder = ProjectPaths.parent(file.name)
+                    if (folder.isNotEmpty() && baseName in clashing) {
+                        Text("${folder.substringAfterLast('/')}/", style = OmniTheme.typography.bodySmall, color = colors.textTertiary, maxLines = 1)
+                    }
                     Text(
-                        file.name,
+                        baseName,
                         style = OmniTheme.typography.bodySmall.copy(fontWeight = if (active) androidx.compose.ui.text.font.FontWeight.SemiBold else null),
                         color = if (active) colors.textPrimary else colors.textSecondary,
                         maxLines = 1,
@@ -187,7 +195,7 @@ internal fun FileTabs(
                     if (active && !file.isEntry) {
                         Icon(
                             OmniIcons.MoreVertical,
-                            stringResource(R.string.editor_file_actions, file.name),
+                            stringResource(R.string.editor_file_actions, ProjectPaths.basename(file.name)),
                             tint = colors.textTertiary,
                             modifier = Modifier.size(14.dp).clickable(role = Role.Button) { onFileMenu(file) },
                         )
@@ -209,8 +217,12 @@ internal fun Breadcrumb(fileName: String) {
     ) {
         val style = OmniTheme.typography.monoSmall
         Text(stringResource(R.string.editor_breadcrumb_root), style = style, color = colors.textTertiary)
-        Text("›", style = style, color = colors.textTertiary)
-        Text(fileName, style = style, color = colors.textSecondary, maxLines = 1)
+        // workspace › src › util › helper.py: folders dim, the file itself brighter.
+        val segments = fileName.split('/')
+        segments.forEachIndexed { index, segment ->
+            Text("›", style = style, color = colors.textTertiary)
+            Text(segment, style = style, color = if (index == segments.lastIndex) colors.textSecondary else colors.textTertiary, maxLines = 1)
+        }
     }
 }
 

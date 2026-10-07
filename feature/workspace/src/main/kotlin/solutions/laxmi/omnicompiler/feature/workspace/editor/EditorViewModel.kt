@@ -33,6 +33,7 @@ import solutions.laxmi.omnicompiler.core.model.EditorSettings
 import solutions.laxmi.omnicompiler.core.model.LanguageInfo
 import solutions.laxmi.omnicompiler.core.model.AppError
 import solutions.laxmi.omnicompiler.core.model.Outcome
+import solutions.laxmi.omnicompiler.core.model.ProjectPaths
 import solutions.laxmi.omnicompiler.core.model.onSuccess
 import solutions.laxmi.omnicompiler.core.model.ProjectFilter
 import solutions.laxmi.omnicompiler.core.model.ProjectSummary
@@ -209,7 +210,9 @@ class EditorViewModel @AssistedInject constructor(
         viewModelScope.launch {
             val header = projects.addFile(id, "$baseName.h", "#pragma once\n")
             if (header is Outcome.Failure) return@launch events.send(EditorEvent.Message(header.error.toUiText()))
-            when (val source = projects.addFile(id, "$baseName.$sourceExtension", "#include \"$baseName.h\"\n")) {
+            // Both files go in the same folder, so the source includes the header by its bare name.
+            val includeName = ProjectPaths.basename(baseName)
+            when (val source = projects.addFile(id, "$baseName.$sourceExtension", "#include \"$includeName.h\"\n")) {
                 is Outcome.Success -> {
                     activeFileId.value = source.value.id
                     onDone()

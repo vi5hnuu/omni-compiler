@@ -35,11 +35,12 @@ fun LanguageTile(code: String, modifier: Modifier = Modifier, selected: Boolean 
 /** Short tag shown before a file name in tabs and lists: the language code, `H`, or `in` for data. */
 fun fileBadgeFor(fileName: String, entryShortCode: String?, isEntry: Boolean): String {
     if (isEntry && entryShortCode != null) return entryShortCode
-    return when (fileName.substringAfterLast('.', "").lowercase()) {
+    val name = fileName.substringAfterLast('/')
+    return when (name.substringAfterLast('.', "").lowercase()) {
         "h", "hh", "hpp", "hxx" -> "H"
         "txt", "in", "dat", "csv", "tsv" -> "in"
         "out" -> "out"
         "" -> "·"
-        else -> fileName.substringAfterLast('.').take(2).replaceFirstChar { it.uppercase() }
+        else -> name.substringAfterLast('.').take(2).replaceFirstChar { it.uppercase() }
     }
 }

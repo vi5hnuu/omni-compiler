@@ -94,10 +94,12 @@ object EditorLanguages {
      * extensions are ambiguous (`.pl` is Perl or Prolog); extra files go by extension first.
      */
     fun grammarFor(fileName: String, languageBase: String?, isEntry: Boolean): GrammarId? {
-        val ext = fileName.substringAfterLast('.', "").lowercase()
+        // A path's folders (`src.v2/Makefile`) say nothing about the file's type; only its own name does.
+        val ownName = fileName.substringAfterLast('/')
+        val ext = ownName.substringAfterLast('.', "").lowercase()
         val byBase = languageBase?.let { BASE_TO_GRAMMAR[it] }
         // Some files are known by their whole name rather than an extension (Makefile, Dockerfile).
-        val byExt = NAME_TO_GRAMMAR[fileName.lowercase()] ?: EXTENSION_TO_GRAMMAR[ext]
+        val byExt = NAME_TO_GRAMMAR[ownName.lowercase()] ?: EXTENSION_TO_GRAMMAR[ext]
         val name = if (isEntry) byBase ?: byExt else byExt ?: if (ext in PLAIN_EXTENSIONS) null else byBase
         return name?.let { SCOPES[it] }?.let(::GrammarId)
     }
