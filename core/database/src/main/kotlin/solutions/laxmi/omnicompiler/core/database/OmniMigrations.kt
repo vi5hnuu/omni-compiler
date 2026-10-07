@@ -41,10 +41,14 @@ object OmniMigrations {
         }
     }
 
-    /** v6: projects remember their manifest's last-modified time, so rescans skip manifests that didn't change. */
+    /**
+     * v6: projects remember their manifest's last-modified time, so rescans skip manifests that didn't change; files
+     * flag editor saves not yet written to the project folder.
+     */
     val MIGRATION_5_6 = object : Migration(5, 6) {
         override fun migrate(connection: SQLiteConnection) {
             connection.execSQL("ALTER TABLE projects ADD COLUMN manifest_modified INTEGER NOT NULL DEFAULT 0")
+            connection.execSQL("ALTER TABLE files ADD COLUMN disk_dirty INTEGER NOT NULL DEFAULT 0")
         }
     }
 

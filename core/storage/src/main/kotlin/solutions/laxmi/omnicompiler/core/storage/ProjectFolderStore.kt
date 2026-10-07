@@ -187,13 +187,35 @@ internal class SafProjectFolderStore @Inject constructor(
             val backup = existing.firstOrNull { it.name == ProjectLayout.MANIFEST_BACKUP }?.docId ?: tree.createFile(meta, ProjectLayout.MANIFEST_BACKUP)
             tree.writeText(backup, corruptBackup)
         }
+        val text = ManifestCodec.encode(manifest)
+        val current = existing.firstOrNull { it.name == ProjectLayout.MANIFEST }
         // Write a temp file, then swap it in: if the app dies mid-write the old manifest (or, between delete and
-        // rename, none) is left, never a truncated one; a missing manifest is restored from the index.
+        // rename, none; it is restored from the index) is left, never a truncated one. Providers that can't rename
+        // get the manifest written in place, as before.
         val temp = existing.firstOrNull { it.name == ProjectLayout.MANIFEST_TEMP }?.docId ?: tree.createFile(meta, ProjectLayout.MANIFEST_TEMP)
-        tree.writeText(temp, ManifestCodec.encode(manifest))
-        existing.firstOrNull { it.name == ProjectLayout.MANIFEST }?.let { tree.delete(it.docId) }
-        val written = tree.rename(temp, ProjectLayout.MANIFEST)
+        tree.writeText(temp, text)
+        val swapped = tree.entry(temp)?.takeIf { it.supportsRename }?.let {
+            current?.let { tree.delete(it.docId) }
+            try {
+                tree.rename(temp, ProjectLayout.MANIFEST)
+            } catch (e: IOException) {
+                null
+            }
+        }
+        val written = swapped ?: writeInPlace(tree, meta, temp, text)
         tree.entry(written) ?: throw IOException("Written manifest vanished")
+    }
+
+    /** Overwrites (or creates) the manifest directly and drops the unused temp file. */
+    private fun writeInPlace(tree: DocumentTree, meta: String, temp: String, text: String): String {
+        val file = tree.child(meta, ProjectLayout.MANIFEST)?.docId ?: tree.createFile(meta, ProjectLayout.MANIFEST)
+        tree.writeText(file, text)
+        try {
+            tree.delete(temp)
+        } catch (e: IOException) {
+            // A leftover temp file is harmless: it is overwritten by the next write and never read as the manifest.
+        }
+        return file
     }
 
     override suspend fun rename(root: ProjectRoot, docId: String, name: String): DocEntry = withContext(io) {

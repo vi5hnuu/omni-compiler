@@ -116,10 +116,16 @@ interface ProjectRepository {
     suspend fun importRemote(name: String, files: Map<String, String>, remote: ProjectRemote): Outcome<String>
 
     /**
-     * Applies files from the remote (content, or null to delete) as outside edits (an open editor reloads),
-     * then records the new [remote] state. The entry file is never deleted this way.
+     * Applies files from the remote (content, or null to delete) as outside edits (an open editor reloads), then
+     * records the new [remote] state. [expectedLocal] is each touched file's text when the caller compared it (null:
+     * absent); if any differs now, nothing is written and the result is a conflict, so a pull can't overwrite an edit
+     * made after it looked. The entry file is never deleted this way, and files the project can't hold (too large,
+     * past the file limit) end up in the folder but not in the project, exactly as with any rescan.
      */
-    suspend fun applyRemote(projectId: String, changes: Map<String, String?>, remote: ProjectRemote): Outcome<Unit>
+    suspend fun applyRemote(projectId: String, changes: Map<String, String?>, remote: ProjectRemote, expectedLocal: Map<String, String?>): Outcome<Unit>
+
+    /** Names of the files in the project's folder (whether or not the project opens them); null when it can't be read. */
+    suspend fun folderFileNames(projectId: String): Set<String>?
 
     suspend fun setRemote(projectId: String, remote: ProjectRemote): Outcome<Unit>
 }
@@ -142,8 +148,9 @@ internal class LocalProjectRepository @Inject constructor(
 ) : ProjectRepository {
 
     /**
-     * Orders editor saves and snapshots. Saves queue on it in call order, and a snapshot waits behind every save
-     * requested before it, so a run (or search, export, push) never reads text older than what was typed.
+     * Orders writes of file text to the index, and snapshots behind them: saves queue on it in call order, and a
+     * snapshot waits for every save requested before it, so a run (or search, export, push) never reads text older
+     * than what was typed. Only the quick index write is held under it; the slower disk write follows outside.
      */
     private val saveLock = Mutex()
 
@@ -222,7 +229,7 @@ internal class LocalProjectRepository @Inject constructor(
             val folder = store.createFolder(root, "${source.name}-copy")
             val copies = files.list(projectId).map { file ->
                 val written = store.writeFile(root, folder.docId, file.name, file.content)
-                file.copy(id = ids.newId(), projectId = copyId, contentVersion = 0, docId = written.docId, lastModified = written.lastModified, size = written.size)
+                file.copy(id = ids.newId(), projectId = copyId, contentVersion = 0, docId = written.docId, lastModified = written.lastModified, size = written.size, diskDirty = false)
             }
             db.withTransaction {
                 projects.upsert(source.copy(id = copyId, name = folder.name, lastVerdict = null, createdAt = now, updatedAt = now, folderDocId = folder.docId, issues = ""))
@@ -259,7 +266,8 @@ internal class LocalProjectRepository @Inject constructor(
         // Keep the index when the folder survives: dropping it would only make the project reappear on the next rescan.
         if (folder != null) onDisk { root -> store.delete(root, folder) }.let { if (it is Outcome.Failure) return it }
         projects.delete(projectId)
-        project.originUri?.let(store::releaseDocument)
+        // Duplicates share the original document; its grant goes only with the last project that links to it.
+        project.originUri?.takeIf { projects.countWithOrigin(it) == 0 }?.let(store::releaseDocument)
         if (preferences.lastProjectId.first() == projectId) preferences.setLastProjectId(null)
         return Outcome.Success(Unit)
     }
@@ -322,34 +330,36 @@ internal class LocalProjectRepository @Inject constructor(
     }
 
     /**
-     * Runs in the application scope, so a screen closing mid-save (Back, switching projects) can't cancel the write.
+     * Runs in the application scope, so a screen closing mid-save (Back, switching projects) can't cancel it.
      * Started undispatched: the save takes its place on [saveLock] before this call returns control to the caller,
-     * ahead of any snapshot requested afterwards.
+     * ahead of any snapshot requested afterwards. The text goes to the index first (flagged as not yet on disk), then
+     * to the project folder; if the app dies in between, the next rescan writes it out (see ProjectSync).
      */
     override suspend fun updateFileContent(fileId: String, content: String) {
-        appScope.async(start = CoroutineStart.UNDISPATCHED) { saveLock.withLock { writeFileContent(fileId, content) } }.await()
+        appScope.async(start = CoroutineStart.UNDISPATCHED) {
+            val indexed = saveLock.withLock { files.get(fileId)?.also { indexContent(fileId, content) } != null }
+            if (indexed) writeToDisk(fileId)
+        }.await()
     }
 
-    private suspend fun writeFileContent(fileId: String, content: String) {
-        val file = files.get(fileId) ?: return
-        val docId = file.docId ?: return indexContent(fileId, content, written = null)
-        // Index first, then disk, both under the disk lock: a rescan in between would see the older file, take it
-        // for an edit made in another app and reload the editor mid-typing.
-        val onDiskToo = onDisk { root ->
-            indexContent(fileId, content, written = null)
-            files.setDiskStateOf(fileId, store.updateFile(root, docId, content))
+    /**
+     * Writes the file's current text (a newer save may have replaced the one that asked) and clears its "not on disk"
+     * flag only if that text is still current. Under the disk lock with the disk-state update, so a rescan can't read
+     * the file half-way. Unreachable folders keep the flag set: the next save or rescan writes it.
+     */
+    private suspend fun writeToDisk(fileId: String) {
+        onDisk { root ->
+            val row = files.get(fileId)?.takeIf { it.diskDirty } ?: return@onDisk
+            // Not in the folder yet (index-only project): the folder export writes it with the rest.
+            val docId = row.docId ?: return@onDisk
+            val written = store.updateFile(root, docId, row.content)
+            files.markWritten(fileId, row.content, written.docId, written.lastModified, written.size)
         }
-        // The folder can't be reached: the index still keeps the text, and the next save retries the disk.
-        if (onDiskToo is Outcome.Failure) indexContent(fileId, content, written = null)
     }
-
-    private suspend fun FileDao.setDiskStateOf(fileId: String, written: DocEntry) =
-        setDiskState(fileId, written.docId, written.lastModified, written.size)
 
     /** Edits count as activity: Projects ordering and "open most recent" follow them. */
-    private suspend fun indexContent(fileId: String, content: String, written: DocEntry?) = db.withTransaction {
+    private suspend fun indexContent(fileId: String, content: String) = db.withTransaction {
         files.updateContent(fileId, content)
-        written?.let { files.setDiskState(fileId, it.docId, it.lastModified, it.size) }
         projects.touchForFile(fileId, time.now().toEpochMilliseconds())
     }
 
@@ -473,37 +483,60 @@ internal class LocalProjectRepository @Inject constructor(
     override suspend fun importRemote(name: String, files: Map<String, String>, remote: ProjectRemote): Outcome<String> =
         imported(onDisk { root -> sync.createFromFilesLocked(root, projectName(name).ifEmpty { "repo" }, files, remote.toManifest()) })
 
-    override suspend fun applyRemote(projectId: String, changes: Map<String, String?>, remote: ProjectRemote): Outcome<Unit> {
+    override suspend fun applyRemote(
+        projectId: String,
+        changes: Map<String, String?>,
+        remote: ProjectRemote,
+        expectedLocal: Map<String, String?>,
+    ): Outcome<Unit> = appScope.async(start = CoroutineStart.UNDISPATCHED) {
+        // Under the save lock (no editor save can land between the check and the writes) and in the application
+        // scope (leaving the screen can't stop it half-way).
+        saveLock.withLock { applyRemoteLocked(projectId, changes, remote, expectedLocal) }
+    }.await()
+
+    private suspend fun applyRemoteLocked(
+        projectId: String,
+        changes: Map<String, String?>,
+        remote: ProjectRemote,
+        expectedLocal: Map<String, String?>,
+    ): Outcome<Unit> {
         val project = projects.get(projectId) ?: return Outcome.Failure(AppError.NotFound(reason = ErrorReason.ProjectNotFound))
         val folder = project.folderDocId ?: return Outcome.Failure(AppError.Unknown(reason = ErrorReason.ProjectsFolderUnavailable))
-        return onDisk { root ->
+        val applied = onDisk { root ->
             val existing = files.list(projectId).associateBy { it.name }
+            if (changes.keys.any { existing[it]?.content != expectedLocal[it] }) return@onDisk false
             changes.forEach { (name, content) ->
                 val row = existing[name]
+                val docId = row?.docId
                 when {
-                    content == null && row != null && !row.isEntry -> {
-                        row.docId?.let { store.delete(root, it) }
-                        files.deleteNonEntry(row.id)
+                    content == null -> if (row != null && !row.isEntry && docId != null) store.delete(root, docId)
+                    docId != null -> {
+                        store.updateFile(root, docId, content)
+                        // The remote text replaces the file; a pending local write of the old text must not follow.
+                        files.clearDiskDirty(row.id)
                     }
-                    content != null && row != null -> {
-                        val written = row.docId?.let { store.updateFile(root, it, content) } ?: store.writeFile(root, folder, name, content)
-                        db.withTransaction {
-                            files.replaceContent(row.id, content)
-                            files.setDiskState(row.id, written.docId, written.lastModified, written.size)
-                        }
-                    }
-                    content != null -> {
-                        val written = store.writeFile(root, folder, name, content)
-                        files.insert(
-                            FileEntity(ids.newId(), projectId, name, content, isEntry = false, position = files.nextPosition(projectId),
-                                docId = written.docId, lastModified = written.lastModified, size = written.size),
-                        )
-                    }
+                    else -> store.writeFile(root, folder, name, content)
                 }
             }
             projects.upsert(project.copy(remoteJson = ManifestCodec.encodeRemote(remote.toManifest()), updatedAt = time.now().toEpochMilliseconds()))
             sync.writeManifestLocked(root, projectId)
+            // Index what the folder now holds through the same checks as any rescan (size, file limit, names).
+            sync.syncProjectLocked(root, projectId) is Outcome.Success
         }
+        return when {
+            applied is Outcome.Failure -> applied
+            (applied as Outcome.Success).value -> Outcome.Success(Unit)
+            else -> Outcome.Failure(AppError.Conflict(reason = ErrorReason.GitLocalChanged))
+        }
+    }
+
+    override suspend fun folderFileNames(projectId: String): Set<String>? {
+        val folder = projects.get(projectId)?.folderDocId ?: return null
+        val names = onDisk { root ->
+            val entry = store.entry(root, folder) ?: throw java.io.IOException("Project folder is gone")
+            store.scanFolder(root, entry).entries.filter { !it.isDirectory }.mapTo(HashSet()) { it.name }
+        }
+        return (names as? Outcome.Success)?.value
     }
 
     override suspend fun setRemote(projectId: String, remote: ProjectRemote): Outcome<Unit> {

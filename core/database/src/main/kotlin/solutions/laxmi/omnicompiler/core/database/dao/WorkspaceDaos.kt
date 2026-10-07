@@ -53,6 +53,10 @@ interface ProjectDao {
     @Query("SELECT * FROM projects ORDER BY updated_at DESC LIMIT 1")
     suspend fun mostRecent(): ProjectEntity?
 
+    /** Projects linked to a document (duplicates share it), so its grant is kept while one still uses it. */
+    @Query("SELECT COUNT(*) FROM projects WHERE origin_uri = :uri")
+    suspend fun countWithOrigin(uri: String): Int
+
     @Query("SELECT name FROM projects")
     suspend fun names(): List<String>
 
@@ -102,13 +106,46 @@ interface FileDao {
     @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insertAll(files: List<FileEntity>)
 
-    /** The editor's own save: the open buffer already has this text, so no reload is signalled. */
-    @Query("UPDATE files SET content = :content WHERE id = :id")
+    /**
+     * The editor's own save: the open buffer already has this text, so no reload is signalled. The disk copy is now
+     * behind until [markWritten].
+     */
+    @Query("UPDATE files SET content = :content, disk_dirty = 1 WHERE id = :id")
     suspend fun updateContent(id: String, content: String)
 
-    /** Content replaced from outside the editor; bumps [FileEntity.contentVersion] so an open editor reloads. */
-    @Query("UPDATE files SET content = :content, content_version = content_version + 1 WHERE id = :id")
+    /**
+     * Content replaced from outside the editor (and already written to disk with it); bumps
+     * [FileEntity.contentVersion] so an open editor reloads.
+     */
+    @Query("UPDATE files SET content = :content, content_version = content_version + 1, disk_dirty = 0 WHERE id = :id")
     suspend fun replaceContent(id: String, content: String)
+
+    /**
+     * [content] reached the disk. Only clears the flag while the file still holds that text: a save made meanwhile
+     * keeps it set and gets written by its own disk write. Returns the number of rows updated.
+     */
+    @Query("UPDATE files SET doc_id = :docId, last_modified = :lastModified, size = :size, disk_dirty = 0 WHERE id = :id AND content = :content")
+    suspend fun markWritten(id: String, content: String, docId: String, lastModified: Long, size: Long): Int
+
+    /**
+     * Takes an edit found on disk, unless the text changed since it was compared ([expected]): a save that landed in
+     * between wins and is written over the disk copy. Returns the number of rows updated.
+     */
+    @Query(
+        """
+        UPDATE files SET content = :content, content_version = content_version + 1, doc_id = :docId,
+            last_modified = :lastModified, size = :size, disk_dirty = 0
+        WHERE id = :id AND content = :expected
+        """,
+    )
+    suspend fun replaceIfUnchanged(id: String, expected: String, content: String, docId: String, lastModified: Long, size: Long): Int
+
+    /** Name, role, order and disk state from a rescan; leaves the text (and any pending save) alone. */
+    @Query("UPDATE files SET name = :name, is_entry = :isEntry, position = :position, doc_id = :docId, last_modified = :lastModified, size = :size WHERE id = :id")
+    suspend fun updateLayout(id: String, name: String, isEntry: Boolean, position: Int, docId: String, lastModified: Long, size: Long)
+
+    @Query("UPDATE files SET disk_dirty = 0 WHERE id = :id")
+    suspend fun clearDiskDirty(id: String)
 
     /** Records what the file looks like on disk after the app wrote it (or found it unchanged). */
     @Query("UPDATE files SET doc_id = :docId, last_modified = :lastModified, size = :size WHERE id = :id")

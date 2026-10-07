@@ -122,8 +122,10 @@ class ProjectValidator(
                 issues += ProjectIssue.FileSkipped(entry.name, reason)
             } else if (accepted.size < limits.maxFiles) {
                 accepted += entry
-            } else if (issues.none { it is ProjectIssue.TooManyFiles }) {
-                issues += ProjectIssue.TooManyFiles(limits.maxFiles)
+            } else {
+                if (issues.none { it is ProjectIssue.TooManyFiles }) issues += ProjectIssue.TooManyFiles(limits.maxFiles)
+                // Named too, so source control can tell such a file is still in the folder rather than deleted.
+                issues += ProjectIssue.FileSkipped(entry.name, ProjectIssue.SkipReason.TOO_MANY)
             }
         }
         return accepted

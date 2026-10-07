@@ -81,9 +81,10 @@ internal class RetrofitGitNetworkDataSource @Inject constructor(
 
     override suspend fun list(host: GitHost, token: String, repoId: String, ref: String, path: String) = call {
         when (host) {
-            GitHost.GITHUB -> github.contents(bearer(token), repoId, segments(path), ref).map {
-                RemoteEntry(it.name, it.path, it.type == "dir", it.sha, it.size)
-            }
+            // GitHub's contents API silently stops at 1,000 entries; a listing that long may be cut short.
+            GitHost.GITHUB -> github.contents(bearer(token), repoId, segments(path), ref)
+                .also { if (it.size >= GITHUB_CONTENTS_LIMIT) throw TruncatedListingException() }
+                .map { RemoteEntry(it.name, it.path, it.type == "dir", it.sha, it.size) }
             // A truncated listing would make pull treat the missing files as deleted upstream, so every page is read.
             GitHost.GITLAB -> allPages { page -> gitlab.tree(token, repoId, path, ref, page) }.map { RemoteEntry(it.name, it.path, it.type == "tree", it.id, null) }
         }.sortedWith(compareByDescending<RemoteEntry> { it.isFolder }.thenBy { it.name.lowercase() })
@@ -147,15 +148,18 @@ internal class RetrofitGitNetworkDataSource @Inject constructor(
 
     private fun bearer(token: String) = "Bearer $token"
 
-    /** Reads a 100-per-page listing to the end (bounded, so a huge repository can't loop forever). */
+    /**
+     * Reads a 100-per-page listing to the end. Bounded so a huge repository can't loop forever; reaching the bound
+     * fails rather than returning part of the listing, since sync reads a missing file as deleted.
+     */
     private suspend fun <T> allPages(fetch: suspend (page: Int) -> List<T>): List<T> {
         val all = mutableListOf<T>()
         for (page in 1..MAX_PAGES) {
             val items = fetch(page)
             all += items
-            if (items.size < PAGE_SIZE) break
+            if (items.size < PAGE_SIZE) return all
         }
-        return all
+        throw TruncatedListingException()
     }
 
     /** GitHub sends `X-RateLimit-Remaining: 0` (or `Retry-After` for secondary limits); GitLab sends `RateLimit-Remaining`. */
@@ -186,6 +190,8 @@ internal class RetrofitGitNetworkDataSource @Inject constructor(
                 else -> AppError.Unknown(reason = ErrorReason.GitRequestFailed)
             },
         )
+    } catch (e: TruncatedListingException) {
+        Outcome.Failure(AppError.Unknown(reason = ErrorReason.GitListingTooLarge))
     } catch (e: IOException) {
         Outcome.Failure(transportError(e))
     } catch (e: SerializationException) {
@@ -196,5 +202,9 @@ internal class RetrofitGitNetworkDataSource @Inject constructor(
         const val PAGE_SIZE = 100
         const val MAX_PAGES = 20
         const val MAX_PARALLEL_REQUESTS = 4
+        const val GITHUB_CONTENTS_LIMIT = 1_000
     }
 }
+
+/** A listing couldn't be read completely; callers must not act on part of it. */
+private class TruncatedListingException : Exception("Listing too long to read completely")

@@ -121,6 +121,10 @@
     <string name="common_error_git_access_denied">The code host refused access. Check the token\'s scopes and, for organisations, that it\'s authorised for SSO.</string>
     <string name="common_error_git_rate_limited">The code host\'s rate limit was reached. Wait a few minutes and try again.</string>
     <string name="common_error_git_not_found">Not found. The repository, branch or folder may have moved, or the token can\'t see it.</string>
+    <string name="common_error_git_local_changed">A file changed while syncing, so nothing was changed. Try again.</string>
+    <string name="common_error_git_not_text">The remote version isn\'t a text file, so it can\'t be used here. Your version was kept.</string>
+    <string name="common_error_git_listing_too_large">This folder has too many entries to sync safely from the app.</string>
+    <string name="common_error_git_folder_missing">The tracked folder is missing or empty on the remote, so no local files were changed.</string>
     <string name="common_error_git_failed">The code host didn\'t accept the request. Try again later.</string>
     <string name="common_error_export_failed">Couldn\'t prepare the export.</string>
     <string name="common_error_document_open_failed">Couldn\'t open that file.</string>

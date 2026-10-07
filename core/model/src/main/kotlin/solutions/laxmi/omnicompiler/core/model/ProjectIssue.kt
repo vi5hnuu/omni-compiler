@@ -32,7 +32,8 @@ sealed interface ProjectIssue {
         override val detail = limit.toString()
     }
 
-    enum class SkipReason { TOO_LARGE, BINARY, BAD_NAME, FOLDER }
+    /** TOO_MANY: past the project's file limit (the file stays in the folder, it just isn't opened). */
+    enum class SkipReason { TOO_LARGE, BINARY, BAD_NAME, FOLDER, TOO_MANY }
 
     companion object {
         /** Round-trip for storage in the index (one `code:detail` per line). */

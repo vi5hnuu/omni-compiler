@@ -48,6 +48,14 @@ sealed interface ErrorReason {
     data object GitRateLimited : ErrorReason
     /** 404: the repository, branch or path doesn't exist or the token can't see it. */
     data object GitNotFound : ErrorReason
+    /** A file pull or resolve was about to replace changed after it was compared; nothing was written. */
+    data object GitLocalChanged : ErrorReason
+    /** The remote version isn't text (binary or another encoding), so it can't be brought into the project. */
+    data object GitFileNotText : ErrorReason
+    /** A listing was too long to be read completely; syncing from a partial one could delete files. */
+    data object GitListingTooLarge : ErrorReason
+    /** The tracked folder is gone (or empty) on the remote; nothing is deleted locally on that basis. */
+    data object GitFolderMissing : ErrorReason
     /** No runtime matches the imported file's extension. */
     data class UnknownFileLanguage(val fileName: String) : ErrorReason
     data object FileNotFound : ErrorReason

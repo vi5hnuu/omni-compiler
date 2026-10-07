@@ -255,7 +255,7 @@ internal class ProjectSync @Inject constructor(
             projects.setManifestModified(project.id, manifest.lastModified)
             files.list(project.id).forEach { file ->
                 val written = store.writeFile(root, folder.docId, file.name, file.content)
-                files.setDiskState(file.id, written.docId, written.lastModified, written.size)
+                files.markWritten(file.id, file.content, written.docId, written.lastModified, written.size)
             }
             projects.setFolder(project.id, folder.docId)
         }
@@ -271,38 +271,31 @@ internal class ProjectSync @Inject constructor(
         val issues = checked.issues.toMutableList()
         val existing = files.list(manifest.id).associateBy { it.name }
 
-        // Read changed files outside the transaction (disk I/O), dropping binaries that slipped past the MIME check.
+        // Disk I/O happens before the transaction. Files with a local save not yet on disk are written out (the local
+        // text is newer), changed files are read, and binaries that slipped past the MIME check are dropped.
         val fresh = mutableMapOf<String, String>()
+        val writtenBack = mutableMapOf<String, Pair<String, DocEntry>>()
         val kept = checked.sourceFiles.filter { entry ->
             val row = existing[entry.name]
-            if (row != null && row.lastModified == entry.lastModified && row.size == entry.size) return@filter true
-            val bytes = store.readBytes(root, entry.docId, MAX_FILE_BYTES)
-            if (bytes.any { it == 0.toByte() }) {
-                issues += ProjectIssue.FileSkipped(entry.name, ProjectIssue.SkipReason.BINARY)
-                false
-            } else {
-                fresh[entry.name] = bytes.decodeToString()
-                true
+            when {
+                row != null && row.diskDirty -> {
+                    writtenBack[entry.name] = row.content to store.updateFile(root, entry.docId, row.content)
+                    true
+                }
+                row != null && row.lastModified == entry.lastModified && row.size == entry.size -> true
+                else -> {
+                    val bytes = store.readBytes(root, entry.docId, MAX_FILE_BYTES)
+                    if (bytes.any { it == 0.toByte() }) {
+                        issues += ProjectIssue.FileSkipped(entry.name, ProjectIssue.SkipReason.BINARY)
+                        false
+                    } else {
+                        fresh[entry.name] = bytes.decodeToString()
+                        true
+                    }
+                }
             }
         }
         val ordered = kept.sortedWith(compareByDescending<DocEntry> { it.name == manifest.entry }.thenBy { it.name.lowercase() })
-        val rows = ordered.mapIndexed { position, entry ->
-            val row = existing[entry.name]
-            val content = fresh[entry.name]
-            FileEntity(
-                id = row?.id ?: ids.newId(),
-                projectId = manifest.id,
-                name = entry.name,
-                content = content ?: row?.content.orEmpty(),
-                isEntry = entry.name == manifest.entry,
-                position = position,
-                // A changed file already open in the editor must reload; unchanged ones keep their version.
-                contentVersion = (row?.contentVersion ?: 0) + if (row != null && content != null && content != row.content) 1 else 0,
-                docId = entry.docId,
-                lastModified = entry.lastModified,
-                size = entry.size,
-            )
-        }
         val previous = projects.get(manifest.id)
         val touched = maxOf(previous?.updatedAt ?: 0, ordered.maxOfOrNull { it.lastModified } ?: 0, manifest.createdAt)
         val testRows = manifest.tests.mapIndexed { i, t -> TestCaseEntity(t.id, manifest.id, t.name, t.stdin, t.expected, i) }
@@ -324,10 +317,38 @@ internal class ProjectSync @Inject constructor(
                     manifestModified = manifestEntry?.lastModified ?: 0,
                 ),
             )
-            val gone = existing.values.filter { row -> rows.none { it.id == row.id } }.map { it.id }
+            val keptNames = ordered.mapTo(HashSet()) { it.name }
+            val gone = existing.values.filter { it.name !in keptNames }.map { it.id }
             if (gone.isNotEmpty()) files.deleteAll(gone)
-            files.upsertAll(rows)
+            ordered.forEachIndexed { position, entry -> indexFile(manifest, entry, position, existing[entry.name], fresh[entry.name], writtenBack[entry.name]) }
             if (tests.list(manifest.id) != testRows) tests.replaceAll(manifest.id, testRows)
+        }
+    }
+
+    /**
+     * One file's index row after a rescan. Text is only replaced by an edit found on disk, and only if the row still
+     * holds the text it was compared with: an editor save that landed meanwhile wins and is written out later.
+     */
+    private suspend fun indexFile(manifest: ProjectManifest, entry: DocEntry, position: Int, row: FileEntity?, fresh: String?, writtenBack: Pair<String, DocEntry>?) {
+        val isEntry = entry.name == manifest.entry
+        when {
+            row == null -> files.insert(
+                FileEntity(
+                    id = ids.newId(), projectId = manifest.id, name = entry.name, content = fresh.orEmpty(), isEntry = isEntry,
+                    position = position, docId = entry.docId, lastModified = entry.lastModified, size = entry.size,
+                ),
+            )
+            writtenBack != null -> {
+                val (text, written) = writtenBack
+                files.updateLayout(row.id, entry.name, isEntry, position, written.docId, written.lastModified, written.size)
+                files.markWritten(row.id, text, written.docId, written.lastModified, written.size)
+            }
+            fresh != null && fresh != row.content -> {
+                // A changed file already open in the editor reloads (its content version moves on).
+                val replaced = files.replaceIfUnchanged(row.id, row.content, fresh, entry.docId, entry.lastModified, entry.size)
+                files.updateLayout(row.id, entry.name, isEntry, position, entry.docId, if (replaced > 0) entry.lastModified else row.lastModified, entry.size)
+            }
+            else -> files.updateLayout(row.id, entry.name, isEntry, position, entry.docId, entry.lastModified, entry.size)
         }
     }
 

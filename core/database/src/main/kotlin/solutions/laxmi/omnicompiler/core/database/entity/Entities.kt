@@ -51,6 +51,11 @@ data class FileEntity(
     @ColumnInfo(name = "doc_id") val docId: String? = null,
     @ColumnInfo(name = "last_modified", defaultValue = "0") val lastModified: Long = 0,
     @ColumnInfo(name = "size", defaultValue = "0") val size: Long = 0,
+    /**
+     * The editor saved text that isn't on disk yet. Such a file is written out, never read back, by rescans, so
+     * an edit can't be lost if the app dies between saving it and writing it to the project folder.
+     */
+    @ColumnInfo(name = "disk_dirty", defaultValue = "0") val diskDirty: Boolean = false,
 )
 
 /** A project with its files and tests read in one transaction, so a snapshot never sees a half-updated workspace. */
