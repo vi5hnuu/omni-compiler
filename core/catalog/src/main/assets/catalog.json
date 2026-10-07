@@ -247,7 +247,7 @@
    "versions": [
     "5"
    ],
-   "importHint": "all files live together in /workspace (flat, import by bare name)",
+   "importHint": "files keep their folders under /workspace; import by relative path",
    "multiFileSupported": true,
    "lineComment": "#",
    "blockComment": null,
@@ -274,7 +274,7 @@
    "versions": [
     "5"
    ],
-   "importHint": "all files live together in /workspace (flat, import by bare name)",
+   "importHint": "files keep their folders under /workspace; import by relative path",
    "multiFileSupported": true,
    "lineComment": "#",
    "blockComment": null,
@@ -303,7 +303,7 @@
     "1.17",
     "1"
    ],
-   "importHint": "all files live together in /workspace (flat, import by bare name)",
+   "importHint": "files keep their folders under /workspace; import by relative path",
    "multiFileSupported": false,
    "lineComment": "#",
    "blockComment": null,
@@ -330,7 +330,7 @@
    "versions": [
     "0"
    ],
-   "importHint": "all files live together in /workspace (flat, import by bare name)",
+   "importHint": "files keep their folders under /workspace; import by relative path",
    "multiFileSupported": false,
    "lineComment": "#",
    "blockComment": null,
@@ -357,7 +357,7 @@
    "versions": [
     "0"
    ],
-   "importHint": "all files live together in /workspace (flat, import by bare name)",
+   "importHint": "files keep their folders under /workspace; import by relative path",
    "multiFileSupported": false,
    "lineComment": null,
    "blockComment": null,
@@ -380,11 +380,23 @@
    "versions": [
     "1"
    ],
-   "importHint": "all files live together in /workspace (flat, import by bare name)",
+   "importHint": "files keep their folders under /workspace; import by relative path",
    "multiFileSupported": true,
    "lineComment": "//",
    "blockComment": null,
-   "starter": null
+   "starter": {
+    "code": "const lines=[];\nprocess.stdin.on('data',d=>lines.push(d));\nprocess.stdin.on('end',()=>{\n  const n=parseInt(lines.join('').trim());\n  process.stdout.write((n*2)+'\\n');\n});\n",
+    "tests": [
+     {
+      "stdin": "21\n",
+      "expected": "42\n"
+     },
+     {
+      "stdin": "0\n",
+      "expected": "0\n"
+     }
+    ]
+   }
   },
   {
    "base": "c",
@@ -427,7 +439,7 @@
     "1.11",
     "1"
    ],
-   "importHint": "all files live together in /workspace (flat, import by bare name)",
+   "importHint": "files keep their folders under /workspace; import by relative path",
    "multiFileSupported": true,
    "lineComment": ";",
    "blockComment": null,
@@ -455,7 +467,7 @@
     "3.7",
     "3"
    ],
-   "importHint": "all files live together in /workspace (flat, import by bare name)",
+   "importHint": "files keep their folders under /workspace; import by relative path",
    "multiFileSupported": false,
    "lineComment": "*>",
    "blockComment": null,
@@ -482,7 +494,7 @@
    "versions": [
     "2"
    ],
-   "importHint": "all files live together in /workspace (flat, import by bare name)",
+   "importHint": "files keep their folders under /workspace; import by relative path",
    "multiFileSupported": true,
    "lineComment": "#",
    "blockComment": null,
@@ -653,7 +665,7 @@
    "versions": [
     "0"
    ],
-   "importHint": "all files live together in /workspace (flat, import by bare name)",
+   "importHint": "files keep their folders under /workspace; import by relative path",
    "multiFileSupported": false,
    "lineComment": "#",
    "blockComment": null,
@@ -680,11 +692,46 @@
    "versions": [
     "2"
    ],
-   "importHint": "all files live together in /workspace (flat, import by bare name)",
+   "importHint": "files keep their folders under /workspace; import by relative path",
    "multiFileSupported": true,
    "lineComment": "//",
    "blockComment": null,
-   "starter": null
+   "starter": {
+    "code": "const lines=[];\nprocess.stdin.on('data',d=>lines.push(d));\nprocess.stdin.on('end',()=>{\n  const n=parseInt(lines.join('').trim());\n  process.stdout.write((n*2)+'\\n');\n});\n",
+    "tests": [
+     {
+      "stdin": "21\n",
+      "expected": "42\n"
+     },
+     {
+      "stdin": "0\n",
+      "expected": "0\n"
+     }
+    ]
+   }
+  },
+  {
+   "base": "duckdb",
+   "name": "DuckDB",
+   "shortCode": "Dk",
+   "category": "SCRIPTING",
+   "tagline": "Run DuckDB 1 online — analytical SQL, in-memory, no setup.",
+   "versions": [
+    "1"
+   ],
+   "importHint": "files keep their folders under /workspace; import by relative path",
+   "multiFileSupported": false,
+   "lineComment": "--",
+   "blockComment": null,
+   "starter": {
+    "code": "SELECT 'Hello, World!';\n",
+    "tests": [
+     {
+      "stdin": "",
+      "expected": "Hello, World!\n"
+     }
+    ]
+   }
   },
   {
    "base": "elixir",
@@ -697,7 +744,7 @@
     "1.17",
     "1"
    ],
-   "importHint": "all files live together in /workspace (flat, import by bare name)",
+   "importHint": "files keep their folders under /workspace; import by relative path",
    "multiFileSupported": true,
    "lineComment": "#",
    "blockComment": null,
@@ -726,7 +773,7 @@
     "27",
     "26"
    ],
-   "importHint": "all files live together in /workspace (flat, import by bare name)",
+   "importHint": "files keep their folders under /workspace; import by relative path",
    "multiFileSupported": true,
    "lineComment": "%",
    "blockComment": null,
@@ -753,7 +800,7 @@
    "versions": [
     "3"
    ],
-   "importHint": "all files live together in /workspace (flat, import by bare name)",
+   "importHint": "files keep their folders under /workspace; import by relative path",
    "multiFileSupported": true,
    "lineComment": "#",
    "blockComment": null,
@@ -780,7 +827,7 @@
    "versions": [
     "0"
    ],
-   "importHint": "all files live together in /workspace (flat, import by bare name)",
+   "importHint": "files keep their folders under /workspace; import by relative path",
    "multiFileSupported": false,
    "lineComment": "\\",
    "blockComment": null,
@@ -807,7 +854,7 @@
    "versions": [
     "2018"
    ],
-   "importHint": "all files live together in /workspace (flat, import by bare name)",
+   "importHint": "files keep their folders under /workspace; import by relative path",
    "multiFileSupported": false,
    "lineComment": "!",
    "blockComment": null,
@@ -836,7 +883,7 @@
     "9",
     "8"
    ],
-   "importHint": "all files live together in /workspace (flat, import by bare name)",
+   "importHint": "files keep their folders under /workspace; import by relative path",
    "multiFileSupported": true,
    "lineComment": "//",
    "blockComment": null,
@@ -920,7 +967,7 @@
    "versions": [
     "3"
    ],
-   "importHint": "all files live together in /workspace (flat, import by bare name)",
+   "importHint": "files keep their folders under /workspace; import by relative path",
    "multiFileSupported": true,
    "lineComment": ";",
    "blockComment": null,
@@ -1041,7 +1088,7 @@
    "versions": [
     "1"
    ],
-   "importHint": "all files live together in /workspace (flat, import by bare name)",
+   "importHint": "files keep their folders under /workspace; import by relative path",
    "multiFileSupported": false,
    "lineComment": "#",
    "blockComment": null,
@@ -1069,7 +1116,7 @@
     "1.11",
     "1"
    ],
-   "importHint": "all files live together in /workspace (flat, import by bare name)",
+   "importHint": "files keep their folders under /workspace; import by relative path",
    "multiFileSupported": true,
    "lineComment": "#",
    "blockComment": null,
@@ -1123,7 +1170,7 @@
    "versions": [
     "2"
    ],
-   "importHint": "all files live together in /workspace (flat, import by bare name)",
+   "importHint": "files keep their folders under /workspace; import by relative path",
    "multiFileSupported": true,
    "lineComment": ";",
    "blockComment": null,
@@ -1171,6 +1218,29 @@
    }
   },
   {
+   "base": "mariadb",
+   "name": "MariaDB",
+   "shortCode": "Ma",
+   "category": "SCRIPTING",
+   "tagline": "Run MariaDB 11 online — MySQL-compatible, sample schema, no setup.",
+   "versions": [
+    "11"
+   ],
+   "importHint": "files keep their folders under /workspace; import by relative path",
+   "multiFileSupported": false,
+   "lineComment": "--",
+   "blockComment": null,
+   "starter": {
+    "code": "SELECT 'Hello, World!' AS greeting;\n",
+    "tests": [
+     {
+      "stdin": "",
+      "expected": "+---------------+\n| greeting      |\n+---------------+\n| Hello, World! |\n+---------------+\n"
+     }
+    ]
+   }
+  },
+  {
    "base": "nasm",
    "name": "x86-64 Assembly (NASM)",
    "shortCode": "As",
@@ -1179,7 +1249,7 @@
    "versions": [
     "2"
    ],
-   "importHint": "all files live together in /workspace (flat, import by bare name)",
+   "importHint": "files keep their folders under /workspace; import by relative path",
    "multiFileSupported": false,
    "lineComment": ";",
    "blockComment": null,
@@ -1259,7 +1329,7 @@
    "versions": [
     "8"
    ],
-   "importHint": "all files live together in /workspace (flat, import by bare name)",
+   "importHint": "files keep their folders under /workspace; import by relative path",
    "multiFileSupported": true,
    "lineComment": "%",
    "blockComment": null,
@@ -1361,6 +1431,29 @@
    }
   },
   {
+   "base": "postgres",
+   "name": "PostgreSQL",
+   "shortCode": "Pg",
+   "category": "SCRIPTING",
+   "tagline": "Run PostgreSQL 17 online — real server, sample schema, no setup.",
+   "versions": [
+    "17"
+   ],
+   "importHint": "files keep their folders under /workspace; import by relative path",
+   "multiFileSupported": false,
+   "lineComment": "--",
+   "blockComment": null,
+   "starter": {
+    "code": "SELECT 'Hello, World!';\n",
+    "tests": [
+     {
+      "stdin": "",
+      "expected": "   ?column?    \n---------------\n Hello, World!\n(1 row)\n\n"
+     }
+    ]
+   }
+  },
+  {
    "base": "powershell",
    "name": "PowerShell",
    "shortCode": "Ps",
@@ -1369,7 +1462,7 @@
    "versions": [
     "7"
    ],
-   "importHint": "all files live together in /workspace (flat, import by bare name)",
+   "importHint": "files keep their folders under /workspace; import by relative path",
    "multiFileSupported": true,
    "lineComment": "#",
    "blockComment": null,
@@ -1396,7 +1489,7 @@
    "versions": [
     "9"
    ],
-   "importHint": "all files live together in /workspace (flat, import by bare name)",
+   "importHint": "files keep their folders under /workspace; import by relative path",
    "multiFileSupported": false,
    "lineComment": "%",
    "blockComment": null,
@@ -1482,7 +1575,7 @@
    "versions": [
     "4"
    ],
-   "importHint": "all files live together in /workspace (flat, import by bare name)",
+   "importHint": "files keep their folders under /workspace; import by relative path",
    "multiFileSupported": true,
    "lineComment": "#",
    "blockComment": null,
@@ -1509,7 +1602,7 @@
    "versions": [
     "8"
    ],
-   "importHint": "all files live together in /workspace (flat, import by bare name)",
+   "importHint": "files keep their folders under /workspace; import by relative path",
    "multiFileSupported": true,
    "lineComment": ";",
    "blockComment": null,
@@ -1536,7 +1629,7 @@
    "versions": [
     "0"
    ],
-   "importHint": "all files live together in /workspace (flat, import by bare name)",
+   "importHint": "files keep their folders under /workspace; import by relative path",
    "multiFileSupported": true,
    "lineComment": "#",
    "blockComment": null,
@@ -1550,6 +1643,29 @@
      {
       "stdin": "0\n",
       "expected": "0\n"
+     }
+    ]
+   }
+  },
+  {
+   "base": "redis",
+   "name": "Redis",
+   "shortCode": "Rd",
+   "category": "SCRIPTING",
+   "tagline": "Run Redis 7 online — in-memory key-value store, no setup.",
+   "versions": [
+    "7"
+   ],
+   "importHint": "files keep their folders under /workspace; import by relative path",
+   "multiFileSupported": false,
+   "lineComment": null,
+   "blockComment": null,
+   "starter": {
+    "code": "SET greeting \"Hello, World!\"\nGET greeting\n",
+    "tests": [
+     {
+      "stdin": "",
+      "expected": "OK\n\"Hello, World!\"\n"
      }
     ]
    }
@@ -1650,7 +1766,7 @@
    "versions": [
     "0"
    ],
-   "importHint": "all files live together in /workspace (flat, import by bare name)",
+   "importHint": "files keep their folders under /workspace; import by relative path",
    "multiFileSupported": false,
    "lineComment": null,
    "blockComment": [
@@ -1680,7 +1796,7 @@
    "versions": [
     "3"
    ],
-   "importHint": "all files live together in /workspace (flat, import by bare name)",
+   "importHint": "files keep their folders under /workspace; import by relative path",
    "multiFileSupported": false,
    "lineComment": "--",
    "blockComment": null,
@@ -1731,7 +1847,7 @@
    "versions": [
     "8"
    ],
-   "importHint": "all files live together in /workspace (flat, import by bare name)",
+   "importHint": "files keep their folders under /workspace; import by relative path",
    "multiFileSupported": true,
    "lineComment": "#",
    "blockComment": null,
@@ -1785,7 +1901,7 @@
    "versions": [
     "0"
    ],
-   "importHint": "all files live together in /workspace (flat, import by bare name)",
+   "importHint": "files keep their folders under /workspace; import by relative path",
    "multiFileSupported": false,
    "lineComment": "//",
    "blockComment": null,
@@ -1812,7 +1928,7 @@
    "versions": [
     "1"
    ],
-   "importHint": "all files live together in /workspace (flat, import by bare name)",
+   "importHint": "files keep their folders under /workspace; import by relative path",
    "multiFileSupported": false,
    "lineComment": ";;",
    "blockComment": null,
@@ -1836,7 +1952,7 @@
     "0.14",
     "0.13"
    ],
-   "importHint": "all files live together in /workspace (flat, import by bare name)",
+   "importHint": "files keep their folders under /workspace; import by relative path",
    "multiFileSupported": false,
    "lineComment": "//",
    "blockComment": null,
@@ -1863,7 +1979,7 @@
    "versions": [
     "5"
    ],
-   "importHint": "all files live together in /workspace (flat, import by bare name)",
+   "importHint": "files keep their folders under /workspace; import by relative path",
    "multiFileSupported": true,
    "lineComment": "#",
    "blockComment": null,
@@ -2129,6 +2245,14 @@
    "version": "2",
    "status": "ready",
    "filename": "solution.js",
+   "lane": "cold"
+  },
+  {
+   "id": "duckdb-1",
+   "language": "duckdb",
+   "version": "1",
+   "status": "ready",
+   "filename": "solution.sql",
    "lane": "cold"
   },
   {
@@ -2468,6 +2592,14 @@
    "lane": "cold"
   },
   {
+   "id": "mariadb-11",
+   "language": "mariadb",
+   "version": "11",
+   "status": "ready",
+   "filename": "solution.sql",
+   "lane": "cold"
+  },
+  {
    "id": "nasm-2",
    "language": "nasm",
    "version": "2",
@@ -2537,6 +2669,14 @@
    "version": "8.4",
    "status": "ready",
    "filename": "solution.php",
+   "lane": "cold"
+  },
+  {
+   "id": "postgres-17",
+   "language": "postgres",
+   "version": "17",
+   "status": "ready",
+   "filename": "solution.sql",
    "lane": "cold"
   },
   {
@@ -2633,6 +2773,14 @@
    "version": "0",
    "status": "ready",
    "filename": "solution.raku",
+   "lane": "cold"
+  },
+  {
+   "id": "redis-7",
+   "language": "redis",
+   "version": "7",
+   "status": "ready",
+   "filename": "commands.redis",
    "lane": "cold"
   },
   {
@@ -2956,6 +3104,362 @@
  ],
  "problems": [
   {
+   "slug": "binary-search",
+   "title": "Binary Search",
+   "difficulty": "EASY",
+   "tags": [
+    "array",
+    "search"
+   ],
+   "tagline": "Given a sorted array and a target, return the target's index, or -1 if absent. O(log N).",
+   "statement": [
+    "Binary search halves the search space each iteration by comparing the middle element to the target. Simple in principle, notoriously easy to get wrong — off-by-one errors, integer overflow on `(lo + hi) / 2`, infinite loops when the halving misses a case.",
+    "Read the array on line 1 (space-separated), the target on line 2. Output the index (0-based), or -1.",
+    "The classic gotcha: `mid = (lo + hi) / 2` overflows for large arrays. Prefer `lo + (hi - lo) / 2`. Small in Java/C where int is 32-bit; irrelevant in Python (arbitrary precision)."
+   ],
+   "examples": [
+    {
+     "input": "-1 0 3 5 9 12\n9",
+     "output": "4",
+     "explanation": null
+    },
+    {
+     "input": "-1 0 3 5 9 12\n2",
+     "output": "-1",
+     "explanation": null
+    }
+   ],
+   "constraints": [
+    "0 ≤ array length ≤ 10^5",
+    "Array is sorted in ascending order.",
+    "All elements are distinct."
+   ],
+   "solutions": {
+    "python": "nums = list(map(int, input().split()))\ntarget = int(input())\nlo, hi = 0, len(nums) - 1\nans = -1\nwhile lo <= hi:\n    mid = (lo + hi) // 2\n    if nums[mid] == target: ans = mid; break\n    elif nums[mid] < target: lo = mid + 1\n    else: hi = mid - 1\nprint(ans)\n",
+    "java": "import java.util.*;\n\npublic class Solution {\n    public static void main(String[] args) {\n        Scanner sc = new Scanner(System.in);\n        String[] parts = sc.nextLine().split(\" \");\n        int[] nums = new int[parts.length];\n        for (int i = 0; i < parts.length; i++) nums[i] = Integer.parseInt(parts[i]);\n        int target = Integer.parseInt(sc.nextLine().trim());\n        int lo = 0, hi = nums.length - 1, ans = -1;\n        while (lo <= hi) {\n            int mid = lo + (hi - lo) / 2;\n            if (nums[mid] == target) { ans = mid; break; }\n            else if (nums[mid] < target) lo = mid + 1;\n            else hi = mid - 1;\n        }\n        System.out.println(ans);\n    }\n}\n",
+    "cpp": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    string line; getline(cin, line);\n    vector<int> nums; stringstream ss(line); int x; while (ss >> x) nums.push_back(x);\n    int target; cin >> target;\n    int lo = 0, hi = (int)nums.size() - 1, ans = -1;\n    while (lo <= hi) {\n        int mid = lo + (hi - lo) / 2;\n        if (nums[mid] == target) { ans = mid; break; }\n        else if (nums[mid] < target) lo = mid + 1;\n        else hi = mid - 1;\n    }\n    cout << ans << \"\\n\";\n}\n"
+   },
+   "tests": [
+    {
+     "stdin": "-1 0 3 5 9 12\n9\n",
+     "expected": "4"
+    },
+    {
+     "stdin": "-1 0 3 5 9 12\n2\n",
+     "expected": "-1"
+    }
+   ]
+  },
+  {
+   "slug": "fibonacci",
+   "title": "Fibonacci",
+   "difficulty": "EASY",
+   "tags": [
+    "math",
+    "dynamic-programming"
+   ],
+   "tagline": "Read N and print the Nth Fibonacci number. F(0) = 0, F(1) = 1, F(N) = F(N-1) + F(N-2).",
+   "statement": [
+    "The Fibonacci sequence: 0, 1, 1, 2, 3, 5, 8, 13, 21, ... — each number is the sum of the previous two.",
+    "Three canonical approaches, in increasing sophistication:",
+    "Recursion (bad — O(2^N)) demonstrates the definition literally.",
+    "Iteration (good — O(N) time, O(1) memory) is the pragmatic solution.",
+    "Matrix exponentiation (O(log N)) is what you use if N is really big."
+   ],
+   "examples": [
+    {
+     "input": "0",
+     "output": "0",
+     "explanation": null
+    },
+    {
+     "input": "10",
+     "output": "55",
+     "explanation": null
+    },
+    {
+     "input": "50",
+     "output": "12586269025",
+     "explanation": null
+    }
+   ],
+   "constraints": [
+    "0 ≤ N ≤ 90 (fits in signed 64-bit)."
+   ],
+   "solutions": {
+    "python": "n = int(input())\na, b = 0, 1\nfor _ in range(n):\n    a, b = b, a + b\nprint(a)\n",
+    "java": "import java.util.Scanner;\n\npublic class Solution {\n    public static void main(String[] args) {\n        int n = new Scanner(System.in).nextInt();\n        long a = 0, b = 1;\n        for (int i = 0; i < n; i++) { long t = a + b; a = b; b = t; }\n        System.out.println(a);\n    }\n}\n",
+    "cpp": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    int n; cin >> n;\n    long long a = 0, b = 1;\n    for (int i = 0; i < n; ++i) { long long t = a + b; a = b; b = t; }\n    cout << a << \"\\n\";\n}\n"
+   },
+   "tests": [
+    {
+     "stdin": "0\n",
+     "expected": "0"
+    },
+    {
+     "stdin": "10\n",
+     "expected": "55"
+    },
+    {
+     "stdin": "50\n",
+     "expected": "12586269025"
+    }
+   ]
+  },
+  {
+   "slug": "fizzbuzz",
+   "title": "FizzBuzz",
+   "difficulty": "EASY",
+   "tags": [
+    "math",
+    "loop"
+   ],
+   "tagline": "Read N, print numbers 1..N — but multiples of 3 become \"Fizz\", multiples of 5 become \"Buzz\", multiples of both become \"FizzBuzz\".",
+   "statement": [
+    "The screening question that separates candidates who can code from those who cannot. Trivial in principle, but the fact that a nontrivial minority of professional programmers fail it made it famous.",
+    "For each integer i from 1 to N: if i is divisible by 15, print \"FizzBuzz\"; else if divisible by 3, print \"Fizz\"; else if divisible by 5, print \"Buzz\"; else print i."
+   ],
+   "examples": [
+    {
+     "input": "5",
+     "output": "1\n2\nFizz\n4\nBuzz",
+     "explanation": null
+    },
+    {
+     "input": "15",
+     "output": "1\n2\nFizz\n4\nBuzz\nFizz\n7\n8\nFizz\nBuzz\n11\nFizz\n13\n14\nFizzBuzz",
+     "explanation": null
+    }
+   ],
+   "constraints": [
+    "1 ≤ N ≤ 10^4"
+   ],
+   "solutions": {
+    "python": "n = int(input())\nfor i in range(1, n + 1):\n    if i % 15 == 0: print('FizzBuzz')\n    elif i % 3 == 0: print('Fizz')\n    elif i % 5 == 0: print('Buzz')\n    else: print(i)\n",
+    "java": "import java.util.Scanner;\n\npublic class Solution {\n    public static void main(String[] args) {\n        int n = new Scanner(System.in).nextInt();\n        StringBuilder sb = new StringBuilder();\n        for (int i = 1; i <= n; i++) {\n            if (i % 15 == 0) sb.append(\"FizzBuzz\");\n            else if (i % 3 == 0) sb.append(\"Fizz\");\n            else if (i % 5 == 0) sb.append(\"Buzz\");\n            else sb.append(i);\n            sb.append('\\n');\n        }\n        System.out.print(sb);\n    }\n}\n",
+    "cpp": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    int n; cin >> n;\n    for (int i = 1; i <= n; ++i) {\n        if (i % 15 == 0) cout << \"FizzBuzz\";\n        else if (i % 3 == 0) cout << \"Fizz\";\n        else if (i % 5 == 0) cout << \"Buzz\";\n        else cout << i;\n        cout << \"\\n\";\n    }\n}\n"
+   },
+   "tests": [
+    {
+     "stdin": "5\n",
+     "expected": "1\n2\nFizz\n4\nBuzz"
+    },
+    {
+     "stdin": "15\n",
+     "expected": "1\n2\nFizz\n4\nBuzz\nFizz\n7\n8\nFizz\nBuzz\n11\nFizz\n13\n14\nFizzBuzz"
+    }
+   ]
+  },
+  {
+   "slug": "merge-sorted-arrays",
+   "title": "Merge Two Sorted Arrays",
+   "difficulty": "EASY",
+   "tags": [
+    "array",
+    "two-pointer"
+   ],
+   "tagline": "Given two sorted arrays, print a single merged sorted output.",
+   "statement": [
+    "Two sorted inputs, one sorted output. The two-pointer walk runs in O(n + m) — advance the pointer whose current element is smaller, emit it, repeat. When one array runs out, drain the other.",
+    "This is the merge step of merge sort and one of the most fundamental array operations. Every sort-adjacent algorithm eventually calls something like it.",
+    "Read array A on line 1, array B on line 2. Print merged on line 3."
+   ],
+   "examples": [
+    {
+     "input": "1 3 5\n2 4 6",
+     "output": "1 2 3 4 5 6",
+     "explanation": null
+    },
+    {
+     "input": "\n1 2 3",
+     "output": "1 2 3",
+     "explanation": "Empty A → output is B."
+    }
+   ],
+   "constraints": [
+    "0 ≤ |A|, |B| ≤ 10^5",
+    "Both arrays are sorted in ascending order."
+   ],
+   "solutions": {
+    "python": "a = list(map(int, input().split()))\nb = list(map(int, input().split()))\ni = j = 0\nout = []\nwhile i < len(a) and j < len(b):\n    if a[i] <= b[j]: out.append(a[i]); i += 1\n    else:            out.append(b[j]); j += 1\nout.extend(a[i:]); out.extend(b[j:])\nprint(*out)\n",
+    "java": "import java.util.*;\n\npublic class Solution {\n    public static void main(String[] args) {\n        Scanner sc = new Scanner(System.in);\n        int[] a = parse(sc.nextLine());\n        int[] b = parse(sc.nextLine());\n        StringBuilder sb = new StringBuilder();\n        int i = 0, j = 0;\n        while (i < a.length && j < b.length) sb.append(a[i] <= b[j] ? a[i++] : b[j++]).append(' ');\n        while (i < a.length) sb.append(a[i++]).append(' ');\n        while (j < b.length) sb.append(b[j++]).append(' ');\n        System.out.println(sb.toString().trim());\n    }\n    static int[] parse(String line) {\n        if (line == null || line.isEmpty()) return new int[0];\n        String[] parts = line.trim().split(\"\\\\s+\");\n        int[] r = new int[parts.length];\n        for (int k = 0; k < parts.length; k++) r[k] = Integer.parseInt(parts[k]);\n        return r;\n    }\n}\n",
+    "cpp": "#include <bits/stdc++.h>\nusing namespace std;\n\nvector<int> parse(const string &line) {\n    vector<int> v; stringstream ss(line); int x; while (ss >> x) v.push_back(x);\n    return v;\n}\n\nint main() {\n    string la, lb; getline(cin, la); getline(cin, lb);\n    auto a = parse(la), b = parse(lb);\n    size_t i = 0, j = 0; string out;\n    while (i < a.size() && j < b.size()) {\n        int v = a[i] <= b[j] ? a[i++] : b[j++];\n        out += to_string(v) + ' ';\n    }\n    while (i < a.size()) out += to_string(a[i++]) + ' ';\n    while (j < b.size()) out += to_string(b[j++]) + ' ';\n    if (!out.empty()) out.pop_back();\n    cout << out << \"\\n\";\n}\n"
+   },
+   "tests": [
+    {
+     "stdin": "1 3 5\n2 4 6\n",
+     "expected": "1 2 3 4 5 6"
+    },
+    {
+     "stdin": "\n1 2 3\n",
+     "expected": "1 2 3"
+    }
+   ]
+  },
+  {
+   "slug": "palindrome-check",
+   "title": "Palindrome Check",
+   "difficulty": "EASY",
+   "tags": [
+    "string",
+    "two-pointer"
+   ],
+   "tagline": "Read a string, print \"true\" if it is a palindrome (case-insensitive, alphanumerics only), else \"false\".",
+   "statement": [
+    "A palindrome reads the same forwards and backwards. Real-world variants strip whitespace and punctuation and lowercase everything first — \"A man, a plan, a canal: Panama\" is a palindrome by that definition.",
+    "Standard O(n) approach: filter and lowercase the string, then two-pointer compare from ends inward. Alternative: reverse and compare — same complexity, simpler code, slightly more allocation."
+   ],
+   "examples": [
+    {
+     "input": "A man, a plan, a canal: Panama",
+     "output": "true",
+     "explanation": null
+    },
+    {
+     "input": "race a car",
+     "output": "false",
+     "explanation": null
+    },
+    {
+     "input": "",
+     "output": "true",
+     "explanation": "The empty string is trivially a palindrome."
+    }
+   ],
+   "constraints": [
+    "0 ≤ input length ≤ 10^5"
+   ],
+   "solutions": {
+    "python": "s = ''.join(c.lower() for c in input() if c.isalnum())\nprint('true' if s == s[::-1] else 'false')\n",
+    "java": "import java.util.Scanner;\n\npublic class Solution {\n    public static void main(String[] args) {\n        String s = new Scanner(System.in).hasNextLine() ? new Scanner(System.in).nextLine() : \"\";\n        StringBuilder sb = new StringBuilder();\n        for (char c : s.toCharArray()) if (Character.isLetterOrDigit(c)) sb.append(Character.toLowerCase(c));\n        String f = sb.toString();\n        String r = sb.reverse().toString();\n        System.out.println(f.equals(r) ? \"true\" : \"false\");\n    }\n}\n",
+    "cpp": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    string s; getline(cin, s);\n    string f;\n    for (char c : s) if (isalnum((unsigned char)c)) f.push_back(tolower((unsigned char)c));\n    string r = f; reverse(r.begin(), r.end());\n    cout << (f == r ? \"true\" : \"false\") << \"\\n\";\n}\n"
+   },
+   "tests": [
+    {
+     "stdin": "A man, a plan, a canal: Panama\n",
+     "expected": "true"
+    },
+    {
+     "stdin": "race a car\n",
+     "expected": "false"
+    },
+    {
+     "stdin": "\n",
+     "expected": "true"
+    }
+   ]
+  },
+  {
+   "slug": "reverse-linked-list",
+   "title": "Reverse a Linked List",
+   "difficulty": "EASY",
+   "tags": [
+    "linked-list",
+    "pointer"
+   ],
+   "tagline": "Reverse a singly linked list. Iterative (O(1) extra space) or recursive (O(n) stack).",
+   "statement": [
+    "You are given the head of a singly-linked list. Reverse it and print the new head-to-tail sequence.",
+    "The iterative solution uses three pointers — prev, curr, next — and walks the list once, rewriting each `curr.next` to point at prev. O(n) time, O(1) space.",
+    "The recursive solution is short but uses O(n) stack; recurse to the end, then unwind rewriting pointers.",
+    "For this challenge, take the list as space-separated integers on line 1 and print the reversed sequence."
+   ],
+   "examples": [
+    {
+     "input": "1 2 3 4 5",
+     "output": "5 4 3 2 1",
+     "explanation": null
+    },
+    {
+     "input": "1 2",
+     "output": "2 1",
+     "explanation": null
+    },
+    {
+     "input": "",
+     "output": "",
+     "explanation": "Empty list stays empty."
+    }
+   ],
+   "constraints": [
+    "0 ≤ list length ≤ 5000",
+    "-1000 ≤ node value ≤ 1000"
+   ],
+   "solutions": {
+    "python": "# Iterative reversal — no actual linked list needed for this I/O shape;\n# the algorithm shape is preserved: walk once, rebuild in reverse.\nvals = input().split()\nprint(*vals[::-1])\n",
+    "java": "import java.util.*;\n\npublic class Solution {\n    public static void main(String[] args) {\n        Scanner sc = new Scanner(System.in);\n        String line = sc.hasNextLine() ? sc.nextLine() : \"\";\n        if (line.isBlank()) { System.out.println(\"\"); return; }\n        String[] p = line.trim().split(\"\\\\s+\");\n        StringBuilder sb = new StringBuilder();\n        for (int i = p.length - 1; i >= 0; i--) { sb.append(p[i]); if (i > 0) sb.append(' '); }\n        System.out.println(sb);\n    }\n}\n",
+    "cpp": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    string line; getline(cin, line);\n    vector<string> v; stringstream ss(line); string x; while (ss >> x) v.push_back(x);\n    for (int i = (int)v.size() - 1; i >= 0; --i) { cout << v[i]; if (i) cout << ' '; }\n    cout << \"\\n\";\n}\n"
+   },
+   "tests": [
+    {
+     "stdin": "1 2 3 4 5\n",
+     "expected": "5 4 3 2 1"
+    },
+    {
+     "stdin": "1 2\n",
+     "expected": "2 1"
+    },
+    {
+     "stdin": "\n",
+     "expected": ""
+    }
+   ]
+  },
+  {
+   "slug": "reverse-string",
+   "title": "Reverse String",
+   "difficulty": "EASY",
+   "tags": [
+    "string",
+    "two-pointer"
+   ],
+   "tagline": "Reverse the input string. In-place is preferred where the language allows.",
+   "statement": [
+    "Read a single line from standard input and print it reversed.",
+    "The archetype \"hello, world\" of algorithm interviews — every language has a one-liner reversal, and the value of practising it is seeing how each language expresses the same idea. C++ has `reverse(s.begin(), s.end())`. Python has `s[::-1]`. Java has `new StringBuilder(s).reverse().toString()`. In assembly you write a loop."
+   ],
+   "examples": [
+    {
+     "input": "hello",
+     "output": "olleh",
+     "explanation": null
+    },
+    {
+     "input": "racecar",
+     "output": "racecar",
+     "explanation": "A palindrome reads the same reversed."
+    },
+    {
+     "input": "",
+     "output": "",
+     "explanation": "Empty input → empty output."
+    }
+   ],
+   "constraints": [
+    "0 ≤ input length ≤ 10^5",
+    "ASCII input only — multi-byte UTF-8 handling is out of scope for the base problem."
+   ],
+   "solutions": {
+    "python": "print(input()[::-1])\n",
+    "java": "import java.util.Scanner;\n\npublic class Solution {\n    public static void main(String[] args) {\n        Scanner sc = new Scanner(System.in);\n        String s = sc.hasNextLine() ? sc.nextLine() : \"\";\n        System.out.println(new StringBuilder(s).reverse().toString());\n    }\n}\n",
+    "cpp": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    string s; getline(cin, s);\n    reverse(s.begin(), s.end());\n    cout << s << \"\\n\";\n}\n"
+   },
+   "tests": [
+    {
+     "stdin": "hello\n",
+     "expected": "olleh"
+    },
+    {
+     "stdin": "racecar\n",
+     "expected": "racecar"
+    },
+    {
+     "stdin": "\n",
+     "expected": ""
+    }
+   ]
+  },
+  {
    "slug": "two-sum",
    "title": "Two Sum",
    "difficulty": "EASY",
@@ -3013,56 +3517,58 @@
    ]
   },
   {
-   "slug": "reverse-string",
-   "title": "Reverse String",
+   "slug": "valid-anagram",
+   "title": "Valid Anagram",
    "difficulty": "EASY",
    "tags": [
     "string",
-    "two-pointer"
+    "hashmap",
+    "sorting"
    ],
-   "tagline": "Reverse the input string. In-place is preferred where the language allows.",
+   "tagline": "Given two strings, print \"true\" if one is a permutation of the other.",
    "statement": [
-    "Read a single line from standard input and print it reversed.",
-    "The archetype \"hello, world\" of algorithm interviews — every language has a one-liner reversal, and the value of practising it is seeing how each language expresses the same idea. C++ has `reverse(s.begin(), s.end())`. Python has `s[::-1]`. Java has `new StringBuilder(s).reverse().toString()`. In assembly you write a loop."
+    "An anagram is a rearrangement of a string's characters. `listen` ↔ `silent`. `evil` ↔ `vile`. Not: `hello` ↔ `world`.",
+    "Two canonical approaches: (a) sort both strings and compare — O(n log n) time, O(1) extra space; (b) count characters in a hashmap or frequency array and compare — O(n) time, O(k) space where k is the alphabet size. For ASCII, k = 128, so (b) is strictly better.",
+    "Read two lines. Print \"true\" or \"false\"."
    ],
    "examples": [
     {
-     "input": "hello",
-     "output": "olleh",
+     "input": "listen\nsilent",
+     "output": "true",
      "explanation": null
     },
     {
-     "input": "racecar",
-     "output": "racecar",
-     "explanation": "A palindrome reads the same reversed."
+     "input": "hello\nworld",
+     "output": "false",
+     "explanation": null
     },
     {
-     "input": "",
-     "output": "",
-     "explanation": "Empty input → empty output."
+     "input": "anagram\nnagaram",
+     "output": "true",
+     "explanation": null
     }
    ],
    "constraints": [
-    "0 ≤ input length ≤ 10^5",
-    "ASCII input only — multi-byte UTF-8 handling is out of scope for the base problem."
+    "1 ≤ length of both strings ≤ 10^5",
+    "ASCII lowercase only."
    ],
    "solutions": {
-    "python": "print(input()[::-1])\n",
-    "java": "import java.util.Scanner;\n\npublic class Solution {\n    public static void main(String[] args) {\n        Scanner sc = new Scanner(System.in);\n        String s = sc.hasNextLine() ? sc.nextLine() : \"\";\n        System.out.println(new StringBuilder(s).reverse().toString());\n    }\n}\n",
-    "cpp": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    string s; getline(cin, s);\n    reverse(s.begin(), s.end());\n    cout << s << \"\\n\";\n}\n"
+    "python": "from collections import Counter\na = input(); b = input()\nprint('true' if Counter(a) == Counter(b) else 'false')\n",
+    "java": "import java.util.Scanner;\n\npublic class Solution {\n    public static void main(String[] args) {\n        Scanner sc = new Scanner(System.in);\n        String a = sc.nextLine(), b = sc.nextLine();\n        if (a.length() != b.length()) { System.out.println(\"false\"); return; }\n        int[] freq = new int[128];\n        for (char c : a.toCharArray()) freq[c]++;\n        for (char c : b.toCharArray()) if (--freq[c] < 0) { System.out.println(\"false\"); return; }\n        System.out.println(\"true\");\n    }\n}\n",
+    "cpp": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    string a, b; getline(cin, a); getline(cin, b);\n    if (a.size() != b.size()) { cout << \"false\\n\"; return 0; }\n    int freq[128] = {0};\n    for (char c : a) freq[(unsigned char)c]++;\n    for (char c : b) if (--freq[(unsigned char)c] < 0) { cout << \"false\\n\"; return 0; }\n    cout << \"true\\n\";\n}\n"
    },
    "tests": [
     {
-     "stdin": "hello\n",
-     "expected": "olleh"
+     "stdin": "listen\nsilent\n",
+     "expected": "true"
     },
     {
-     "stdin": "racecar\n",
-     "expected": "racecar"
+     "stdin": "hello\nworld\n",
+     "expected": "false"
     },
     {
-     "stdin": "\n",
-     "expected": ""
+     "stdin": "anagram\nnagaram\n",
+     "expected": "true"
     }
    ]
   },
@@ -3127,364 +3633,6 @@
     {
      "stdin": "([)]\n",
      "expected": "false"
-    }
-   ]
-  },
-  {
-   "slug": "fizzbuzz",
-   "title": "FizzBuzz",
-   "difficulty": "EASY",
-   "tags": [
-    "math",
-    "loop"
-   ],
-   "tagline": "Read N, print numbers 1..N — but multiples of 3 become \"Fizz\", multiples of 5 become \"Buzz\", multiples of both become \"FizzBuzz\".",
-   "statement": [
-    "The screening question that separates candidates who can code from those who cannot. Trivial in principle, but the fact that a nontrivial minority of professional programmers fail it made it famous.",
-    "For each integer i from 1 to N: if i is divisible by 15, print \"FizzBuzz\"; else if divisible by 3, print \"Fizz\"; else if divisible by 5, print \"Buzz\"; else print i."
-   ],
-   "examples": [
-    {
-     "input": "5",
-     "output": "1\n2\nFizz\n4\nBuzz",
-     "explanation": null
-    },
-    {
-     "input": "15",
-     "output": "1\n2\nFizz\n4\nBuzz\nFizz\n7\n8\nFizz\nBuzz\n11\nFizz\n13\n14\nFizzBuzz",
-     "explanation": null
-    }
-   ],
-   "constraints": [
-    "1 ≤ N ≤ 10^4"
-   ],
-   "solutions": {
-    "python": "n = int(input())\nfor i in range(1, n + 1):\n    if i % 15 == 0: print('FizzBuzz')\n    elif i % 3 == 0: print('Fizz')\n    elif i % 5 == 0: print('Buzz')\n    else: print(i)\n",
-    "java": "import java.util.Scanner;\n\npublic class Solution {\n    public static void main(String[] args) {\n        int n = new Scanner(System.in).nextInt();\n        StringBuilder sb = new StringBuilder();\n        for (int i = 1; i <= n; i++) {\n            if (i % 15 == 0) sb.append(\"FizzBuzz\");\n            else if (i % 3 == 0) sb.append(\"Fizz\");\n            else if (i % 5 == 0) sb.append(\"Buzz\");\n            else sb.append(i);\n            sb.append('\\n');\n        }\n        System.out.print(sb);\n    }\n}\n",
-    "cpp": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    int n; cin >> n;\n    for (int i = 1; i <= n; ++i) {\n        if (i % 15 == 0) cout << \"FizzBuzz\";\n        else if (i % 3 == 0) cout << \"Fizz\";\n        else if (i % 5 == 0) cout << \"Buzz\";\n        else cout << i;\n        cout << \"\\n\";\n    }\n}\n"
-   },
-   "tests": [
-    {
-     "stdin": "5\n",
-     "expected": "1\n2\nFizz\n4\nBuzz"
-    },
-    {
-     "stdin": "15\n",
-     "expected": "1\n2\nFizz\n4\nBuzz\nFizz\n7\n8\nFizz\nBuzz\n11\nFizz\n13\n14\nFizzBuzz"
-    }
-   ]
-  },
-  {
-   "slug": "palindrome-check",
-   "title": "Palindrome Check",
-   "difficulty": "EASY",
-   "tags": [
-    "string",
-    "two-pointer"
-   ],
-   "tagline": "Read a string, print \"true\" if it is a palindrome (case-insensitive, alphanumerics only), else \"false\".",
-   "statement": [
-    "A palindrome reads the same forwards and backwards. Real-world variants strip whitespace and punctuation and lowercase everything first — \"A man, a plan, a canal: Panama\" is a palindrome by that definition.",
-    "Standard O(n) approach: filter and lowercase the string, then two-pointer compare from ends inward. Alternative: reverse and compare — same complexity, simpler code, slightly more allocation."
-   ],
-   "examples": [
-    {
-     "input": "A man, a plan, a canal: Panama",
-     "output": "true",
-     "explanation": null
-    },
-    {
-     "input": "race a car",
-     "output": "false",
-     "explanation": null
-    },
-    {
-     "input": "",
-     "output": "true",
-     "explanation": "The empty string is trivially a palindrome."
-    }
-   ],
-   "constraints": [
-    "0 ≤ input length ≤ 10^5"
-   ],
-   "solutions": {
-    "python": "s = ''.join(c.lower() for c in input() if c.isalnum())\nprint('true' if s == s[::-1] else 'false')\n",
-    "java": "import java.util.Scanner;\n\npublic class Solution {\n    public static void main(String[] args) {\n        String s = new Scanner(System.in).hasNextLine() ? new Scanner(System.in).nextLine() : \"\";\n        StringBuilder sb = new StringBuilder();\n        for (char c : s.toCharArray()) if (Character.isLetterOrDigit(c)) sb.append(Character.toLowerCase(c));\n        String f = sb.toString();\n        String r = sb.reverse().toString();\n        System.out.println(f.equals(r) ? \"true\" : \"false\");\n    }\n}\n",
-    "cpp": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    string s; getline(cin, s);\n    string f;\n    for (char c : s) if (isalnum((unsigned char)c)) f.push_back(tolower((unsigned char)c));\n    string r = f; reverse(r.begin(), r.end());\n    cout << (f == r ? \"true\" : \"false\") << \"\\n\";\n}\n"
-   },
-   "tests": [
-    {
-     "stdin": "A man, a plan, a canal: Panama\n",
-     "expected": "true"
-    },
-    {
-     "stdin": "race a car\n",
-     "expected": "false"
-    },
-    {
-     "stdin": "\n",
-     "expected": "true"
-    }
-   ]
-  },
-  {
-   "slug": "fibonacci",
-   "title": "Fibonacci",
-   "difficulty": "EASY",
-   "tags": [
-    "math",
-    "dynamic-programming"
-   ],
-   "tagline": "Read N and print the Nth Fibonacci number. F(0) = 0, F(1) = 1, F(N) = F(N-1) + F(N-2).",
-   "statement": [
-    "The Fibonacci sequence: 0, 1, 1, 2, 3, 5, 8, 13, 21, ... — each number is the sum of the previous two.",
-    "Three canonical approaches, in increasing sophistication:",
-    "Recursion (bad — O(2^N)) demonstrates the definition literally.",
-    "Iteration (good — O(N) time, O(1) memory) is the pragmatic solution.",
-    "Matrix exponentiation (O(log N)) is what you use if N is really big."
-   ],
-   "examples": [
-    {
-     "input": "0",
-     "output": "0",
-     "explanation": null
-    },
-    {
-     "input": "10",
-     "output": "55",
-     "explanation": null
-    },
-    {
-     "input": "50",
-     "output": "12586269025",
-     "explanation": null
-    }
-   ],
-   "constraints": [
-    "0 ≤ N ≤ 90 (fits in signed 64-bit)."
-   ],
-   "solutions": {
-    "python": "n = int(input())\na, b = 0, 1\nfor _ in range(n):\n    a, b = b, a + b\nprint(a)\n",
-    "java": "import java.util.Scanner;\n\npublic class Solution {\n    public static void main(String[] args) {\n        int n = new Scanner(System.in).nextInt();\n        long a = 0, b = 1;\n        for (int i = 0; i < n; i++) { long t = a + b; a = b; b = t; }\n        System.out.println(a);\n    }\n}\n",
-    "cpp": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    int n; cin >> n;\n    long long a = 0, b = 1;\n    for (int i = 0; i < n; ++i) { long long t = a + b; a = b; b = t; }\n    cout << a << \"\\n\";\n}\n"
-   },
-   "tests": [
-    {
-     "stdin": "0\n",
-     "expected": "0"
-    },
-    {
-     "stdin": "10\n",
-     "expected": "55"
-    },
-    {
-     "stdin": "50\n",
-     "expected": "12586269025"
-    }
-   ]
-  },
-  {
-   "slug": "binary-search",
-   "title": "Binary Search",
-   "difficulty": "EASY",
-   "tags": [
-    "array",
-    "search"
-   ],
-   "tagline": "Given a sorted array and a target, return the target's index, or -1 if absent. O(log N).",
-   "statement": [
-    "Binary search halves the search space each iteration by comparing the middle element to the target. Simple in principle, notoriously easy to get wrong — off-by-one errors, integer overflow on `(lo + hi) / 2`, infinite loops when the halving misses a case.",
-    "Read the array on line 1 (space-separated), the target on line 2. Output the index (0-based), or -1.",
-    "The classic gotcha: `mid = (lo + hi) / 2` overflows for large arrays. Prefer `lo + (hi - lo) / 2`. Small in Java/C where int is 32-bit; irrelevant in Python (arbitrary precision)."
-   ],
-   "examples": [
-    {
-     "input": "-1 0 3 5 9 12\n9",
-     "output": "4",
-     "explanation": null
-    },
-    {
-     "input": "-1 0 3 5 9 12\n2",
-     "output": "-1",
-     "explanation": null
-    }
-   ],
-   "constraints": [
-    "0 ≤ array length ≤ 10^5",
-    "Array is sorted in ascending order.",
-    "All elements are distinct."
-   ],
-   "solutions": {
-    "python": "nums = list(map(int, input().split()))\ntarget = int(input())\nlo, hi = 0, len(nums) - 1\nans = -1\nwhile lo <= hi:\n    mid = (lo + hi) // 2\n    if nums[mid] == target: ans = mid; break\n    elif nums[mid] < target: lo = mid + 1\n    else: hi = mid - 1\nprint(ans)\n",
-    "java": "import java.util.*;\n\npublic class Solution {\n    public static void main(String[] args) {\n        Scanner sc = new Scanner(System.in);\n        String[] parts = sc.nextLine().split(\" \");\n        int[] nums = new int[parts.length];\n        for (int i = 0; i < parts.length; i++) nums[i] = Integer.parseInt(parts[i]);\n        int target = Integer.parseInt(sc.nextLine().trim());\n        int lo = 0, hi = nums.length - 1, ans = -1;\n        while (lo <= hi) {\n            int mid = lo + (hi - lo) / 2;\n            if (nums[mid] == target) { ans = mid; break; }\n            else if (nums[mid] < target) lo = mid + 1;\n            else hi = mid - 1;\n        }\n        System.out.println(ans);\n    }\n}\n",
-    "cpp": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    string line; getline(cin, line);\n    vector<int> nums; stringstream ss(line); int x; while (ss >> x) nums.push_back(x);\n    int target; cin >> target;\n    int lo = 0, hi = (int)nums.size() - 1, ans = -1;\n    while (lo <= hi) {\n        int mid = lo + (hi - lo) / 2;\n        if (nums[mid] == target) { ans = mid; break; }\n        else if (nums[mid] < target) lo = mid + 1;\n        else hi = mid - 1;\n    }\n    cout << ans << \"\\n\";\n}\n"
-   },
-   "tests": [
-    {
-     "stdin": "-1 0 3 5 9 12\n9\n",
-     "expected": "4"
-    },
-    {
-     "stdin": "-1 0 3 5 9 12\n2\n",
-     "expected": "-1"
-    }
-   ]
-  },
-  {
-   "slug": "merge-sorted-arrays",
-   "title": "Merge Two Sorted Arrays",
-   "difficulty": "EASY",
-   "tags": [
-    "array",
-    "two-pointer"
-   ],
-   "tagline": "Given two sorted arrays, print a single merged sorted output.",
-   "statement": [
-    "Two sorted inputs, one sorted output. The two-pointer walk runs in O(n + m) — advance the pointer whose current element is smaller, emit it, repeat. When one array runs out, drain the other.",
-    "This is the merge step of merge sort and one of the most fundamental array operations. Every sort-adjacent algorithm eventually calls something like it.",
-    "Read array A on line 1, array B on line 2. Print merged on line 3."
-   ],
-   "examples": [
-    {
-     "input": "1 3 5\n2 4 6",
-     "output": "1 2 3 4 5 6",
-     "explanation": null
-    },
-    {
-     "input": "\n1 2 3",
-     "output": "1 2 3",
-     "explanation": "Empty A → output is B."
-    }
-   ],
-   "constraints": [
-    "0 ≤ |A|, |B| ≤ 10^5",
-    "Both arrays are sorted in ascending order."
-   ],
-   "solutions": {
-    "python": "a = list(map(int, input().split()))\nb = list(map(int, input().split()))\ni = j = 0\nout = []\nwhile i < len(a) and j < len(b):\n    if a[i] <= b[j]: out.append(a[i]); i += 1\n    else:            out.append(b[j]); j += 1\nout.extend(a[i:]); out.extend(b[j:])\nprint(*out)\n",
-    "java": "import java.util.*;\n\npublic class Solution {\n    public static void main(String[] args) {\n        Scanner sc = new Scanner(System.in);\n        int[] a = parse(sc.nextLine());\n        int[] b = parse(sc.nextLine());\n        StringBuilder sb = new StringBuilder();\n        int i = 0, j = 0;\n        while (i < a.length && j < b.length) sb.append(a[i] <= b[j] ? a[i++] : b[j++]).append(' ');\n        while (i < a.length) sb.append(a[i++]).append(' ');\n        while (j < b.length) sb.append(b[j++]).append(' ');\n        System.out.println(sb.toString().trim());\n    }\n    static int[] parse(String line) {\n        if (line == null || line.isEmpty()) return new int[0];\n        String[] parts = line.trim().split(\"\\\\s+\");\n        int[] r = new int[parts.length];\n        for (int k = 0; k < parts.length; k++) r[k] = Integer.parseInt(parts[k]);\n        return r;\n    }\n}\n",
-    "cpp": "#include <bits/stdc++.h>\nusing namespace std;\n\nvector<int> parse(const string &line) {\n    vector<int> v; stringstream ss(line); int x; while (ss >> x) v.push_back(x);\n    return v;\n}\n\nint main() {\n    string la, lb; getline(cin, la); getline(cin, lb);\n    auto a = parse(la), b = parse(lb);\n    size_t i = 0, j = 0; string out;\n    while (i < a.size() && j < b.size()) {\n        int v = a[i] <= b[j] ? a[i++] : b[j++];\n        out += to_string(v) + ' ';\n    }\n    while (i < a.size()) out += to_string(a[i++]) + ' ';\n    while (j < b.size()) out += to_string(b[j++]) + ' ';\n    if (!out.empty()) out.pop_back();\n    cout << out << \"\\n\";\n}\n"
-   },
-   "tests": [
-    {
-     "stdin": "1 3 5\n2 4 6\n",
-     "expected": "1 2 3 4 5 6"
-    },
-    {
-     "stdin": "\n1 2 3\n",
-     "expected": "1 2 3"
-    }
-   ]
-  },
-  {
-   "slug": "valid-anagram",
-   "title": "Valid Anagram",
-   "difficulty": "EASY",
-   "tags": [
-    "string",
-    "hashmap",
-    "sorting"
-   ],
-   "tagline": "Given two strings, print \"true\" if one is a permutation of the other.",
-   "statement": [
-    "An anagram is a rearrangement of a string's characters. `listen` ↔ `silent`. `evil` ↔ `vile`. Not: `hello` ↔ `world`.",
-    "Two canonical approaches: (a) sort both strings and compare — O(n log n) time, O(1) extra space; (b) count characters in a hashmap or frequency array and compare — O(n) time, O(k) space where k is the alphabet size. For ASCII, k = 128, so (b) is strictly better.",
-    "Read two lines. Print \"true\" or \"false\"."
-   ],
-   "examples": [
-    {
-     "input": "listen\nsilent",
-     "output": "true",
-     "explanation": null
-    },
-    {
-     "input": "hello\nworld",
-     "output": "false",
-     "explanation": null
-    },
-    {
-     "input": "anagram\nnagaram",
-     "output": "true",
-     "explanation": null
-    }
-   ],
-   "constraints": [
-    "1 ≤ length of both strings ≤ 10^5",
-    "ASCII lowercase only."
-   ],
-   "solutions": {
-    "python": "from collections import Counter\na = input(); b = input()\nprint('true' if Counter(a) == Counter(b) else 'false')\n",
-    "java": "import java.util.Scanner;\n\npublic class Solution {\n    public static void main(String[] args) {\n        Scanner sc = new Scanner(System.in);\n        String a = sc.nextLine(), b = sc.nextLine();\n        if (a.length() != b.length()) { System.out.println(\"false\"); return; }\n        int[] freq = new int[128];\n        for (char c : a.toCharArray()) freq[c]++;\n        for (char c : b.toCharArray()) if (--freq[c] < 0) { System.out.println(\"false\"); return; }\n        System.out.println(\"true\");\n    }\n}\n",
-    "cpp": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    string a, b; getline(cin, a); getline(cin, b);\n    if (a.size() != b.size()) { cout << \"false\\n\"; return 0; }\n    int freq[128] = {0};\n    for (char c : a) freq[(unsigned char)c]++;\n    for (char c : b) if (--freq[(unsigned char)c] < 0) { cout << \"false\\n\"; return 0; }\n    cout << \"true\\n\";\n}\n"
-   },
-   "tests": [
-    {
-     "stdin": "listen\nsilent\n",
-     "expected": "true"
-    },
-    {
-     "stdin": "hello\nworld\n",
-     "expected": "false"
-    },
-    {
-     "stdin": "anagram\nnagaram\n",
-     "expected": "true"
-    }
-   ]
-  },
-  {
-   "slug": "reverse-linked-list",
-   "title": "Reverse a Linked List",
-   "difficulty": "EASY",
-   "tags": [
-    "linked-list",
-    "pointer"
-   ],
-   "tagline": "Reverse a singly linked list. Iterative (O(1) extra space) or recursive (O(n) stack).",
-   "statement": [
-    "You are given the head of a singly-linked list. Reverse it and print the new head-to-tail sequence.",
-    "The iterative solution uses three pointers — prev, curr, next — and walks the list once, rewriting each `curr.next` to point at prev. O(n) time, O(1) space.",
-    "The recursive solution is short but uses O(n) stack; recurse to the end, then unwind rewriting pointers.",
-    "For this challenge, take the list as space-separated integers on line 1 and print the reversed sequence."
-   ],
-   "examples": [
-    {
-     "input": "1 2 3 4 5",
-     "output": "5 4 3 2 1",
-     "explanation": null
-    },
-    {
-     "input": "1 2",
-     "output": "2 1",
-     "explanation": null
-    },
-    {
-     "input": "",
-     "output": "",
-     "explanation": "Empty list stays empty."
-    }
-   ],
-   "constraints": [
-    "0 ≤ list length ≤ 5000",
-    "-1000 ≤ node value ≤ 1000"
-   ],
-   "solutions": {
-    "python": "# Iterative reversal — no actual linked list needed for this I/O shape;\n# the algorithm shape is preserved: walk once, rebuild in reverse.\nvals = input().split()\nprint(*vals[::-1])\n",
-    "java": "import java.util.*;\n\npublic class Solution {\n    public static void main(String[] args) {\n        Scanner sc = new Scanner(System.in);\n        String line = sc.hasNextLine() ? sc.nextLine() : \"\";\n        if (line.isBlank()) { System.out.println(\"\"); return; }\n        String[] p = line.trim().split(\"\\\\s+\");\n        StringBuilder sb = new StringBuilder();\n        for (int i = p.length - 1; i >= 0; i--) { sb.append(p[i]); if (i > 0) sb.append(' '); }\n        System.out.println(sb);\n    }\n}\n",
-    "cpp": "#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    string line; getline(cin, line);\n    vector<string> v; stringstream ss(line); string x; while (ss >> x) v.push_back(x);\n    for (int i = (int)v.size() - 1; i >= 0; --i) { cout << v[i]; if (i) cout << ' '; }\n    cout << \"\\n\";\n}\n"
-   },
-   "tests": [
-    {
-     "stdin": "1 2 3 4 5\n",
-     "expected": "5 4 3 2 1"
-    },
-    {
-     "stdin": "1 2\n",
-     "expected": "2 1"
-    },
-    {
-     "stdin": "\n",
-     "expected": ""
     }
    ]
   }

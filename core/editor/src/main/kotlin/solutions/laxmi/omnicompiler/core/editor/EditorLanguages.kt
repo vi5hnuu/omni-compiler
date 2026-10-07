@@ -138,7 +138,8 @@ object EditorLanguages {
         "lisp" to "common-lisp", "lua" to "lua", "nasm" to "asm", "ocaml" to "ocaml", "pascal" to "pascal", "perl" to "perl",
         "php" to "php", "powershell" to "powershell", "prolog" to "prolog", "python" to "python", "pypy" to "python",
         "r" to "r", "raku" to "raku", "ruby" to "ruby", "rust" to "rust", "scala" to "scala", "smalltalk" to "smalltalk",
-        "sqlite" to "sql", "swift" to "swift", "typescript" to "typescript", "vlang" to "v", "wasm" to "wasm", "zig" to "zig",
+        "sqlite" to "sql", "duckdb" to "sql", "postgres" to "sql", "mariadb" to "sql", "swift" to "swift",
+        "typescript" to "typescript", "vlang" to "v", "wasm" to "wasm", "zig" to "zig",
         // Racket and Octave borrow their closest permissively licensed grammars (Scheme, MATLAB).
         "elixir" to "elixir", "nim" to "nim", "octave" to "matlab", "racket" to "scheme",
     )
