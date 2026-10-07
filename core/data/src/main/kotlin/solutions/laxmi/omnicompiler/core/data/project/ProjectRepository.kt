@@ -197,7 +197,7 @@ internal class LocalProjectRepository @Inject constructor(
         val drafts = template?.tests ?: info.starter?.tests ?: listOf(TestCaseDraft("", ""))
         val entryName = runtime.filename.ifBlank { "main" }
         val result = onDisk { root ->
-            val folder = store.createFolder(root, slugify(template?.name ?: "${info.base}-scratch").ifEmpty { "project" })
+            val folder = store.createFolder(root, projectName(template?.name ?: "${info.base}-scratch").ifEmpty { "project" })
             val entry = store.writeFile(root, folder.docId, entryName, code)
             db.withTransaction {
                 projects.upsert(ProjectEntity(projectId, folder.name, runtime.id, limits.timeMs, limits.memMb, null, now, now, folderDocId = folder.docId))
@@ -235,11 +235,11 @@ internal class LocalProjectRepository @Inject constructor(
     }
 
     override suspend fun rename(projectId: String, name: String): Outcome<Unit> {
-        val slug = slugify(name)
-        if (slug.isEmpty()) return Outcome.Failure(AppError.Validation(reason = ErrorReason.NameRequired))
+        val wanted = projectName(name)
+        if (wanted.isEmpty()) return Outcome.Failure(AppError.Validation(reason = ErrorReason.NameRequired))
         val project = projects.get(projectId) ?: return Outcome.Failure(AppError.NotFound(reason = ErrorReason.ProjectNotFound))
-        if (slug == project.name) return Outcome.Success(Unit)
-        val unique = uniqueName(slug, except = projectId)
+        if (wanted == project.name) return Outcome.Success(Unit)
+        val unique = uniqueName(wanted, except = projectId)
         return onDisk { root ->
             val folderDocId = project.folderDocId
             if (folderDocId == null) {
@@ -471,7 +471,7 @@ internal class LocalProjectRepository @Inject constructor(
     }
 
     override suspend fun importRemote(name: String, files: Map<String, String>, remote: ProjectRemote): Outcome<String> =
-        imported(onDisk { root -> sync.createFromFilesLocked(root, slugify(name).ifEmpty { "repo" }, files, remote.toManifest()) })
+        imported(onDisk { root -> sync.createFromFilesLocked(root, projectName(name).ifEmpty { "repo" }, files, remote.toManifest()) })
 
     override suspend fun applyRemote(projectId: String, changes: Map<String, String?>, remote: ProjectRemote): Outcome<Unit> {
         val project = projects.get(projectId) ?: return Outcome.Failure(AppError.NotFound(reason = ErrorReason.ProjectNotFound))
@@ -565,14 +565,12 @@ internal class LocalProjectRepository @Inject constructor(
         }
     }
 
-    private fun slugify(value: String) = value.trim().lowercase()
-        .replace(Regex("[^a-z0-9._-]+"), "-")
-        .trim('-')
-        .take(MAX_PROJECT_NAME)
+    /** The folder name for a project: what the user typed, minus characters storage can't hold. */
+    private fun projectName(value: String) = safeFileName(value, MAX_PROJECT_NAME)
 
     private companion object {
         const val MAX_EXTRA_FILES = 20
         const val MAX_FILE_NAME = 128
-        const val MAX_PROJECT_NAME = 48
+        const val MAX_PROJECT_NAME = 64
     }
 }
