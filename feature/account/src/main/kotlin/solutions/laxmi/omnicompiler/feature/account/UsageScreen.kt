@@ -1,6 +1,7 @@
 package solutions.laxmi.omnicompiler.feature.account
 
 import solutions.laxmi.omnicompiler.core.model.Limits
+import solutions.laxmi.omnicompiler.core.model.ProjectLimits
 import solutions.laxmi.omnicompiler.core.ui.asString
 import androidx.compose.ui.platform.LocalResources
 import solutions.laxmi.omnicompiler.core.ui.R as CommonR
@@ -112,7 +113,7 @@ fun UsageScreen(navigator: Navigator) {
                         stringResource(R.string.usage_limit_time) to stringResource(R.string.usage_limit_time_value, Limits.MAX_TIME_MS / 1_000),
                         stringResource(R.string.usage_limit_memory) to stringResource(R.string.usage_limit_memory_value, Limits.MAX_MEM_MB),
                         stringResource(R.string.usage_limit_tests) to JUDGE_MAX_TESTS.toString(),
-                        stringResource(R.string.usage_limit_files) to stringResource(R.string.usage_limit_files_value, JUDGE_MAX_FILES, JUDGE_MAX_FILE_KB),
+                        stringResource(R.string.usage_limit_files) to stringResource(R.string.usage_limit_files_value, ProjectLimits.MAX_EXTRA_FILES, ProjectLimits.MAX_FILE_BYTES / 1024, ProjectLimits.MAX_TOTAL_BYTES / (1024 * 1024)),
                         stringResource(R.string.usage_queue) to stringResource(if (plan.effectivePlan.equals("free", true)) R.string.usage_queue_normal else R.string.usage_queue_priority),
                     ).forEach { (k, v) -> KeyValue(k, v) }
                     state.stats?.let { stats ->
@@ -178,10 +179,8 @@ internal fun KeyValue(key: String, value: String) {
     }
 }
 
-/** Judge-enforced per-run caps (ls-judge MAX_TEST_CASES / MAX_FILES / MAX_CODE_BYTES defaults). */
+/** Judge-enforced per-run cap (ls-judge MAX_TEST_CASES default); file caps come from ProjectLimits. */
 private const val JUDGE_MAX_TESTS = 100
-private const val JUDGE_MAX_FILES = 20
-private const val JUDGE_MAX_FILE_KB = 64
 
 /** Judge enum values ("past_due", "razorpay") as display text ("Past due", "Razorpay"). */
 private fun String.humanized(): String = replace('_', ' ').replaceFirstChar { it.uppercase() }

@@ -20,7 +20,7 @@ data class RemoteEntry(val name: String, val path: String, val isFolder: Boolean
 
 /**
  * Where a project came from and what it looked like there at the last pull or push. A project maps to one
- * repository folder (the judge's workspace is flat), so only that folder's top-level files are tracked.
+ * repository folder; its files, subfolders included, are tracked by their path relative to that folder.
  */
 data class ProjectRemote(
     val host: GitHost,
@@ -30,7 +30,7 @@ data class ProjectRemote(
     /** Folder inside the repository ("" for the root). */
     val path: String,
     val baseCommit: String,
-    /** File name → git blob id at [baseCommit]. */
+    /** File path (relative to [path]) → git blob id at [baseCommit]. */
     val baseBlobs: Map<String, String>,
     /** Files changed both here and on the remote since [baseCommit]; they keep the local version until resolved. */
     val conflicts: Set<String> = emptySet(),

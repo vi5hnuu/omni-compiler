@@ -25,6 +25,7 @@ import solutions.laxmi.omnicompiler.core.model.GitAccount
 import solutions.laxmi.omnicompiler.core.model.GitHost
 import solutions.laxmi.omnicompiler.core.model.Outcome
 import solutions.laxmi.omnicompiler.core.model.ProjectIssue
+import solutions.laxmi.omnicompiler.core.model.ProjectPaths
 import solutions.laxmi.omnicompiler.core.model.ProjectRemote
 import solutions.laxmi.omnicompiler.core.model.ProjectWorkspace
 import solutions.laxmi.omnicompiler.core.model.PullResult
@@ -40,7 +41,7 @@ import javax.inject.Singleton
 /**
  * GitHub/GitLab basics over their web APIs: connect with a token, import a repository folder as a project,
  * see what changed, commit & push, and pull with per-file conflict resolution. A project tracks one folder
- * (flat, like the judge's workspace); changes are found by comparing git blob ids, as git itself does.
+ * with its subfolders; changes are found by comparing git blob ids, as git itself does.
  */
 interface GitRepository {
     val accounts: Flow<List<GitAccount>>
@@ -99,9 +100,11 @@ internal class DefaultGitRepository @Inject constructor(
 
     override suspend fun importFolder(repo: RemoteRepo, branch: String, path: String): Outcome<String> = withToken(repo.host) { token ->
         val head = network.head(repo.host, token, repo.id, branch).valueOr { return@withToken it }
-        val entries = network.list(repo.host, token, repo.id, head, path).valueOr { return@withToken it }
-        // Only the folder's own files, as the judge runs a flat workspace; very large files are left out.
-        val candidates = entries.filter { it.isTrackable() && (it.size ?: 0) <= ProjectSync.MAX_FILE_BYTES }.take(ProjectSync.MAX_FILES)
+        val entries = network.listFiles(repo.host, token, repo.id, head, path).valueOr { return@withToken it }
+        // The folder and its subfolders, shallowest first so the file limit keeps the root; very large files are left out.
+        val candidates = entries.filter { it.isTrackable() && (it.size ?: 0) <= ProjectSync.MAX_FILE_BYTES }
+            .sortedWith(compareBy<RemoteEntry> { it.name.count { c -> c == '/' } }.thenBy { it.name.lowercase() })
+            .take(ProjectSync.MAX_FILES)
         val fetched = fetchTexts(repo, token, candidates).valueOr { return@withToken it }
         val name = path.substringAfterLast('/').ifEmpty { repo.fullName.substringAfterLast('/') }
         val remote = ProjectRemote(repo.host, repo.id, repo.fullName, branch, path, head, fetched.mapValues { (fileName, _) -> candidates.first { it.name == fileName }.sha })
@@ -158,7 +161,7 @@ internal class DefaultGitRepository @Inject constructor(
         return withToken(remote.host) { token ->
             val head = network.head(remote.host, token, remote.repoId, remote.branch).valueOr { return@withToken it }
             if (head == remote.baseCommit) return@withToken Outcome.Success(PullResult(0, remote.conflicts))
-            val listing = network.list(remote.host, token, remote.repoId, head, remote.path).valueOr { return@withToken it }
+            val listing = network.listFiles(remote.host, token, remote.repoId, head, remote.path).valueOr { return@withToken it }
             val theirs = listing.filter { it.isTrackable() }.associateBy { it.name }
             val base = remote.trackedBase()
             // An empty listing for a folder that had files means it was removed or moved upstream; deleting every
@@ -197,7 +200,7 @@ internal class DefaultGitRepository @Inject constructor(
         val workspace = projects.snapshot(projectId) ?: return notFound()
         val remote = workspace.project.remote ?: return notFound()
         return withToken(remote.host) { token ->
-            val theirs = network.list(remote.host, token, remote.repoId, remote.baseCommit, remote.path).valueOr { return@withToken it }
+            val theirs = network.listFiles(remote.host, token, remote.repoId, remote.baseCommit, remote.path).valueOr { return@withToken it }
                 .firstOrNull { it.isTrackable() && it.name == fileName }
             val newBase = remote.trackedBase().toMutableMap().apply { setOrRemove(fileName, theirs?.sha) }
             val resolved = remote.copy(baseBlobs = newBase, conflicts = remote.conflicts - fileName)
@@ -297,15 +300,15 @@ internal class DefaultGitRepository @Inject constructor(
             "ogg", "ttf", "otf", "woff", "woff2", "psd", "sqlite", "db",
         )
 
-        fun isBinaryName(name: String) = name.substringAfterLast('.', "").lowercase() in BINARY_EXTENSIONS
+        fun isBinaryName(name: String) = ProjectPaths.basename(name).substringAfterLast('.', "").lowercase() in BINARY_EXTENSIONS
 
         /**
-         * Whether a remote file can be part of a project at all: not a folder, not hidden (dot files such as
-         * `.gitignore` are ignored by projects), not binary by name, and a name the project folder accepts. Others
-         * are never tracked, so they can never be pushed as deletions.
+         * Whether a remote file can be part of a project at all: a path the project accepts (depth, length, not inside
+         * `.omni`/`.git`) whose name isn't binary. Dot files such as `.gitignore` are project files. Others are never
+         * tracked, so they can never be pushed as deletions.
          */
-        fun isTrackableName(name: String) =
-            !name.startsWith('.') && !isBinaryName(name) && name.isNotBlank() && name.length <= ProjectSync.MAX_FILE_NAME
+        fun isTrackableName(path: String) =
+            ProjectPaths.problem(path) == null && !ProjectPaths.isInternal(path) && !isBinaryName(ProjectPaths.basename(path))
 
         fun RemoteEntry.isTrackable() = !isFolder && isTrackableName(name)
 

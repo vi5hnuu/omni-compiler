@@ -11,6 +11,7 @@ import solutions.laxmi.omnicompiler.core.common.OmniDispatcher
 import solutions.laxmi.omnicompiler.core.model.AppError
 import solutions.laxmi.omnicompiler.core.model.ErrorReason
 import solutions.laxmi.omnicompiler.core.model.Outcome
+import solutions.laxmi.omnicompiler.core.model.ProjectPaths
 import java.io.File
 import java.io.IOException
 import java.util.zip.ZipEntry
@@ -39,6 +40,7 @@ internal class CacheProjectExporter @Inject constructor(
         return write("${workspace.project.name}.zip", MIME_ZIP) { file ->
             ZipOutputStream(file.outputStream().buffered()).use { zip ->
                 workspace.files.forEach { source ->
+                    // Entries keep their folders (src/util/helper.py), so the archive unpacks into the same tree.
                     zip.putNextEntry(ZipEntry(source.name))
                     zip.write(source.content.encodeToByteArray())
                     zip.closeEntry()
@@ -60,7 +62,7 @@ internal class CacheProjectExporter @Inject constructor(
     override suspend fun exportFile(projectId: String, fileId: String): Outcome<SharedFile> {
         val source = projects.snapshot(projectId)?.files?.firstOrNull { it.id == fileId }
             ?: return Outcome.Failure(AppError.NotFound(reason = ErrorReason.FileNotFound))
-        return write(source.name, MIME_TEXT) { it.writeText(source.content) }
+        return write(ProjectPaths.basename(source.name), MIME_TEXT) { it.writeText(source.content) }
     }
 
     private suspend fun write(name: String, mime: String, block: (File) -> Unit): Outcome<SharedFile> = withContext(io) {

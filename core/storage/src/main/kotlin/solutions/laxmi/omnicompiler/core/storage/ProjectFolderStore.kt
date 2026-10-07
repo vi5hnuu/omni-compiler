@@ -16,6 +16,7 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.withContext
 import solutions.laxmi.omnicompiler.core.common.Dispatcher
 import solutions.laxmi.omnicompiler.core.common.OmniDispatcher
+import solutions.laxmi.omnicompiler.core.model.ProjectPaths
 import java.io.IOException
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -51,8 +52,20 @@ interface ProjectFolderStore {
     /** Creates a uniquely named project folder (suffixing `-2`, `-3`… on clashes). */
     suspend fun createFolder(root: ProjectRoot, name: String): DocEntry
 
-    /** Writes [name] inside [folderDocId], creating it when missing; returns its fresh metadata. */
-    suspend fun writeFile(root: ProjectRoot, folderDocId: String, name: String, content: String): DocEntry
+    /**
+     * Writes the file at [path] (relative, `/`-separated) inside the project folder [folderDocId], creating it and any
+     * missing subfolders; returns its fresh metadata.
+     */
+    suspend fun writeFile(root: ProjectRoot, folderDocId: String, path: String, content: String): DocEntry
+
+    /** Deletes the file at [path] (document [docId]) and then any folders it leaves empty, never the project folder itself. */
+    suspend fun deleteFile(root: ProjectRoot, folderDocId: String, docId: String, path: String)
+
+    /**
+     * Moves a file to another path in the same project: [content] is written at [toPath] first, then the old file is
+     * deleted and folders it leaves empty are removed. Returns the new file's metadata.
+     */
+    suspend fun moveFile(root: ProjectRoot, folderDocId: String, docId: String, fromPath: String, toPath: String, content: String): DocEntry
 
     /** Overwrites an existing file; returns its fresh metadata (the new last-modified time). */
     suspend fun updateFile(root: ProjectRoot, docId: String, content: String): DocEntry
@@ -147,7 +160,48 @@ internal class SafProjectFolderStore @Inject constructor(
         val meta = entries.firstOrNull { it.isDirectory && it.name == ProjectLayout.META_DIR }
         val manifest = meta?.let { tree.child(it.docId, ProjectLayout.MANIFEST) }
         val text = manifest?.takeUnless { skipManifest(folder, it) }?.let { tree.readText(it.docId, MAX_MANIFEST_BYTES).decodeToString() }
-        return ScannedFolder(folder, text, entries.filter { it !== meta }, manifest)
+        val files = mutableListOf<FolderFile>()
+        val tooDeep = mutableListOf<String>()
+        collectFiles(tree, entries.filter { it !== meta }, prefix = "", files, tooDeep)
+        return ScannedFolder(folder, text, files, manifest, tooDeep)
+    }
+
+    /** Walks subfolders (one provider query each) down to the deepest level a file may sit at. */
+    private fun collectFiles(tree: DocumentTree, entries: List<DocEntry>, prefix: String, files: MutableList<FolderFile>, tooDeep: MutableList<String>) {
+        entries.forEach { entry ->
+            val path = ProjectPaths.join(prefix, entry.name)
+            when {
+                !entry.isDirectory -> files += FolderFile(path, entry)
+                ProjectPaths.isInternal(entry.name) -> Unit
+                // A folder at depth d holds files at depth d + 1; past the limit they could never be run.
+                path.count { it == '/' } + 1 >= ProjectPaths.MAX_DEPTH -> tooDeep += path
+                else -> collectFiles(tree, tree.children(entry.docId), path, files, tooDeep)
+            }
+        }
+    }
+
+    /** The document id of the folder at [path] under [folderDocId], creating missing folders when [create]. */
+    private fun folderAt(tree: DocumentTree, folderDocId: String, path: String, create: Boolean): String? {
+        var current = folderDocId
+        path.split('/').filter { it.isNotEmpty() }.forEach { segment ->
+            val existing = tree.child(current, segment)
+            current = when {
+                existing?.isDirectory == true -> existing.docId
+                existing != null -> throw IOException("A file named $segment is in the way")
+                create -> tree.createDirectory(current, segment)
+                else -> return null
+            }
+        }
+        return current
+    }
+
+    /** Removes the folders on the way to [path] that are now empty, innermost first. */
+    private fun pruneEmptyFolders(tree: DocumentTree, folderDocId: String, path: String) {
+        ProjectPaths.ancestors(path).asReversed().forEach { folderPath ->
+            val docId = folderAt(tree, folderDocId, folderPath, create = false) ?: return@forEach
+            if (tree.children(docId).isNotEmpty()) return
+            tree.delete(docId)
+        }
     }
 
     override suspend fun entry(root: ProjectRoot, docId: String): DocEntry? = withContext(io) { tree(root).entry(docId) }
@@ -166,12 +220,33 @@ internal class SafProjectFolderStore @Inject constructor(
         tree.entry(docId) ?: throw IOException("Created folder vanished")
     }
 
-    override suspend fun writeFile(root: ProjectRoot, folderDocId: String, name: String, content: String): DocEntry = withContext(io) {
-        val tree = tree(root)
-        val docId = tree.child(folderDocId, name)?.docId ?: tree.createFile(folderDocId, name)
-        tree.writeText(docId, content)
-        tree.entry(docId) ?: throw IOException("Written file vanished")
+    override suspend fun writeFile(root: ProjectRoot, folderDocId: String, path: String, content: String): DocEntry = withContext(io) {
+        writeAt(tree(root), folderDocId, path, content)
     }
+
+    private fun writeAt(tree: DocumentTree, folderDocId: String, path: String, content: String): DocEntry {
+        val parent = folderAt(tree, folderDocId, ProjectPaths.parent(path), create = true) ?: throw IOException("Can't create folders for $path")
+        val name = ProjectPaths.basename(path)
+        val docId = tree.child(parent, name)?.docId ?: tree.createFile(parent, name)
+        tree.writeText(docId, content)
+        return tree.entry(docId) ?: throw IOException("Written file vanished")
+    }
+
+    override suspend fun deleteFile(root: ProjectRoot, folderDocId: String, docId: String, path: String) = withContext(io) {
+        val tree = tree(root)
+        tree.delete(docId)
+        pruneEmptyFolders(tree, folderDocId, path)
+    }
+
+    override suspend fun moveFile(root: ProjectRoot, folderDocId: String, docId: String, fromPath: String, toPath: String, content: String): DocEntry =
+        withContext(io) {
+            val tree = tree(root)
+            // Written before the old copy goes, so a failure part-way leaves the file in at least one place.
+            val moved = writeAt(tree, folderDocId, toPath, content)
+            tree.delete(docId)
+            pruneEmptyFolders(tree, folderDocId, fromPath)
+            moved
+        }
 
     override suspend fun updateFile(root: ProjectRoot, docId: String, content: String): DocEntry = withContext(io) {
         val tree = tree(root)

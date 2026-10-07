@@ -21,6 +21,8 @@ import solutions.laxmi.omnicompiler.core.model.ErrorReason
 import solutions.laxmi.omnicompiler.core.model.Outcome
 import solutions.laxmi.omnicompiler.core.model.ProjectIssue
 import solutions.laxmi.omnicompiler.core.storage.DocEntry
+import solutions.laxmi.omnicompiler.core.storage.FolderFile
+import solutions.laxmi.omnicompiler.core.model.ProjectLimits
 import solutions.laxmi.omnicompiler.core.storage.ManifestCodec
 import solutions.laxmi.omnicompiler.core.storage.ManifestLimits
 import solutions.laxmi.omnicompiler.core.storage.ManifestRemote
@@ -150,10 +152,11 @@ internal class ProjectSync @Inject constructor(
         val checked = validator().validate(scanned, taken + (ManifestCodec.decode(scanned.manifestText.orEmpty())?.id ?: "")) ?: return null
         val target = store.createFolder(root, checked.folder.name)
         var copied = 0
-        checked.sourceFiles.forEach { entry ->
-            val bytes = store.readBytes(source, entry.docId, MAX_FILE_BYTES)
+        // Subfolders come along: each file keeps its path relative to the picked folder.
+        checked.sourceFiles.forEach { file ->
+            val bytes = store.readBytes(source, file.doc.docId, MAX_FILE_BYTES)
             if (bytes.none { it == 0.toByte() }) {
-                store.writeFile(root, target.docId, entry.name, bytes.decodeToString())
+                store.writeFile(root, target.docId, file.path, bytes.decodeToString())
                 copied++
             }
         }
@@ -275,29 +278,30 @@ internal class ProjectSync @Inject constructor(
         // text is newer), changed files are read, and binaries that slipped past the MIME check are dropped.
         val fresh = mutableMapOf<String, String>()
         val writtenBack = mutableMapOf<String, Pair<String, DocEntry>>()
-        val kept = checked.sourceFiles.filter { entry ->
-            val row = existing[entry.name]
+        val kept = checked.sourceFiles.filter { file ->
+            val row = existing[file.path]
+            val doc = file.doc
             when {
                 row != null && row.diskDirty -> {
-                    writtenBack[entry.name] = row.content to store.updateFile(root, entry.docId, row.content)
+                    writtenBack[file.path] = row.content to store.updateFile(root, doc.docId, row.content)
                     true
                 }
-                row != null && row.lastModified == entry.lastModified && row.size == entry.size -> true
+                row != null && row.lastModified == doc.lastModified && row.size == doc.size -> true
                 else -> {
-                    val bytes = store.readBytes(root, entry.docId, MAX_FILE_BYTES)
+                    val bytes = store.readBytes(root, doc.docId, MAX_FILE_BYTES)
                     if (bytes.any { it == 0.toByte() }) {
-                        issues += ProjectIssue.FileSkipped(entry.name, ProjectIssue.SkipReason.BINARY)
+                        issues += ProjectIssue.FileSkipped(file.path, ProjectIssue.SkipReason.BINARY)
                         false
                     } else {
-                        fresh[entry.name] = bytes.decodeToString()
+                        fresh[file.path] = bytes.decodeToString()
                         true
                     }
                 }
             }
         }
-        val ordered = kept.sortedWith(compareByDescending<DocEntry> { it.name == manifest.entry }.thenBy { it.name.lowercase() })
+        val ordered = kept.sortedWith(compareByDescending<FolderFile> { it.path == manifest.entry }.thenBy { it.path.lowercase() })
         val previous = projects.get(manifest.id)
-        val touched = maxOf(previous?.updatedAt ?: 0, ordered.maxOfOrNull { it.lastModified } ?: 0, manifest.createdAt)
+        val touched = maxOf(previous?.updatedAt ?: 0, ordered.maxOfOrNull { it.doc.lastModified } ?: 0, manifest.createdAt)
         val testRows = manifest.tests.mapIndexed { i, t -> TestCaseEntity(t.id, manifest.id, t.name, t.stdin, t.expected, i) }
         db.withTransaction {
             projects.upsert(
@@ -317,10 +321,10 @@ internal class ProjectSync @Inject constructor(
                     manifestModified = manifestEntry?.lastModified ?: 0,
                 ),
             )
-            val keptNames = ordered.mapTo(HashSet()) { it.name }
+            val keptNames = ordered.mapTo(HashSet()) { it.path }
             val gone = existing.values.filter { it.name !in keptNames }.map { it.id }
             if (gone.isNotEmpty()) files.deleteAll(gone)
-            ordered.forEachIndexed { position, entry -> indexFile(manifest, entry, position, existing[entry.name], fresh[entry.name], writtenBack[entry.name]) }
+            ordered.forEachIndexed { position, file -> indexFile(manifest, file, position, existing[file.path], fresh[file.path], writtenBack[file.path]) }
             if (tests.list(manifest.id) != testRows) tests.replaceAll(manifest.id, testRows)
         }
     }
@@ -329,26 +333,27 @@ internal class ProjectSync @Inject constructor(
      * One file's index row after a rescan. Text is only replaced by an edit found on disk, and only if the row still
      * holds the text it was compared with: an editor save that landed meanwhile wins and is written out later.
      */
-    private suspend fun indexFile(manifest: ProjectManifest, entry: DocEntry, position: Int, row: FileEntity?, fresh: String?, writtenBack: Pair<String, DocEntry>?) {
-        val isEntry = entry.name == manifest.entry
+    private suspend fun indexFile(manifest: ProjectManifest, file: FolderFile, position: Int, row: FileEntity?, fresh: String?, writtenBack: Pair<String, DocEntry>?) {
+        val isEntry = file.path == manifest.entry
+        val entry = file.doc
         when {
             row == null -> files.insert(
                 FileEntity(
-                    id = ids.newId(), projectId = manifest.id, name = entry.name, content = fresh.orEmpty(), isEntry = isEntry,
+                    id = ids.newId(), projectId = manifest.id, name = file.path, content = fresh.orEmpty(), isEntry = isEntry,
                     position = position, docId = entry.docId, lastModified = entry.lastModified, size = entry.size,
                 ),
             )
             writtenBack != null -> {
                 val (text, written) = writtenBack
-                files.updateLayout(row.id, entry.name, isEntry, position, written.docId, written.lastModified, written.size)
+                files.updateLayout(row.id, file.path, isEntry, position, written.docId, written.lastModified, written.size)
                 files.markWritten(row.id, text, written.docId, written.lastModified, written.size)
             }
             fresh != null && fresh != row.content -> {
                 // A changed file already open in the editor reloads (its content version moves on).
                 val replaced = files.replaceIfUnchanged(row.id, row.content, fresh, entry.docId, entry.lastModified, entry.size)
-                files.updateLayout(row.id, entry.name, isEntry, position, entry.docId, if (replaced > 0) entry.lastModified else row.lastModified, entry.size)
+                files.updateLayout(row.id, file.path, isEntry, position, entry.docId, if (replaced > 0) entry.lastModified else row.lastModified, entry.size)
             }
-            else -> files.updateLayout(row.id, entry.name, isEntry, position, entry.docId, entry.lastModified, entry.size)
+            else -> files.updateLayout(row.id, file.path, isEntry, position, entry.docId, entry.lastModified, entry.size)
         }
     }
 
@@ -368,7 +373,7 @@ internal class ProjectSync @Inject constructor(
         }.toMap()
         val defaults = preferences.runSettings.first().defaultLimits
         return ProjectValidator(
-            limits = ProjectValidator.Limits(MAX_FILE_BYTES, MAX_FILES, MAX_FILE_NAME, defaults.timeMs, defaults.memMb),
+            limits = ProjectValidator.Limits(MAX_FILE_BYTES, MAX_FILES, ProjectLimits.MAX_TOTAL_BYTES.toLong(), defaults.timeMs, defaults.memMb),
             knownRuntime = { it in known },
             inferRuntime = { names ->
                 names.firstNotNullOfOrNull { name -> byExtension[name.substringAfterLast('.', "").lowercase()] }
@@ -387,10 +392,10 @@ internal class ProjectSync @Inject constructor(
     }
 
     companion object {
-        /** Largest file indexed from disk; runs still enforce the judge's own source limit. */
-        const val MAX_FILE_BYTES = 512L * 1024
-        const val MAX_FILES = 21
-        const val MAX_FILE_NAME = 128
+        /** Largest file a project opens; the judge's per-file cap (the entry's own, smaller cap is checked per run). */
+        const val MAX_FILE_BYTES = ProjectLimits.MAX_FILE_BYTES.toLong()
+        /** The entry plus the judge's limit on other files. */
+        const val MAX_FILES = ProjectLimits.MAX_EXTRA_FILES + 1
     }
 }
 

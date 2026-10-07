@@ -30,6 +30,13 @@ internal data class GhBlobDto(val content: String, val encoding: String)
 @Serializable
 internal data class GhCommitDto(val sha: String, val tree: GhShaDto)
 
+/** `git/trees/{sha}?recursive=1`: every entry below the tree, with paths relative to it. */
+@Serializable
+internal data class GhTreeListingDto(val sha: String, val truncated: Boolean = false, val tree: List<GhTreeItemDto> = emptyList())
+
+@Serializable
+internal data class GhTreeItemDto(val path: String, val type: String, val sha: String, val size: Long? = null)
+
 @Serializable
 internal data class GhCreateBlobDto(val content: String, val encoding: String = "utf-8")
 

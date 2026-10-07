@@ -17,6 +17,7 @@ import solutions.laxmi.omnicompiler.core.network.dto.GhCreateCommitDto
 import solutions.laxmi.omnicompiler.core.network.dto.GhCreateTreeDto
 import solutions.laxmi.omnicompiler.core.network.dto.GhRepoDto
 import solutions.laxmi.omnicompiler.core.network.dto.GhShaDto
+import solutions.laxmi.omnicompiler.core.network.dto.GhTreeListingDto
 import solutions.laxmi.omnicompiler.core.network.dto.GhUpdateRefDto
 import solutions.laxmi.omnicompiler.core.network.dto.GhUserDto
 import solutions.laxmi.omnicompiler.core.network.dto.GlBranchDto
@@ -53,6 +54,9 @@ internal interface GitHubApi {
 
     @GET("repos/{repo}/git/blobs/{sha}")
     suspend fun blob(@Header("Authorization") auth: String, @Path("repo", encoded = true) repo: String, @Path("sha") sha: String): GhBlobDto
+
+    @GET("repos/{repo}/git/trees/{sha}?recursive=1")
+    suspend fun treeRecursive(@Header("Authorization") auth: String, @Path("repo", encoded = true) repo: String, @Path("sha") sha: String): GhTreeListingDto
 
     @GET("repos/{repo}/git/commits/{sha}")
     suspend fun commit(@Header("Authorization") auth: String, @Path("repo", encoded = true) repo: String, @Path("sha") sha: String): GhCommitDto
@@ -97,6 +101,7 @@ internal interface GitLabApi {
         @Query("path") path: String,
         @Query("ref") ref: String,
         @Query("page") page: Int,
+        @Query("recursive") recursive: Boolean = false,
     ): List<GlTreeEntryDto>
 
     @GET("projects/{id}/repository/blobs/{sha}/raw")

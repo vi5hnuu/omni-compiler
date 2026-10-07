@@ -70,7 +70,8 @@
     <string name="projects_issue_skipped_large">Skipped %1$s: too large.</string>
     <string name="projects_issue_skipped_binary">Skipped %1$s: not a text file.</string>
     <string name="projects_issue_skipped_name">Skipped %1$s: unsupported file name.</string>
-    <string name="projects_issue_skipped_folder">Skipped folder %1$s: projects are flat, files in subfolders aren\'t run.</string>
+    <string name="projects_issue_skipped_folder">Skipped folder %1$s: nested deeper than a run allows.</string>
+    <string name="projects_issue_skipped_too_much_data">Skipped %1$s: the project\'s files together would pass the size a run allows.</string>
     <string name="projects_issue_skipped_too_many">Skipped %1$s: past the project\'s file limit.</string>
     <string name="projects_import_git">Import from GitHub or GitLab</string>
 </resources>

@@ -16,14 +16,10 @@
     <string name="git_private">PRIVATE</string>
     <string name="git_load_more">Load more</string>
     <string name="git_branch">Branch</string>
-    <!-- Projects are flat (like the judge's workspace), so nested folders are a known limitation. -->
-    <string name="git_import_note">Subfolders aren\'t imported: only the files directly in this folder become the project. Nested folders aren\'t supported yet.</string>
-    <plurals name="git_import_skipped_folders">
-        <item quantity="one">%1$d subfolder here will be skipped.</item>
-        <item quantity="other">%1$d subfolders here will be skipped.</item>
-    </plurals>
+    <string name="git_import_note">This folder and its subfolders become the project. Binary files, very large files and anything past %1$d files are left out.</string>
     <string name="git_host_login">%1$s · @%2$s</string>
     <string name="git_load_failed">Couldn\'t load from %1$s</string>
+    <string name="git_import_folder_tree">Import this folder and its subfolders</string>
     <plurals name="git_import_folder">
         <item quantity="one">Import this folder (%1$d file)</item>
         <item quantity="other">Import this folder (%1$d files)</item>

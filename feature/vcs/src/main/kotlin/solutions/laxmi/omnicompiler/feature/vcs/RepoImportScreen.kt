@@ -48,6 +48,7 @@ import solutions.laxmi.omnicompiler.core.designsystem.component.OmniTopBar
 import solutions.laxmi.omnicompiler.core.designsystem.icon.OmniIcons
 import solutions.laxmi.omnicompiler.core.designsystem.theme.OmniTheme
 import solutions.laxmi.omnicompiler.core.navigation.EditorRoute
+import solutions.laxmi.omnicompiler.core.model.ProjectLimits
 import solutions.laxmi.omnicompiler.core.navigation.GitAccountsRoute
 import solutions.laxmi.omnicompiler.core.navigation.Navigator
 import solutions.laxmi.omnicompiler.core.ui.asString
@@ -96,7 +97,7 @@ fun RepoImportScreen(navigator: Navigator) {
         } else {
             BranchBar(browse.branches.ifEmpty { listOf(browse.branch) }, browse.branch, viewModel::selectBranch)
             val files = browse.entries.count { !it.isFolder }
-            val folders = browse.entries.count { it.isFolder }
+            val hasSubfolders = browse.entries.any { it.isFolder }
             when {
                 browse.entries.isEmpty() && state.loading -> CentredSpinner(Modifier.weight(1f))
                 browse.entries.isEmpty() && state.error != null -> LoadFailed(state, viewModel::retry, Modifier.weight(1f))
@@ -111,20 +112,17 @@ fun RepoImportScreen(navigator: Navigator) {
                     }
                 }
             }
-            // Projects are flat, so make the limitation visible before the user imports.
-            InfoBanner(
-                buildString {
-                    append(stringResource(R.string.git_import_note))
-                    if (folders > 0) append(' ').append(pluralStringResource(R.plurals.git_import_skipped_folders, folders, folders))
-                },
-                Modifier.padding(horizontal = 16.dp),
-                icon = OmniIcons.Info,
-            )
+            // What comes along and what doesn't, before the user imports.
+            InfoBanner(stringResource(R.string.git_import_note, ProjectLimits.MAX_EXTRA_FILES + 1), Modifier.padding(horizontal = 16.dp), icon = OmniIcons.Info)
             OmniButton(
-                if (files > 0) pluralStringResource(R.plurals.git_import_folder, files, files) else stringResource(R.string.git_import_empty),
+                when {
+                    hasSubfolders -> stringResource(R.string.git_import_folder_tree)
+                    files > 0 -> pluralStringResource(R.plurals.git_import_folder, files, files)
+                    else -> stringResource(R.string.git_import_empty)
+                },
                 viewModel::importCurrent,
                 Modifier.padding(16.dp),
-                enabled = files > 0 && !state.importing,
+                enabled = (files > 0 || hasSubfolders) && !state.importing,
                 loading = state.importing,
                 leadingIcon = OmniIcons.Download,
                 trailingIcon = null,

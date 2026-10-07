@@ -98,7 +98,9 @@
     <string name="common_error_entry_name_taken">Rename %1$s first: the %2$s entry file uses that name.</string>
     <string name="common_error_name_required">Enter a name.</string>
     <string name="common_error_file_name_required">Enter a file name.</string>
-    <string name="common_error_flat_workspace">All files share one flat /workspace: no folders or \'..\'.</string>
+    <string name="common_error_invalid_path">Use a path inside the project, like src/helper.py: no empty parts, \'.\', \'..\' or backslashes.</string>
+    <string name="common_error_path_too_deep">Folders can be nested at most %1$d levels deep.</string>
+    <string name="common_error_total_too_large">The project is too big to run: all files together must stay under %1$d MB.</string>
     <plurals name="common_error_file_name_too_long">
         <item quantity="one">File names can be at most %1$d character.</item>
         <item quantity="other">File names can be at most %1$d characters.</item>

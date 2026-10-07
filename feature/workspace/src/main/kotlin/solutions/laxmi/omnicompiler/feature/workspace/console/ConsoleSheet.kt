@@ -31,6 +31,7 @@ import solutions.laxmi.omnicompiler.core.designsystem.icon.OmniIcons
 import solutions.laxmi.omnicompiler.core.designsystem.theme.OmniTheme
 import solutions.laxmi.omnicompiler.core.model.CompileProblem
 import solutions.laxmi.omnicompiler.core.model.RunMode
+import solutions.laxmi.omnicompiler.core.model.ProjectPaths
 
 internal class ConsoleSheetActions(
     val onClose: () -> Unit,
@@ -135,4 +136,11 @@ private fun ConsoleFooter(state: ConsoleUiState, stdin: String, actions: Console
 
 internal fun ConsoleUiState.problemsFor(fileName: String, isEntry: Boolean): List<CompileProblem> =
     latest?.takeIf { it.mode == RunMode.TESTS || it.mode == RunMode.STDIN_ONLY }?.problems.orEmpty()
-        .filter { it.line != null && (it.fileName == fileName || (isEntry && it.fileName == null)) }
+        .filter { it.line != null && (it.fileName.refersTo(fileName) || (isEntry && it.fileName == null)) }
+
+/**
+ * Whether a compiler's file name means the project file at [path]: the same path, or, when the compiler printed only
+ * a bare name (no folder), that file's name.
+ */
+internal fun String?.refersTo(path: String): Boolean =
+    this == path || (this != null && '/' !in this && this == ProjectPaths.basename(path))

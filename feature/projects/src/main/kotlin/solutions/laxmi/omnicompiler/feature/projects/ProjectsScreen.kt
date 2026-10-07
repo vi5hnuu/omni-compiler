@@ -284,6 +284,7 @@ private fun issueText(issue: ProjectIssue): String = when (issue) {
             ProjectIssue.SkipReason.BAD_NAME -> R.string.projects_issue_skipped_name
             ProjectIssue.SkipReason.FOLDER -> R.string.projects_issue_skipped_folder
             ProjectIssue.SkipReason.TOO_MANY -> R.string.projects_issue_skipped_too_many
+            ProjectIssue.SkipReason.TOO_MUCH_DATA -> R.string.projects_issue_skipped_too_much_data
         },
         issue.name,
     )

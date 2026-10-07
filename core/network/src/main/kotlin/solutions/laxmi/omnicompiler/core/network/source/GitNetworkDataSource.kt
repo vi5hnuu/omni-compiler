@@ -40,6 +40,12 @@ interface GitNetworkDataSource {
     suspend fun list(host: GitHost, token: String, repoId: String, ref: String, path: String): Outcome<List<RemoteEntry>>
     suspend fun blobText(host: GitHost, token: String, repoId: String, sha: String): Outcome<String>
 
+    /**
+     * Every file below [path] at commit [commitSha], in all subfolders; each [RemoteEntry.name] is the path relative to
+     * [path] (`src/util/helper.py`). Fails rather than returning part of a listing too long to read completely.
+     */
+    suspend fun listFiles(host: GitHost, token: String, repoId: String, commitSha: String, path: String): Outcome<List<RemoteEntry>>
+
     /** Commits [changes] on top of [baseCommit] and moves [branch] to it only if it still points at the base. */
     suspend fun commit(host: GitHost, token: String, repoId: String, branch: String, baseCommit: String, message: String, changes: List<CommitChange>): Outcome<String>
 }
@@ -88,6 +94,23 @@ internal class RetrofitGitNetworkDataSource @Inject constructor(
             // A truncated listing would make pull treat the missing files as deleted upstream, so every page is read.
             GitHost.GITLAB -> allPages { page -> gitlab.tree(token, repoId, path, ref, page) }.map { RemoteEntry(it.name, it.path, it.type == "tree", it.id, null) }
         }.sortedWith(compareByDescending<RemoteEntry> { it.isFolder }.thenBy { it.name.lowercase() })
+    }
+
+    override suspend fun listFiles(host: GitHost, token: String, repoId: String, commitSha: String, path: String) = call {
+        val folder = path.trim('/')
+        val prefix = if (folder.isEmpty()) "" else "$folder/"
+        when (host) {
+            GitHost.GITHUB -> {
+                val auth = bearer(token)
+                val listing = github.treeRecursive(auth, repoId, github.commit(auth, repoId, commitSha).tree.sha)
+                if (listing.truncated) throw TruncatedListingException()
+                listing.tree.filter { it.type == "blob" && it.path.startsWith(prefix) }
+                    .map { RemoteEntry(it.path.removePrefix(prefix), it.path, isFolder = false, sha = it.sha, size = it.size) }
+            }
+            GitHost.GITLAB -> allPages { page -> gitlab.tree(token, repoId, folder, commitSha, page, recursive = true) }
+                .filter { it.type == "blob" && it.path.startsWith(prefix) }
+                .map { RemoteEntry(it.path.removePrefix(prefix), it.path, isFolder = false, sha = it.id, size = null) }
+        }.sortedBy { it.name.lowercase() }
     }
 
     override suspend fun blobText(host: GitHost, token: String, repoId: String, sha: String) = call {
@@ -200,7 +223,8 @@ internal class RetrofitGitNetworkDataSource @Inject constructor(
 
     private companion object {
         const val PAGE_SIZE = 100
-        const val MAX_PAGES = 20
+        /** 50 × 100 entries: room for a 500-file project with its folders. */
+        const val MAX_PAGES = 50
         const val MAX_PARALLEL_REQUESTS = 4
         const val GITHUB_CONTENTS_LIMIT = 1_000
     }

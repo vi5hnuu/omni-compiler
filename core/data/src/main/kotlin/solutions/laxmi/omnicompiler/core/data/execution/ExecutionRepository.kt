@@ -45,6 +45,7 @@ import solutions.laxmi.omnicompiler.core.model.JobStatus
 import solutions.laxmi.omnicompiler.core.model.NamedSource
 import solutions.laxmi.omnicompiler.core.model.Outcome
 import solutions.laxmi.omnicompiler.core.model.PendingRun
+import solutions.laxmi.omnicompiler.core.model.ProjectLimits
 import solutions.laxmi.omnicompiler.core.model.RateLimitSnapshot
 import solutions.laxmi.omnicompiler.core.model.ReplayProof
 import solutions.laxmi.omnicompiler.core.model.RunMode
@@ -302,8 +303,17 @@ internal class DefaultExecutionRepository @Inject constructor(
         val entry = workspace.entry ?: return Outcome.Failure(AppError.Validation(reason = ErrorReason.EntryFileMissing))
         if (entry.content.isBlank()) return Outcome.Failure(AppError.Validation(reason = ErrorReason.WriteCodeFirst))
         val extras = workspace.files.filter { !it.isEntry }
-        (listOf(entry) + extras).firstOrNull { it.content.encodeToByteArray().size > MAX_SOURCE_BYTES }?.let {
-            return Outcome.Failure(AppError.Validation(reason = ErrorReason.SourceTooLarge(it.name, MAX_SOURCE_BYTES / 1024)))
+        // The judge's caps: the entry (sent as `code`) is smaller than other files; everything together has a total.
+        val sizes = (listOf(entry) + extras).associateWith { it.content.encodeToByteArray().size }
+        sizes.entries.firstOrNull { (file, bytes) -> bytes > if (file.isEntry) ProjectLimits.MAX_ENTRY_BYTES else ProjectLimits.MAX_FILE_BYTES }?.let { (file, _) ->
+            val maxKb = (if (file.isEntry) ProjectLimits.MAX_ENTRY_BYTES else ProjectLimits.MAX_FILE_BYTES) / 1024
+            return Outcome.Failure(AppError.Validation(reason = ErrorReason.SourceTooLarge(file.name, maxKb)))
+        }
+        if (sizes.values.sum() > ProjectLimits.MAX_TOTAL_BYTES) {
+            return Outcome.Failure(AppError.Validation(reason = ErrorReason.TotalSizeTooLarge(ProjectLimits.MAX_TOTAL_BYTES / (1024 * 1024))))
+        }
+        if (extras.size > ProjectLimits.MAX_EXTRA_FILES) {
+            return Outcome.Failure(AppError.Validation(reason = ErrorReason.TooManyFiles(ProjectLimits.MAX_EXTRA_FILES)))
         }
         val chosenTests = when (options.mode) {
             RunMode.STDIN_ONLY -> emptyList()
@@ -492,7 +502,6 @@ internal class DefaultExecutionRepository @Inject constructor(
         val ACTIVE_PHASES = listOf(RunPhase.SUBMITTING, RunPhase.PENDING, RunPhase.RUNNING)
         const val MAX_BATCH = 20
         const val MAX_TESTS = 100
-        const val MAX_SOURCE_BYTES = 64 * 1024
         const val MAX_POLLS = 600
         /** About 12 s of fast polling for a run picked up again after the app restarted. */
         const val RESUME_POLLS = 15

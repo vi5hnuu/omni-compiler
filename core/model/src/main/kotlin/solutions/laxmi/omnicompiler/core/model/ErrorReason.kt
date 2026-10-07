@@ -64,7 +64,11 @@ sealed interface ErrorReason {
     data class EntryNameTaken(val fileName: String, val runtimeId: String) : ErrorReason
     data object NameRequired : ErrorReason
     data object FileNameRequired : ErrorReason
-    data object FlatWorkspace : ErrorReason
+    /** A path that can't name a project file (empty or `.`/`..` segments, backslashes; see ProjectPaths). */
+    data object InvalidPath : ErrorReason
+    data class PathTooDeep(val max: Int) : ErrorReason
+    /** Everything a run sends together would exceed the judge's total size. */
+    data class TotalSizeTooLarge(val maxMb: Int) : ErrorReason
     data class FileNameTooLong(val max: Int) : ErrorReason
     data class FileExists(val name: String) : ErrorReason
     data class TooManyFiles(val max: Int) : ErrorReason

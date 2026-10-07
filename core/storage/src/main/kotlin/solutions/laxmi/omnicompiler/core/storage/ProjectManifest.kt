@@ -5,8 +5,8 @@ import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
 
 /**
- * `<project>/.omni/project.json`: everything about a project that isn't a source file. Source files sit flat
- * in the project folder, exactly as the judge's `/workspace` expects them.
+ * `<project>/.omni/project.json`: everything about a project that isn't a source file. Source files sit in the
+ * project folder and its subfolders, laid out exactly as the judge's `/workspace` receives them.
  */
 @Serializable
 data class ProjectManifest(
@@ -14,7 +14,7 @@ data class ProjectManifest(
     val id: String,
     val name: String,
     val runtimeId: String,
-    /** Entry file name; empty when unknown (the runtime's default file name is used). */
+    /** Entry file name (always a root file); empty when unknown (the runtime's default file name is used). */
     val entry: String = "",
     val limits: ManifestLimits,
     val tests: List<ManifestTest> = emptyList(),

@@ -36,6 +36,8 @@ import solutions.laxmi.omnicompiler.core.model.Limits
 import solutions.laxmi.omnicompiler.core.model.OpenFile
 import solutions.laxmi.omnicompiler.core.model.Outcome
 import solutions.laxmi.omnicompiler.core.model.ProjectFilter
+import solutions.laxmi.omnicompiler.core.model.ProjectLimits
+import solutions.laxmi.omnicompiler.core.model.ProjectPaths
 import solutions.laxmi.omnicompiler.core.model.ProjectSummary
 import solutions.laxmi.omnicompiler.core.model.ProjectWorkspace
 import solutions.laxmi.omnicompiler.core.model.Runtime
@@ -363,43 +365,51 @@ internal class LocalProjectRepository @Inject constructor(
         projects.touchForFile(fileId, time.now().toEpochMilliseconds())
     }
 
+    /** [name] may be a path (`src/util/helper.py`); missing folders are created. */
     override suspend fun addFile(projectId: String, name: String, content: String): Outcome<SourceFile> {
         val existing = files.list(projectId)
-        validateFileName(name, existing.map { it.name })?.let { return Outcome.Failure(it) }
+        val path = ProjectPaths.normalize(name)
+        checkPath(path, existing.mapTo(HashSet()) { it.name })?.let { return Outcome.Failure(it) }
         if (existing.size > MAX_EXTRA_FILES) return Outcome.Failure(AppError.Validation(reason = ErrorReason.TooManyFiles(MAX_EXTRA_FILES)))
         val folder = projects.get(projectId)?.folderDocId ?: return Outcome.Failure(AppError.NotFound(reason = ErrorReason.ProjectNotFound))
-        val trimmed = name.trim()
         return onDisk { root ->
-            // A file the index skipped (binary, too large) may already sit there under this name; never overwrite it.
+            // A file the index skipped (binary, too large) may already sit there under this path; never overwrite it.
             val folderEntry = store.entry(root, folder) ?: throw java.io.IOException("Project folder is gone")
-            if (store.scanFolder(root, folderEntry).entries.any { it.name == trimmed }) {
+            if (store.scanFolder(root, folderEntry).files.any { it.path == path || it.path.startsWith("$path/") }) {
                 return@onDisk null
             }
-            val written = store.writeFile(root, folder, trimmed, content)
-            val entity = FileEntity(ids.newId(), projectId, trimmed, content, isEntry = false, position = files.nextPosition(projectId), docId = written.docId, lastModified = written.lastModified, size = written.size)
+            val written = store.writeFile(root, folder, path, content)
+            val entity = FileEntity(ids.newId(), projectId, path, content, isEntry = false, position = files.nextPosition(projectId), docId = written.docId, lastModified = written.lastModified, size = written.size)
             files.insert(entity)
             projects.touch(projectId, time.now().toEpochMilliseconds())
             entity.toModel()
         }.let { result ->
             when {
-                result is Outcome.Success && result.value == null -> Outcome.Failure(AppError.Validation(reason = ErrorReason.FileExists(trimmed)))
+                result is Outcome.Success && result.value == null -> Outcome.Failure(AppError.Validation(reason = ErrorReason.FileExists(path)))
                 result is Outcome.Success -> Outcome.Success(result.value!!)
                 else -> result as Outcome.Failure
             }
         }
     }
 
+    /** A new name in the same folder renames the file; a path elsewhere moves it (empty folders left behind go). */
     override suspend fun renameFile(fileId: String, projectId: String, name: String): Outcome<Unit> {
         val existing = files.list(projectId)
         val file = existing.firstOrNull { it.id == fileId } ?: return Outcome.Failure(AppError.NotFound(reason = ErrorReason.FileNotFound))
         if (file.isEntry) return Outcome.Failure(AppError.Validation(reason = ErrorReason.EntryNamedByRuntime))
-        validateFileName(name, existing.filter { it.id != fileId }.map { it.name })?.let { return Outcome.Failure(it) }
+        val path = ProjectPaths.normalize(name)
+        if (path == file.name) return Outcome.Success(Unit)
+        checkPath(path, existing.filter { it.id != fileId }.mapTo(HashSet()) { it.name })?.let { return Outcome.Failure(it) }
         val docId = file.docId ?: return Outcome.Failure(AppError.NotFound(reason = ErrorReason.FileNotFound))
+        val folder = projects.get(projectId)?.folderDocId ?: return Outcome.Failure(AppError.NotFound(reason = ErrorReason.ProjectNotFound))
         return onDisk { root ->
-            val renamed = store.rename(root, docId, name.trim())
+            val sameFolder = ProjectPaths.parent(path) == ProjectPaths.parent(file.name)
+            val written = if (sameFolder) store.rename(root, docId, ProjectPaths.basename(path)) else store.moveFile(root, folder, docId, file.name, path, file.content)
             db.withTransaction {
-                files.rename(fileId, renamed.name)
-                files.setDiskState(fileId, renamed.docId, renamed.lastModified, renamed.size)
+                files.rename(fileId, path)
+                files.setDiskState(fileId, written.docId, written.lastModified, written.size)
+                // A move rewrote the text from the index, so a pending disk write of it is done.
+                if (!sameFolder) files.markWritten(fileId, file.content, written.docId, written.lastModified, written.size)
             }
         }
     }
@@ -407,7 +417,8 @@ internal class LocalProjectRepository @Inject constructor(
     override suspend fun deleteFile(fileId: String) {
         val file = files.get(fileId)?.takeIf { !it.isEntry } ?: return
         val docId = file.docId
-        if (docId != null && onDisk { root -> store.delete(root, docId) } is Outcome.Failure) return
+        val folder = projects.get(file.projectId)?.folderDocId
+        if (docId != null && folder != null && onDisk { root -> store.deleteFile(root, folder, docId, file.name) } is Outcome.Failure) return
         files.deleteNonEntry(fileId)
     }
 
@@ -509,7 +520,7 @@ internal class LocalProjectRepository @Inject constructor(
                 val row = existing[name]
                 val docId = row?.docId
                 when {
-                    content == null -> if (row != null && !row.isEntry && docId != null) store.delete(root, docId)
+                    content == null -> if (row != null && !row.isEntry && docId != null) store.deleteFile(root, folder, docId, name)
                     docId != null -> {
                         store.updateFile(root, docId, content)
                         // The remote text replaces the file; a pending local write of the old text must not follow.
@@ -534,7 +545,7 @@ internal class LocalProjectRepository @Inject constructor(
         val folder = projects.get(projectId)?.folderDocId ?: return null
         val names = onDisk { root ->
             val entry = store.entry(root, folder) ?: throw java.io.IOException("Project folder is gone")
-            store.scanFolder(root, entry).entries.filter { !it.isDirectory }.mapTo(HashSet()) { it.name }
+            store.scanFolder(root, entry).files.mapTo(HashSet()) { it.path }
         }
         return (names as? Outcome.Success)?.value
     }
@@ -584,26 +595,31 @@ internal class LocalProjectRepository @Inject constructor(
         return generateSequence(2) { it + 1 }.map { "$base-$it" }.first { it.lowercase() !in taken }
     }
 
-    /** Mirrors ls-judge's server-side checks so errors surface before a run is attempted. */
-    private fun validateFileName(name: String, taken: List<String>): AppError.Validation? {
-        val trimmed = name.trim()
-        return when {
-            trimmed.isEmpty() -> AppError.Validation(reason = ErrorReason.FileNameRequired)
-            '/' in trimmed || '\\' in trimmed || trimmed.contains("..") || '\u0000' in trimmed ->
-                AppError.Validation(reason = ErrorReason.FlatWorkspace)
-            trimmed.startsWith('.') -> AppError.Validation(reason = ErrorReason.FlatWorkspace)
-            trimmed.length > MAX_FILE_NAME -> AppError.Validation(reason = ErrorReason.FileNameTooLong(MAX_FILE_NAME))
-            trimmed in taken -> AppError.Validation(reason = ErrorReason.FileExists(trimmed))
-            else -> null
+    /**
+     * Mirrors ls-judge's structural path checks so a bad path is refused when typed, not when run. A path can't
+     * clash with another file, nor with a folder of one (`src` as a file while `src/a.py` exists, or the reverse).
+     */
+    private fun checkPath(path: String, taken: Set<String>): AppError.Validation? {
+        val reason = when (ProjectPaths.problem(path)) {
+            ProjectPaths.Problem.EMPTY -> ErrorReason.FileNameRequired
+            ProjectPaths.Problem.TOO_LONG -> ErrorReason.FileNameTooLong(ProjectPaths.MAX_LENGTH)
+            ProjectPaths.Problem.SEGMENT_TOO_LONG -> ErrorReason.FileNameTooLong(ProjectPaths.MAX_SEGMENT)
+            ProjectPaths.Problem.TOO_DEEP -> ErrorReason.PathTooDeep(ProjectPaths.MAX_DEPTH)
+            ProjectPaths.Problem.BAD_SEGMENT -> ErrorReason.InvalidPath
+            null -> when {
+                ProjectPaths.isInternal(path) -> ErrorReason.InvalidPath
+                path in taken || taken.any { it.startsWith("$path/") } || ProjectPaths.ancestors(path).any { it in taken } -> ErrorReason.FileExists(path)
+                else -> null
+            }
         }
+        return reason?.let { AppError.Validation(reason = it) }
     }
 
     /** The folder name for a project: what the user typed, minus characters storage can't hold. */
     private fun projectName(value: String) = safeFileName(value, MAX_PROJECT_NAME)
 
     private companion object {
-        const val MAX_EXTRA_FILES = 20
-        const val MAX_FILE_NAME = 128
+        const val MAX_EXTRA_FILES = ProjectLimits.MAX_EXTRA_FILES
         const val MAX_PROJECT_NAME = 64
     }
 }
