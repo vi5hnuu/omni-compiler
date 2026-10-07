@@ -11,7 +11,16 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.Text
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.semantics.onClick
+import androidx.compose.ui.semantics.role
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
@@ -40,28 +49,56 @@ fun SymbolRow(state: CodeEditorState, modifier: Modifier = Modifier) {
             .horizontalScroll(rememberScrollState()),
     ) {
         // Soft keyboards have no arrow keys; precise caret moves and line edits are the most requested extras.
-        SymbolKey("◀", width = 36, highlighted = true, description = stringResource(R.string.editor_key_left)) { state.moveCaret(CaretDirection.Left) }
-        SymbolKey("▶", width = 36, highlighted = true, description = stringResource(R.string.editor_key_right)) { state.moveCaret(CaretDirection.Right) }
-        SymbolKey("▲", width = 36, highlighted = true, description = stringResource(R.string.editor_key_up)) { state.moveCaret(CaretDirection.Up) }
-        SymbolKey("▼", width = 36, highlighted = true, description = stringResource(R.string.editor_key_down)) { state.moveCaret(CaretDirection.Down) }
+        SymbolKey("◀", width = 36, highlighted = true, description = stringResource(R.string.editor_key_left), repeats = true) { state.moveCaret(CaretDirection.Left) }
+        SymbolKey("▶", width = 36, highlighted = true, description = stringResource(R.string.editor_key_right), repeats = true) { state.moveCaret(CaretDirection.Right) }
+        SymbolKey("▲", width = 36, highlighted = true, description = stringResource(R.string.editor_key_up), repeats = true) { state.moveCaret(CaretDirection.Up) }
+        SymbolKey("▼", width = 36, highlighted = true, description = stringResource(R.string.editor_key_down), repeats = true) { state.moveCaret(CaretDirection.Down) }
         SymbolKey("⇥", width = 40, highlighted = true, description = stringResource(R.string.editor_key_tab)) { state.indent() }
         SymbolKey("//", width = 40, highlighted = true, description = stringResource(R.string.editor_key_comment)) { state.toggleComment() }
-        SymbolKey("⤒", width = 36, highlighted = true, description = stringResource(R.string.editor_key_line_up)) { state.moveLines(up = true) }
-        SymbolKey("⤓", width = 36, highlighted = true, description = stringResource(R.string.editor_key_line_down)) { state.moveLines(up = false) }
+        SymbolKey("⤒", width = 36, highlighted = true, description = stringResource(R.string.editor_key_line_up), repeats = true) { state.moveLines(up = true) }
+        SymbolKey("⤓", width = 36, highlighted = true, description = stringResource(R.string.editor_key_line_down), repeats = true) { state.moveLines(up = false) }
         SymbolKey("⧉", width = 36, highlighted = true, description = stringResource(R.string.editor_key_duplicate)) { state.duplicateLine() }
         Symbols.forEach { symbol -> SymbolKey(symbol, width = 34) { state.insert(symbol) } }
     }
 }
 
 @Composable
-private fun SymbolKey(label: String, width: Int, highlighted: Boolean = false, description: String = label, onClick: () -> Unit) {
+private fun SymbolKey(label: String, width: Int, highlighted: Boolean = false, description: String = label, repeats: Boolean = false, onClick: () -> Unit) {
     val colors = OmniTheme.colors
+    val currentOnClick by rememberUpdatedState(onClick)
     Box(
         modifier = Modifier
             .width(width.dp)
             .fillMaxHeight()
             .drawBehind { drawLine(colors.hairline, Offset(size.width - 0.5f, 0f), Offset(size.width - 0.5f, size.height), 1f) }
-            .clickable(role = Role.Button, onClick = onClick)
+            .then(
+                if (repeats) {
+                    // Caret and line moves repeat while held, like a hardware key, instead of needing a tap per step.
+                    Modifier
+                        .pointerInput(Unit) {
+                            coroutineScope {
+                                detectTapGestures(onPress = {
+                                    currentOnClick()
+                                    val repeater = launch {
+                                        delay(REPEAT_DELAY_MS)
+                                        while (true) {
+                                            currentOnClick()
+                                            delay(REPEAT_INTERVAL_MS)
+                                        }
+                                    }
+                                    tryAwaitRelease()
+                                    repeater.cancel()
+                                })
+                            }
+                        }
+                        .semantics {
+                            role = Role.Button
+                            onClick { currentOnClick(); true }
+                        }
+                } else {
+                    Modifier.clickable(role = Role.Button, onClick = onClick)
+                },
+            )
             .semantics { contentDescription = description },
         contentAlignment = Alignment.Center,
     ) {
@@ -72,3 +109,6 @@ private fun SymbolKey(label: String, width: Int, highlighted: Boolean = false, d
         )
     }
 }
+
+private const val REPEAT_DELAY_MS = 400L
+private const val REPEAT_INTERVAL_MS = 60L

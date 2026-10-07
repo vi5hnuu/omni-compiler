@@ -20,6 +20,9 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.SheetValue
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
@@ -65,10 +68,12 @@ import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun OmniSheet(onDismiss: () -> Unit, content: @Composable () -> Unit) {
+private fun OmniSheet(onDismiss: () -> Unit, canHide: () -> Boolean = { true }, content: @Composable () -> Unit) {
+    val currentCanHide by rememberUpdatedState(canHide)
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        // A sheet with unsaved input can't be swiped away; onDismiss decides (e.g. asks first).
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true, confirmValueChange = { it != SheetValue.Hidden || currentCanHide() }),
         shape = RectangleShape,
         containerColor = OmniTheme.colors.surface,
         scrimColor = OmniTheme.colors.scrim,
@@ -103,7 +108,24 @@ internal fun TestEditorSheet(
     var stdin by rememberSaveable { mutableStateOf(initial?.stdin.orEmpty()) }
     var expected by rememberSaveable { mutableStateOf(initial?.expected.orEmpty()) }
     LaunchedEffect(loadedStdin) { loadedStdin?.let { stdin = it } }
-    OmniSheet(onDismiss) {
+    val dirty = name != initial?.name.orEmpty() || stdin != initial?.stdin.orEmpty() || expected != initial?.expected.orEmpty()
+    var confirmingDiscard by rememberSaveable { mutableStateOf(false) }
+    if (confirmingDiscard) {
+        AlertDialog(
+            onDismissRequest = { confirmingDiscard = false },
+            shape = RectangleShape,
+            containerColor = OmniTheme.colors.surfaceRaised,
+            title = { Text(stringResource(R.string.sheet_test_discard_title), style = OmniTheme.typography.title, color = OmniTheme.colors.textPrimary) },
+            confirmButton = {
+                OmniTextButton(stringResource(R.string.sheet_test_discard), {
+                    confirmingDiscard = false
+                    onDismiss()
+                })
+            },
+            dismissButton = { OmniTextButton(stringResource(R.string.sheet_test_keep_editing), { confirmingDiscard = false }, color = OmniTheme.colors.textSecondary) },
+        )
+    }
+    OmniSheet(onDismiss = { if (dirty) confirmingDiscard = true else onDismiss() }, canHide = { !dirty }) {
         SheetTitle(stringResource(if (initial == null) R.string.sheet_test_new else R.string.sheet_test_edit), stringResource(R.string.sheet_test_hint))
         OmniTextField(name, { name = it }, label = stringResource(R.string.sheet_test_name), placeholder = stringResource(R.string.sheet_test_name_placeholder))
         OmniTextField(

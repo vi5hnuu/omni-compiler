@@ -31,6 +31,7 @@ import solutions.laxmi.omnicompiler.core.data.project.ProjectTemplate
 import solutions.laxmi.omnicompiler.core.model.Language
 import solutions.laxmi.omnicompiler.core.model.EditorSettings
 import solutions.laxmi.omnicompiler.core.model.LanguageInfo
+import solutions.laxmi.omnicompiler.core.model.AppError
 import solutions.laxmi.omnicompiler.core.model.Outcome
 import solutions.laxmi.omnicompiler.core.model.onSuccess
 import solutions.laxmi.omnicompiler.core.model.ProjectFilter
@@ -49,6 +50,8 @@ import solutions.laxmi.omnicompiler.feature.workspace.R
 data class EditorUiState(
     val loading: Boolean = true,
     val error: UiText? = null,
+    /** The startup error was a connection problem (vs. storage or a deleted project); picks the error's icon. */
+    val errorIsConnection: Boolean = false,
     val workspace: WorkspaceOutline? = null,
     val runtime: Runtime? = null,
     val language: LanguageInfo? = null,
@@ -89,7 +92,7 @@ class EditorViewModel @AssistedInject constructor(
 
     private val projectId = MutableStateFlow(route.projectId)
     private val activeFileId = MutableStateFlow<String?>(null)
-    private val startupError = MutableStateFlow<UiText?>(null)
+    private val startupError = MutableStateFlow<AppError?>(null)
 
     private val events = Channel<EditorEvent>(Channel.BUFFERED)
     val eventFlow = events.receiveAsFlow()
@@ -118,10 +121,11 @@ class EditorViewModel @AssistedInject constructor(
     ) { (loaded, rt, lang), (activeId, error), settings, session ->
         val (loadedId, ws) = loaded
         // A resolved project that reads back as null was deleted while open (e.g. from Projects).
-        val shownError = error ?: UiText.Res(R.string.editor_project_deleted).takeIf { loadedId != null && ws == null }
+        val shownError = error?.toUiText() ?: UiText.Res(R.string.editor_project_deleted).takeIf { loadedId != null && ws == null }
         EditorUiState(
             loading = ws == null && shownError == null,
             error = shownError,
+            errorIsConnection = error is AppError.Offline || error is AppError.Timeout,
             workspace = ws,
             runtime = rt,
             language = lang,
@@ -294,7 +298,7 @@ class EditorViewModel @AssistedInject constructor(
                     projectId.value = result.value
                     projects.markOpened(result.value)
                 }
-                is Outcome.Failure -> startupError.value = result.error.toUiText()
+                is Outcome.Failure -> startupError.value = result.error
             }
         }
     }

@@ -183,6 +183,15 @@ internal fun FileTabs(
                         maxLines = 1,
                     )
                     if (file.id == dirtyFileId()) Box(Modifier.size(5.dp).background(colors.textSecondary))
+                    // Rename/share/delete are also on long-press; the button makes them discoverable on the open file.
+                    if (active && !file.isEntry) {
+                        Icon(
+                            OmniIcons.MoreVertical,
+                            stringResource(R.string.editor_file_actions, file.name),
+                            tint = colors.textTertiary,
+                            modifier = Modifier.size(14.dp).clickable(role = Role.Button) { onFileMenu(file) },
+                        )
+                    }
                 }
             }
         }

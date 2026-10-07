@@ -268,7 +268,7 @@ private fun EditorContent(state: EditorUiState, drawer: DrawerContent, snackbar:
             ) {
                 val openDrawer: () -> Unit = { scope.launch { drawerState.open() } }
                 when {
-                    state.error != null && workspace == null -> StartupError(state.error, actions.onRetry)
+                    state.error != null && workspace == null -> StartupError(state.error, state.errorIsConnection, actions.onRetry)
                     workspace == null || activeFile == null -> Loading()
                     else -> WorkspaceBody(
                         state = state,
@@ -358,12 +358,12 @@ private fun Loading() {
 }
 
 @Composable
-private fun StartupError(message: UiText, onRetry: () -> Unit) {
+private fun StartupError(message: UiText, connection: Boolean, onRetry: () -> Unit) {
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         EmptyState(
             title = stringResource(R.string.editor_cant_open_title),
             message = message.asString(),
-            icon = OmniIcons.WifiOff,
+            icon = if (connection) OmniIcons.WifiOff else OmniIcons.Alert,
             action = { OmniButton(stringResource(R.string.editor_try_again), onRetry, trailingIcon = OmniIcons.Refresh) },
         )
     }
