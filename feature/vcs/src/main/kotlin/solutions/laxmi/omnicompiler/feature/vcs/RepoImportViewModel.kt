@@ -103,9 +103,13 @@ class RepoImportViewModel @Inject constructor(private val git: GitRepository) : 
         showFolder("")
     }
 
+    private var folderJob: Job? = null
+
     fun showFolder(path: String) {
         val browse = state.value.browse ?: return
-        viewModelScope.launch {
+        // Only the folder asked for last may fill the list; a slower earlier response must not replace it.
+        folderJob?.cancel()
+        folderJob = viewModelScope.launch {
             state.update { it.copy(loading = true, error = null, browse = it.browse?.copy(path = path, entries = emptyList())) }
             when (val result = git.list(browse.repo, state.value.browse?.branch ?: browse.branch, path)) {
                 is Outcome.Success -> state.update { it.copy(loading = false, browse = it.browse?.copy(entries = result.value)) }

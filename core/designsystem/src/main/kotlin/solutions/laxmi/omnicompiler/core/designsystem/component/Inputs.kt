@@ -97,7 +97,8 @@ fun OmniTextField(
                         .heightIn(min = OmniDimens.inputHeight)
                         .background(colors.surface)
                         .border(if (focused || error != null) OmniDimens.focusRing else 1.dp, ring)
-                        .padding(horizontal = OmniDimens.space12, vertical = 10.dp),
+                        // A trailing control brings its own touch target, so the row trims its padding to keep 44 dp.
+                        .padding(horizontal = OmniDimens.space12, vertical = if (trailing != null) 2.dp else 10.dp),
                     verticalAlignment = if (singleLine) Alignment.CenterVertically else Alignment.Top,
                     horizontalArrangement = Arrangement.spacedBy(OmniDimens.space10),
                 ) {
@@ -146,14 +147,17 @@ fun OmniPasswordField(
         keyboardOptions = keyboardOptions,
         keyboardActions = keyboardActions,
         trailing = {
-            Icon(
-                imageVector = if (visible) OmniIcons.EyeOff else OmniIcons.Eye,
-                contentDescription = stringResource(if (visible) R.string.ds_hide_password else R.string.ds_show_password),
-                tint = OmniTheme.colors.textTertiary,
-                modifier = Modifier
-                    .size(18.dp)
-                    .clickable(role = Role.Button) { visible = !visible },
-            )
+            Box(
+                Modifier.size(OmniDimens.touchTarget).clickable(role = Role.Button) { visible = !visible },
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = if (visible) OmniIcons.EyeOff else OmniIcons.Eye,
+                    contentDescription = stringResource(if (visible) R.string.ds_hide_password else R.string.ds_show_password),
+                    tint = OmniTheme.colors.textTertiary,
+                    modifier = Modifier.size(18.dp),
+                )
+            }
         },
     )
 }

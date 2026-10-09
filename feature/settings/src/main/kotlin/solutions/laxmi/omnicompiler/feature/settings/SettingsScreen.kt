@@ -52,6 +52,9 @@ import solutions.laxmi.omnicompiler.core.navigation.OpenSourceRoute
 import solutions.laxmi.omnicompiler.core.navigation.ProfileRoute
 import solutions.laxmi.omnicompiler.core.navigation.WelcomeRoute
 import solutions.laxmi.omnicompiler.core.ui.LanguageTile
+import solutions.laxmi.omnicompiler.core.ui.SignOutDialog
+import solutions.laxmi.omnicompiler.core.ui.shownName
+import solutions.laxmi.omnicompiler.core.navigation.SignUpRoute
 import solutions.laxmi.omnicompiler.core.ui.openUrl
 
 /** Design U4 (2-step verification row removed: the auth service has no MFA). */
@@ -61,6 +64,7 @@ fun SettingsScreen(navigator: Navigator, appVersion: String) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
     var pickingDefault by rememberSaveable { mutableStateOf(false) }
+    var confirmingSignOut by rememberSaveable { mutableStateOf(false) }
     var editingLimits by rememberSaveable { mutableStateOf(false) }
     val colors = OmniTheme.colors
     val editor = state.editor
@@ -132,13 +136,13 @@ fun SettingsScreen(navigator: Navigator, appVersion: String) {
             SectionLabel(stringResource(R.string.settings_account))
             val user = state.user
             OmniListRow(
-                title = user?.let { if (it.isGuest) stringResource(R.string.settings_guest_account) else it.email ?: it.displayName } ?: stringResource(R.string.settings_not_signed_in),
+                title = user?.let { if (it.isGuest) stringResource(R.string.settings_guest_account) else it.email ?: it.shownName() } ?: stringResource(R.string.settings_not_signed_in),
                 subtitle = stringResource(if (user == null) R.string.settings_sign_in_note else R.string.settings_account_note),
                 trailing = { Chevron() },
                 onClick = { navigator.navigate(if (user == null) WelcomeRoute else ProfileRoute) },
             )
             if (user != null) {
-                OmniListRow(stringResource(R.string.settings_sign_out), titleColor = colors.accentText, onClick = viewModel::signOut)
+                OmniListRow(stringResource(R.string.settings_sign_out), titleColor = colors.accentText, onClick = { confirmingSignOut = true })
             }
 
             SectionLabel(stringResource(R.string.settings_about))
@@ -150,6 +154,20 @@ fun SettingsScreen(navigator: Navigator, appVersion: String) {
             OmniListRow(stringResource(R.string.settings_open_source), trailing = { Chevron() }, onClick = { navigator.navigate(OpenSourceRoute) })
             OmniListRow(stringResource(R.string.settings_version), trailing = { Text(appVersion, style = OmniTheme.typography.mono, color = colors.textTertiary) })
         }
+    }
+    if (confirmingSignOut) {
+        SignOutDialog(
+            isGuest = state.user?.isGuest == true,
+            onConfirm = {
+                confirmingSignOut = false
+                viewModel.signOut()
+            },
+            onCreateAccount = {
+                confirmingSignOut = false
+                navigator.navigate(SignUpRoute(convertGuest = true))
+            },
+            onDismiss = { confirmingSignOut = false },
+        )
     }
     if (pickingDefault) {
         AlertDialog(

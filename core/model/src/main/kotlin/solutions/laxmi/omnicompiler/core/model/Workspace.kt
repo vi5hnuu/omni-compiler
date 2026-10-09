@@ -19,8 +19,9 @@ data class Project(
 )
 
 /**
- * A source or data file in a project's flat `/workspace`. Exactly one file per project is the entry;
- * it is sent as `code` and written under the runtime's own filename, the rest go in `files`.
+ * A source or data file of a project; [name] is its path in `/workspace` (`src/util/helper.py`, or `main.py` at the
+ * root). Exactly one root file per project is the entry; it is sent as `code` and written under the runtime's own
+ * filename, the rest go in `files` with their paths.
  */
 data class SourceFile(
     val id: String,

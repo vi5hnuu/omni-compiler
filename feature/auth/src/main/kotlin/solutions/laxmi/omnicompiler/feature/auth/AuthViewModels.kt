@@ -279,6 +279,8 @@ class ForgotPasswordViewModel @Inject constructor(private val auth: AuthReposito
     fun setEmail(value: String) = state.update { it.copy(email = value.trim(), error = null) }
 
     fun send() {
+        // One request at a time: repeated taps would send several reset e-mails.
+        if (busyState.value) return
         val email = state.value.email
         if ('@' !in email) {
             state.update { it.copy(error = UiText.Res(R.string.reset_email_required)) }

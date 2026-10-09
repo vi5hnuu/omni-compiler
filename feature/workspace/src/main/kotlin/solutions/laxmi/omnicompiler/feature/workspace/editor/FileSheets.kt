@@ -77,10 +77,11 @@ internal fun NewFileSheet(
                 Text(stringResource(R.string.editor_new_file_title, projectName), style = OmniTheme.typography.title, color = colors.textPrimary)
                 Text(stringResource(R.string.editor_workspace_path), style = OmniTheme.typography.mono, color = colors.textTertiary)
             }
+            // Paths are welcome: missing folders are created (src/util/helper.py).
             val placeholder = when (kind) {
-                NewFileKind.Empty -> "helper.$entryExtension"
-                NewFileKind.HeaderPair -> "solver"
-                NewFileKind.Data -> "input.txt"
+                NewFileKind.Empty -> "src/helper.$entryExtension"
+                NewFileKind.HeaderPair -> "src/solver"
+                NewFileKind.Data -> "data/input.txt"
             }
             OmniTextField(
                 value = name,
@@ -118,8 +119,8 @@ internal fun NewFileSheet(
                     enabled = name.isNotBlank(),
                     onClick = {
                         when (kind) {
-                            NewFileKind.HeaderPair -> onCreateHeaderPair(name.substringBeforeLast('.'), entryExtension)
-                            NewFileKind.Data -> onCreate(if ('.' in name) name else "$name.txt", "")
+                            NewFileKind.HeaderPair -> onCreateHeaderPair(withoutExtension(name), entryExtension)
+                            NewFileKind.Data -> onCreate(if ('.' in name.substringAfterLast('/')) name else "$name.txt", "")
                             NewFileKind.Empty -> onCreate(name, "")
                         }
                     },
@@ -129,6 +130,12 @@ internal fun NewFileSheet(
             }
         }
     }
+}
+
+/** `src/solver.h` → `src/solver`; only the file's own name loses its extension, never a dotted folder. */
+private fun withoutExtension(path: String): String {
+    val name = path.substringAfterLast('/')
+    return if ('.' in name) path.dropLast(name.length - name.lastIndexOf('.')) else path
 }
 
 /** Single-field rename dialog used for projects and files. */

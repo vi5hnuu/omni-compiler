@@ -34,7 +34,7 @@
     <string name="usage_limit_memory_value">up to %1$d MB</string>
     <string name="usage_limit_tests">Tests / run</string>
     <string name="usage_limit_files">Extra files / run</string>
-    <string name="usage_limit_files_value">%1$d × %2$d KB</string>
+    <string name="usage_limit_files_value">%1$d × %2$d KB, %3$d MB in all</string>
     <string name="usage_queue">Queue</string>
     <string name="usage_queue_normal">Normal</string>
     <string name="usage_queue_priority">Priority</string>

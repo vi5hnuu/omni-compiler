@@ -45,6 +45,7 @@ import solutions.laxmi.omnicompiler.core.model.JobStatus
 import solutions.laxmi.omnicompiler.core.model.NamedSource
 import solutions.laxmi.omnicompiler.core.model.Outcome
 import solutions.laxmi.omnicompiler.core.model.PendingRun
+import solutions.laxmi.omnicompiler.core.model.ProjectLimits
 import solutions.laxmi.omnicompiler.core.model.RateLimitSnapshot
 import solutions.laxmi.omnicompiler.core.model.ReplayProof
 import solutions.laxmi.omnicompiler.core.model.RunMode
@@ -81,8 +82,8 @@ interface ExecutionRepository {
     /** Validates and submits; returns once the judge accepted the job (or it was queued offline). */
     suspend fun run(projectId: String, options: RunOptions): Outcome<Unit>
 
-    /** Cancels a queued job, or stops listening to one a worker already picked up. */
-    suspend fun stop(projectId: String)
+    /** Cancels a queued job, or stops listening to one a worker already picked up. Fails when the cancel didn't reach the judge. */
+    suspend fun stop(projectId: String): Outcome<Unit>
 
     suspend fun clearConsole(projectId: String)
 
@@ -131,6 +132,29 @@ internal class DefaultExecutionRepository @Inject constructor(
                 .filter { it }
                 .collect { if (pendingDao.all().isNotEmpty()) scheduler.schedule() }
         }
+        scope.launch { resumeInterruptedRuns() }
+    }
+
+    /**
+     * Accepted runs are saved as they start; one still marked active here belonged to a process that died. The newest
+     * per project is followed again (the job may still be running or already done); older ones can't be told apart
+     * from abandoned ones and are marked lost.
+     */
+    private suspend fun resumeInterruptedRuns() {
+        val interrupted = runDao.withStatus(ACTIVE_PHASES.map { it.name })
+        val newestPerProject = interrupted.distinctBy { it.projectId }.map { it.id }.toSet()
+        interrupted.forEach { row ->
+            val record = row.toModel(emptyList(), entryFileName = null)
+            when {
+                live.value.containsKey(record.projectId) -> Unit
+                row.id in newestPerProject && record.jobId != null -> {
+                    publish(record)
+                    // A short budget: the job may be long gone, and the project stays blocked while it is followed.
+                    trackers[record.projectId] = scope.launch { track(record, entryFileName = null, maxPolls = RESUME_POLLS) }
+                }
+                else -> finish(record.copy(phase = RunPhase.LOST), diagnostic = null)
+            }
+        }
     }
 
     override val pendingRuns: Flow<List<PendingRun>> = pendingDao.observeAll().map { rows ->
@@ -172,8 +196,8 @@ internal class DefaultExecutionRepository @Inject constructor(
         return scope.async { submitAndTrack(prepared) }.await()
     }
 
-    override suspend fun stop(projectId: String) {
-        val record = live.value[projectId] ?: return
+    override suspend fun stop(projectId: String): Outcome<Unit> {
+        val record = live.value[projectId] ?: return Outcome.Success(Unit)
         when (record.phase) {
             RunPhase.QUEUED_OFFLINE -> cancelPending(record.id)
             RunPhase.SUBMITTING -> {
@@ -182,16 +206,22 @@ internal class DefaultExecutionRepository @Inject constructor(
                 finish(record.copy(phase = RunPhase.CANCELLED), diagnostic = null, cancelTracker = true)
             }
             RunPhase.PENDING -> {
-                val jobId = record.jobId ?: return
+                val jobId = record.jobId ?: return Outcome.Success(Unit)
                 when (val result = network.cancel(jobId)) {
                     is Outcome.Success -> finish(record.copy(phase = RunPhase.CANCELLED), diagnostic = null, cancelTracker = true)
                     // 409: a worker already took it; it can't be cancelled, only detached.
-                    is Outcome.Failure -> if (result.error is AppError.Conflict) detach(record)
+                    // 409: a worker already took it; it can't be cancelled, only detached. Any other failure (job gone,
+                    // server unreachable) also stops following it, so the project isn't left blocked, and is reported.
+                    is Outcome.Failure -> {
+                        detach(record)
+                        if (result.error !is AppError.Conflict) return result
+                    }
                 }
             }
             RunPhase.RUNNING -> detach(record)
             else -> Unit
         }
+        return Outcome.Success(Unit)
     }
 
     override suspend fun clearConsole(projectId: String) {
@@ -273,16 +303,26 @@ internal class DefaultExecutionRepository @Inject constructor(
         val entry = workspace.entry ?: return Outcome.Failure(AppError.Validation(reason = ErrorReason.EntryFileMissing))
         if (entry.content.isBlank()) return Outcome.Failure(AppError.Validation(reason = ErrorReason.WriteCodeFirst))
         val extras = workspace.files.filter { !it.isEntry }
-        (listOf(entry) + extras).firstOrNull { it.content.encodeToByteArray().size > MAX_SOURCE_BYTES }?.let {
-            return Outcome.Failure(AppError.Validation(reason = ErrorReason.SourceTooLarge(it.name, MAX_SOURCE_BYTES / 1024)))
+        // The judge's caps: the entry (sent as `code`) is smaller than other files; everything together has a total.
+        val sizes = (listOf(entry) + extras).associateWith { it.content.encodeToByteArray().size }
+        sizes.entries.firstOrNull { (file, bytes) -> bytes > if (file.isEntry) ProjectLimits.MAX_ENTRY_BYTES else ProjectLimits.MAX_FILE_BYTES }?.let { (file, _) ->
+            val maxKb = (if (file.isEntry) ProjectLimits.MAX_ENTRY_BYTES else ProjectLimits.MAX_FILE_BYTES) / 1024
+            return Outcome.Failure(AppError.Validation(reason = ErrorReason.SourceTooLarge(file.name, maxKb)))
+        }
+        if (sizes.values.sum() > ProjectLimits.MAX_TOTAL_BYTES) {
+            return Outcome.Failure(AppError.Validation(reason = ErrorReason.TotalSizeTooLarge(ProjectLimits.MAX_TOTAL_BYTES / (1024 * 1024))))
+        }
+        if (extras.size > ProjectLimits.MAX_EXTRA_FILES) {
+            return Outcome.Failure(AppError.Validation(reason = ErrorReason.TooManyFiles(ProjectLimits.MAX_EXTRA_FILES)))
         }
         val chosenTests = when (options.mode) {
             RunMode.STDIN_ONLY -> emptyList()
             RunMode.TESTS -> workspace.tests.filter { options.testIds == null || it.id in options.testIds }
         }
         val selected = when (options.mode) {
-            RunMode.STDIN_ONLY -> listOf(TestCaseDraft(options.stdin.orEmpty(), expected = "", name = "Custom input"))
-            RunMode.TESTS -> chosenTests.map { t -> TestCaseDraft(t.stdin, t.expected, t.name.ifBlank { "Test ${t.position + 1}" }) }
+            // Unnamed tests keep a blank label; the console shows its localized "Test N" for them.
+            RunMode.STDIN_ONLY -> listOf(TestCaseDraft(options.stdin.orEmpty(), expected = ""))
+            RunMode.TESTS -> chosenTests.map { t -> TestCaseDraft(t.stdin, t.expected, t.name) }
         }
         if (selected.isEmpty()) return Outcome.Failure(AppError.Validation(reason = ErrorReason.NoTests))
         if (selected.size > MAX_TESTS) return Outcome.Failure(AppError.Validation(reason = ErrorReason.TooManyTests(MAX_TESTS)))
@@ -353,11 +393,13 @@ internal class DefaultExecutionRepository @Inject constructor(
         runtimes.markUsed(prepared.request.runtimeId)
         val accepted = prepared.record.copy(phase = RunPhase.PENDING, jobId = submitted.jobId, fromCache = submitted.servedFromCache)
         publish(accepted)
+        // Saved now so the run survives the process: on the next start it is followed again (resumeInterruptedRuns).
+        runDao.save(accepted.toEntity(diagnostic = null), emptyList(), CONSOLE_SIZE)
         trackers[accepted.projectId] = scope.launch { track(accepted, prepared.entryFileName) }
         return Outcome.Success(Unit)
     }
 
-    private suspend fun track(start: RunRecord, entryFileName: String?) {
+    private suspend fun track(start: RunRecord, entryFileName: String?, maxPolls: Int = MAX_POLLS) {
         val jobId = requireNotNull(start.jobId)
         var current = start
         var diagnostic: CompileDiagnostic? = null
@@ -380,7 +422,7 @@ internal class DefaultExecutionRepository @Inject constructor(
         } catch (e: IOException) {
             // Socket unavailable or dropped: the job keeps running server-side, so poll instead.
         }
-        val job = pollUntilDone(jobId) { partial -> current = current.mergeJob(partial); publish(current) }
+        val job = pollUntilDone(jobId, maxPolls) { partial -> current = current.mergeJob(partial); publish(current) }
         current = if (job != null) current.mergeJob(job).copy(phase = if (job.status == JobStatus.FAILED && job.verdict == null) RunPhase.FAILED else RunPhase.DONE)
         else current.copy(phase = RunPhase.LOST)
         val withProblems = current.copy(problems = CompilerOutputParser.parse(current.compileOutput, diagnostic, entryFileName))
@@ -389,12 +431,15 @@ internal class DefaultExecutionRepository @Inject constructor(
     }
 
     /** Fetches the job until it is terminal; results from GET carry stdin/expected that frames lack. */
-    private suspend fun pollUntilDone(jobId: String, onProgress: (JudgeJob) -> Unit): JudgeJob? {
-        repeat(MAX_POLLS) { attempt ->
-            val job = network.job(jobId).getOrNull()
-            if (job != null) {
-                if (job.status.isTerminal) return job
-                onProgress(job)
+    private suspend fun pollUntilDone(jobId: String, maxPolls: Int = MAX_POLLS, onProgress: (JudgeJob) -> Unit): JudgeJob? {
+        repeat(maxPolls) { attempt ->
+            when (val result = network.job(jobId)) {
+                is Outcome.Success -> {
+                    if (result.value.status.isTerminal) return result.value
+                    onProgress(result.value)
+                }
+                // The judge no longer knows the job (expired or never accepted): nothing left to wait for.
+                is Outcome.Failure -> if (result.error is AppError.NotFound) return null
             }
             delay(if (attempt < FAST_POLLS) POLL_INTERVAL_MS else SLOW_POLL_INTERVAL_MS)
         }
@@ -454,10 +499,12 @@ internal class DefaultExecutionRepository @Inject constructor(
 
     private companion object {
         const val CONSOLE_SIZE = 20
+        val ACTIVE_PHASES = listOf(RunPhase.SUBMITTING, RunPhase.PENDING, RunPhase.RUNNING)
         const val MAX_BATCH = 20
         const val MAX_TESTS = 100
-        const val MAX_SOURCE_BYTES = 64 * 1024
         const val MAX_POLLS = 600
+        /** About 12 s of fast polling for a run picked up again after the app restarted. */
+        const val RESUME_POLLS = 15
         const val FAST_POLLS = 40
         const val POLL_INTERVAL_MS = 800L
         const val SLOW_POLL_INTERVAL_MS = 2_000L

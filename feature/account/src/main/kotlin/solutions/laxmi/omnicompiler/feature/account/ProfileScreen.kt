@@ -55,6 +55,7 @@ import solutions.laxmi.omnicompiler.core.navigation.SignInRoute
 import solutions.laxmi.omnicompiler.core.navigation.SignUpRoute
 import solutions.laxmi.omnicompiler.core.navigation.WelcomeRoute
 import solutions.laxmi.omnicompiler.core.ui.Avatar
+import solutions.laxmi.omnicompiler.core.ui.SignOutDialog
 
 /** Account details: profile edit, verification, password, sign-out and deletion. */
 @Composable
@@ -65,6 +66,7 @@ fun ProfileScreen(navigator: Navigator) {
     val resources = LocalResources.current
     var changingPassword by rememberSaveable { mutableStateOf(false) }
     var confirmingDelete by rememberSaveable { mutableStateOf(false) }
+    var confirmingSignOut by rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(viewModel) {
         viewModel.eventFlow.collect { event ->
             when (event) {
@@ -104,7 +106,7 @@ fun ProfileScreen(navigator: Navigator) {
                 } else if (!user.isGuest) {
                     Text(stringResource(R.string.profile_google_no_password), style = OmniTheme.typography.bodySmall, color = colors.textTertiary, modifier = Modifier.padding(horizontal = 16.dp))
                 }
-                OmniButton(stringResource(R.string.profile_sign_out), viewModel::signOut, Modifier.padding(16.dp), style = OmniButtonStyle.Outline, leadingIcon = OmniIcons.LogOut, loading = state.busy == ProfileAction.SignOut)
+                OmniButton(stringResource(R.string.profile_sign_out), { confirmingSignOut = true }, Modifier.padding(16.dp), style = OmniButtonStyle.Outline, leadingIcon = OmniIcons.LogOut, loading = state.busy == ProfileAction.SignOut)
                 SectionLabel(stringResource(R.string.profile_danger_zone))
                 Text(
                     stringResource(R.string.profile_delete_explainer),
@@ -122,6 +124,20 @@ fun ProfileScreen(navigator: Navigator) {
             busy = state.busy == ProfileAction.Password,
             onDismiss = { changingPassword = false },
             onSubmit = viewModel::changePassword,
+        )
+    }
+    if (confirmingSignOut) {
+        SignOutDialog(
+            isGuest = state.user?.isGuest == true,
+            onConfirm = {
+                confirmingSignOut = false
+                viewModel.signOut()
+            },
+            onCreateAccount = {
+                confirmingSignOut = false
+                navigator.navigate(SignUpRoute(convertGuest = true))
+            },
+            onDismiss = { confirmingSignOut = false },
         )
     }
     if (confirmingDelete) {

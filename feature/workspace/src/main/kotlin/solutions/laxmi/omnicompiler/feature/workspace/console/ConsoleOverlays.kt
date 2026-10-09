@@ -20,6 +20,9 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ModalBottomSheetProperties
+import androidx.activity.compose.BackHandler
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
@@ -65,10 +68,13 @@ import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun OmniSheet(onDismiss: () -> Unit, content: @Composable () -> Unit) {
+private fun OmniSheet(onDismiss: () -> Unit, holdOpen: Boolean = false, onCloseAttempt: () -> Unit = {}, content: @Composable () -> Unit) {
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        // While [holdOpen] (unsaved input), swipes and outside taps don't close it, and Back asks via [onCloseAttempt].
+        sheetGesturesEnabled = !holdOpen,
+        properties = ModalBottomSheetProperties(shouldDismissOnBackPress = !holdOpen, shouldDismissOnClickOutside = !holdOpen),
         shape = RectangleShape,
         containerColor = OmniTheme.colors.surface,
         scrimColor = OmniTheme.colors.scrim,
@@ -78,7 +84,10 @@ private fun OmniSheet(onDismiss: () -> Unit, content: @Composable () -> Unit) {
             Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(bottom = 16.dp).navigationBarsPadding().imePadding()
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(14.dp),
-        ) { content() }
+        ) {
+            BackHandler(enabled = holdOpen, onBack = onCloseAttempt)
+            content()
+        }
     }
 }
 
@@ -103,7 +112,24 @@ internal fun TestEditorSheet(
     var stdin by rememberSaveable { mutableStateOf(initial?.stdin.orEmpty()) }
     var expected by rememberSaveable { mutableStateOf(initial?.expected.orEmpty()) }
     LaunchedEffect(loadedStdin) { loadedStdin?.let { stdin = it } }
-    OmniSheet(onDismiss) {
+    val dirty = name != initial?.name.orEmpty() || stdin != initial?.stdin.orEmpty() || expected != initial?.expected.orEmpty()
+    var confirmingDiscard by rememberSaveable { mutableStateOf(false) }
+    if (confirmingDiscard) {
+        AlertDialog(
+            onDismissRequest = { confirmingDiscard = false },
+            shape = RectangleShape,
+            containerColor = OmniTheme.colors.surfaceRaised,
+            title = { Text(stringResource(R.string.sheet_test_discard_title), style = OmniTheme.typography.title, color = OmniTheme.colors.textPrimary) },
+            confirmButton = {
+                OmniTextButton(stringResource(R.string.sheet_test_discard), {
+                    confirmingDiscard = false
+                    onDismiss()
+                })
+            },
+            dismissButton = { OmniTextButton(stringResource(R.string.sheet_test_keep_editing), { confirmingDiscard = false }, color = OmniTheme.colors.textSecondary) },
+        )
+    }
+    OmniSheet(onDismiss = onDismiss, holdOpen = dirty, onCloseAttempt = { confirmingDiscard = true }) {
         SheetTitle(stringResource(if (initial == null) R.string.sheet_test_new else R.string.sheet_test_edit), stringResource(R.string.sheet_test_hint))
         OmniTextField(name, { name = it }, label = stringResource(R.string.sheet_test_name), placeholder = stringResource(R.string.sheet_test_name_placeholder))
         OmniTextField(
@@ -321,7 +347,8 @@ internal fun OfflineQueueCard(
                         color = colors.textTertiary,
                     )
                 }
-                if (state.online) OmniTextButton(stringResource(R.string.offline_send_now), onSendNow)
+                // Offered even when no network is detected: the detection can be wrong, and a failed try just keeps the run queued.
+                OmniTextButton(stringResource(R.string.offline_send_now), onSendNow)
                 OmniTextButton(stringResource(CommonR.string.common_cancel), { onCancel(run) }, color = colors.textSecondary)
             }
         }

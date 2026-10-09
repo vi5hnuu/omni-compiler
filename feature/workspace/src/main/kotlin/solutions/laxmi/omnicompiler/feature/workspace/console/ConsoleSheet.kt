@@ -3,6 +3,9 @@ package solutions.laxmi.omnicompiler.feature.workspace.console
 import solutions.laxmi.omnicompiler.core.model.RunPhase
 import solutions.laxmi.omnicompiler.feature.workspace.R
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.foundation.clickable
+import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -28,6 +31,7 @@ import solutions.laxmi.omnicompiler.core.designsystem.icon.OmniIcons
 import solutions.laxmi.omnicompiler.core.designsystem.theme.OmniTheme
 import solutions.laxmi.omnicompiler.core.model.CompileProblem
 import solutions.laxmi.omnicompiler.core.model.RunMode
+import solutions.laxmi.omnicompiler.core.model.ProjectPaths
 
 internal class ConsoleSheetActions(
     val onClose: () -> Unit,
@@ -100,7 +104,16 @@ private fun ConsoleFooter(state: ConsoleUiState, stdin: String, actions: Console
     ) {
         Text(stringResource(R.string.console_stdin_prompt), style = OmniTheme.typography.mono, color = colors.accentText)
         Box(Modifier.weight(1f)) {
-            BasicTextField(
+            // A one-line field would squash multi-line input; summarise it and edit it in the Input tab instead.
+            if ('\n' in stdin) {
+                val lines = stdin.trimEnd('\n').count { it == '\n' } + 1
+                Text(
+                    pluralStringResource(R.plurals.console_stdin_lines, lines, lines),
+                    style = OmniTheme.typography.mono,
+                    color = colors.textSecondary,
+                    modifier = Modifier.fillMaxWidth().clickable(role = Role.Button) { actions.onSelectTab(ConsoleTab.Input) },
+                )
+            } else BasicTextField(
                 value = stdin,
                 onValueChange = actions.onStdinChange,
                 singleLine = true,
@@ -123,4 +136,11 @@ private fun ConsoleFooter(state: ConsoleUiState, stdin: String, actions: Console
 
 internal fun ConsoleUiState.problemsFor(fileName: String, isEntry: Boolean): List<CompileProblem> =
     latest?.takeIf { it.mode == RunMode.TESTS || it.mode == RunMode.STDIN_ONLY }?.problems.orEmpty()
-        .filter { it.line != null && (it.fileName == fileName || (isEntry && it.fileName == null)) }
+        .filter { it.line != null && (it.fileName.refersTo(fileName) || (isEntry && it.fileName == null)) }
+
+/**
+ * Whether a compiler's file name means the project file at [path]: the same path, or, when the compiler printed only
+ * a bare name (no folder), that file's name.
+ */
+internal fun String?.refersTo(path: String): Boolean =
+    this == path || (this != null && '/' !in this && this == ProjectPaths.basename(path))

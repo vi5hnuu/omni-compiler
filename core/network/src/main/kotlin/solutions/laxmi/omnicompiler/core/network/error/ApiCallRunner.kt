@@ -15,9 +15,6 @@ import solutions.laxmi.omnicompiler.core.model.Outcome
 import solutions.laxmi.omnicompiler.core.network.dto.AuthEnvelope
 import solutions.laxmi.omnicompiler.core.network.dto.JudgeErrorEnvelope
 import java.io.IOException
-import java.io.InterruptedIOException
-import java.net.ConnectException
-import java.net.UnknownHostException
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -42,14 +39,8 @@ internal class ApiCallRunner @Inject constructor(private val json: Json) {
             val request = e.response()?.raw()?.request
             Timber.w("HTTP %d %s %s -> %s", e.code(), request?.method, request?.url, error)
             Outcome.Failure(error)
-        } catch (e: InterruptedIOException) {
-            Outcome.Failure(AppError.Timeout()).also { Timber.w(e, "Request timed out") }
-        } catch (e: UnknownHostException) {
-            Outcome.Failure(AppError.Offline()).also { Timber.w(e, "Host not resolved") }
-        } catch (e: ConnectException) {
-            Outcome.Failure(AppError.Offline()).also { Timber.w(e, "Connection failed") }
         } catch (e: IOException) {
-            Outcome.Failure(AppError.Offline(reason = ErrorReason.NetworkError)).also { Timber.w(e, "Network I/O failed") }
+            Outcome.Failure(transportError(e))
         } catch (e: SerializationException) {
             Outcome.Failure(AppError.Unknown(reason = ErrorReason.BadResponse)).also { Timber.e(e, "Response didn't match the expected shape") }
         }

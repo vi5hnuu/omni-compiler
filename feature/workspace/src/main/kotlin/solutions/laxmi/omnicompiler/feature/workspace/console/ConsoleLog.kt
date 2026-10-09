@@ -1,6 +1,11 @@
 package solutions.laxmi.omnicompiler.feature.workspace.console
 
 import solutions.laxmi.omnicompiler.core.ui.tone
+import solutions.laxmi.omnicompiler.core.ui.clipForDisplay
+import solutions.laxmi.omnicompiler.core.ui.R as CommonR
+import androidx.compose.runtime.remember
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.text.AnnotatedString
 import solutions.laxmi.omnicompiler.core.ui.testCount
 import solutions.laxmi.omnicompiler.core.ui.formatDuration
 import solutions.laxmi.omnicompiler.feature.workspace.R
@@ -118,11 +123,11 @@ private fun RunLog(run: RunRecord, onVerify: (String) -> Unit) {
         if (run.verdict != Verdict.CE) TestLines(run)
         if (run.mode == RunMode.STDIN_ONLY) {
             run.results.firstOrNull()?.let { result ->
-                result.stdout?.takeIf { it.isNotEmpty() }?.let { LogRow(stringResource(R.string.console_tag_stdout), it.trimEnd()) }
-                result.stderr?.takeIf { it.isNotEmpty() }?.let { LogRow(stringResource(R.string.console_tag_stderr), it.trimEnd(), tagColor = colors.accentText) }
+                result.stdout?.takeIf { it.isNotEmpty() }?.let { OutputRow("${run.id}-out", stringResource(R.string.console_tag_stdout), it.trimEnd()) }
+                result.stderr?.takeIf { it.isNotEmpty() }?.let { OutputRow("${run.id}-err", stringResource(R.string.console_tag_stderr), it.trimEnd(), tagColor = colors.accentText) }
             }
         } else {
-            run.firstFailure?.stderr?.takeIf { it.isNotBlank() && run.verdict != Verdict.CE }?.let { LogRow(stringResource(R.string.console_tag_stderr), it.trimEnd(), tagColor = colors.accentText) }
+            run.firstFailure?.stderr?.takeIf { it.isNotBlank() && run.verdict != Verdict.CE }?.let { OutputRow("${run.id}-err", stringResource(R.string.console_tag_stderr), it.trimEnd(), tagColor = colors.accentText) }
         }
         if (run.verdict == Verdict.CE) run.compileOutput?.let { LogRow(stringResource(R.string.console_tag_stderr), it.trimEnd().lines().take(12).joinToString("\n"), tagColor = colors.status.compile.text) }
         run.errorMessage?.let { LogRow(stringResource(R.string.console_tag_error), it, tagColor = colors.status.rejected.text, background = colors.status.rejected.tint) }
@@ -161,6 +166,24 @@ private fun TestLines(run: RunRecord) {
     if (skipped.isNotEmpty()) {
         val range = if (skipped.size == 1) "${skipped.first().index}" else "${skipped.first().index}–${skipped.last().index}"
         LogRow(stringResource(R.string.console_tag_test, range), stringResource(R.string.console_skipped), messageColor = colors.textTertiary)
+    }
+}
+
+/** A program output row; very long output shows its beginning until the user asks for all of it. */
+@Composable
+private fun OutputRow(key: String, tag: String, text: String, tagColor: Color = OmniTheme.colors.textSecondary) {
+    var showAll by rememberSaveable(key) { mutableStateOf(false) }
+    val clipped = remember(text) { clipForDisplay(text) }
+    LogRow(tag, if (showAll || clipped == null) text else clipped, tagColor = tagColor)
+    if (clipped != null && !showAll) {
+        val clipboard = LocalClipboardManager.current
+        DisableSelection {
+            Row(Modifier.padding(horizontal = 12.dp), horizontalArrangement = Arrangement.spacedBy(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text(stringResource(CommonR.string.common_output_clipped), style = OmniTheme.typography.monoSmall, color = OmniTheme.colors.textTertiary)
+                OmniTextButton(stringResource(CommonR.string.common_show_full_output), { showAll = true })
+                OmniTextButton(stringResource(CommonR.string.common_copy), { clipboard.setText(AnnotatedString(text)) }, color = OmniTheme.colors.textSecondary)
+            }
+        }
     }
 }
 

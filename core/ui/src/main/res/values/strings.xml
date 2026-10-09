@@ -9,6 +9,8 @@
     <string name="common_close">Close</string>
     <string name="common_done">Done</string>
     <string name="common_copy">Copy</string>
+    <string name="common_show_full_output">Show full output</string>
+    <string name="common_output_clipped">Long output: showing the beginning.</string>
     <plurals name="common_tests_passed_of">
         <item quantity="one">%1$d of %2$d test passed</item>
         <item quantity="other">%1$d of %2$d tests passed</item>
@@ -74,6 +76,8 @@
     <string name="common_error_retry_after">%1$s Try again in %2$d s.</string>
     <string name="common_error_with_reference">%1$s (ref %2$s)</string>
     <string name="common_error_offline">You\'re offline.</string>
+    <string name="common_error_server_unreachable">Can\'t reach the Omni Compiler servers. Check your connection or try again shortly.</string>
+    <string name="common_error_secure_connection">Couldn\'t open a secure connection. If you\'re on public Wi-Fi, sign in to it first, and check that your device\'s date and time are correct.</string>
     <string name="common_error_timeout">The server took too long to respond.</string>
     <string name="common_error_network">Network error. Check your connection.</string>
     <string name="common_error_bad_response">Unexpected response from the server.</string>
@@ -94,7 +98,9 @@
     <string name="common_error_entry_name_taken">Rename %1$s first: the %2$s entry file uses that name.</string>
     <string name="common_error_name_required">Enter a name.</string>
     <string name="common_error_file_name_required">Enter a file name.</string>
-    <string name="common_error_flat_workspace">All files share one flat /workspace: no folders or \'..\'.</string>
+    <string name="common_error_invalid_path">Use a path inside the project, like src/helper.py: no empty parts, \'.\', \'..\' or backslashes.</string>
+    <string name="common_error_path_too_deep">Folders can be nested at most %1$d levels deep.</string>
+    <string name="common_error_total_too_large">The project is too big to run: all files together must stay under %1$d MB.</string>
     <plurals name="common_error_file_name_too_long">
         <item quantity="one">File names can be at most %1$d character.</item>
         <item quantity="other">File names can be at most %1$d characters.</item>
@@ -114,6 +120,13 @@
     <string name="common_error_git_pull_first">The branch changed on the server. Pull first, then push again.</string>
     <string name="common_error_git_nothing">No changes to commit.</string>
     <string name="common_error_git_conflicts">Resolve the conflicting files first.</string>
+    <string name="common_error_git_access_denied">The code host refused access. Check the token\'s scopes and, for organisations, that it\'s authorised for SSO.</string>
+    <string name="common_error_git_rate_limited">The code host\'s rate limit was reached. Wait a few minutes and try again.</string>
+    <string name="common_error_git_not_found">Not found. The repository, branch or folder may have moved, or the token can\'t see it.</string>
+    <string name="common_error_git_local_changed">A file changed while syncing, so nothing was changed. Try again.</string>
+    <string name="common_error_git_not_text">The remote version isn\'t a text file, so it can\'t be used here. Your version was kept.</string>
+    <string name="common_error_git_listing_too_large">This folder has too many entries to sync safely from the app.</string>
+    <string name="common_error_git_folder_missing">The tracked folder is missing or empty on the remote, so no local files were changed.</string>
     <string name="common_error_git_failed">The code host didn\'t accept the request. Try again later.</string>
     <string name="common_error_export_failed">Couldn\'t prepare the export.</string>
     <string name="common_error_document_open_failed">Couldn\'t open that file.</string>
@@ -137,4 +150,11 @@
     <string name="new_project_create">Create project</string>
     <!-- Name shown for guest accounts, which only have a generated username. -->
     <string name="common_guest">Guest</string>
+    <string name="common_your_account">Your account</string>
+    <string name="sign_out_title">Sign out?</string>
+    <string name="sign_out_message">Your projects stay on this device. Queued runs and connected GitHub/GitLab accounts are removed.</string>
+    <string name="sign_out_guest_title">Sign out of the guest account?</string>
+    <string name="sign_out_guest_message">A guest account can\'t be signed back into: its run history is lost for good. Projects stay on this device. Create an account first to keep your history.</string>
+    <string name="sign_out_confirm">Sign out</string>
+    <string name="sign_out_create_account">Create account</string>
 </resources>

@@ -18,7 +18,11 @@ import solutions.laxmi.omnicompiler.core.common.ApplicationScope
 import javax.inject.Inject
 import javax.inject.Singleton
 
-/** Whether the device currently has a validated internet connection. */
+/**
+ * Whether the device currently has a network that offers internet. Android's "validated" flag is deliberately not
+ * required: its probe fails behind some firewalls, VPNs and private-DNS setups where the internet works fine, and
+ * real request failures already tell an unreachable server apart.
+ */
 interface ConnectivityObserver {
     val isOnline: StateFlow<Boolean>
 }
@@ -50,7 +54,6 @@ internal class AndroidConnectivityObserver @Inject constructor(
     private fun currentlyOnline(excluding: Network? = null): Boolean {
         val active = manager.activeNetwork?.takeIf { it != excluding } ?: return false
         val capabilities = manager.getNetworkCapabilities(active) ?: return false
-        return capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
-            capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
+        return capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
     }
 }

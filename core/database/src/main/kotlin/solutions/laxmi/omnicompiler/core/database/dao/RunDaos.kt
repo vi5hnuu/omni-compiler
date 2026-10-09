@@ -24,6 +24,10 @@ interface RunDao {
     @Query("SELECT * FROM runs WHERE project_id = :projectId ORDER BY started_at DESC LIMIT :limit")
     fun observeRecent(projectId: String, limit: Int): Flow<List<RunEntity>>
 
+    /** Runs saved while the judge still had them (the app was closed or killed mid-run), newest first. */
+    @Query("SELECT * FROM runs WHERE status IN (:phases) ORDER BY started_at DESC")
+    suspend fun withStatus(phases: List<String>): List<RunEntity>
+
     @Query("SELECT * FROM run_results WHERE run_id IN (:runIds) ORDER BY test_index")
     fun observeResults(runIds: List<String>): Flow<List<RunResultEntity>>
 
@@ -112,6 +116,9 @@ interface SubmissionDao {
 
     @Query("SELECT * FROM submission_cursor WHERE `key` = 0")
     suspend fun cursor(): SubmissionCursorEntity?
+
+    @Query("SELECT * FROM submission_cursor WHERE `key` = 0")
+    fun observeCursor(): Flow<SubmissionCursorEntity?>
 
     @Upsert
     suspend fun upsertAll(items: List<SubmissionEntity>)

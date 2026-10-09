@@ -11,6 +11,7 @@ import solutions.laxmi.omnicompiler.core.common.OmniDispatcher
 import solutions.laxmi.omnicompiler.core.model.AppError
 import solutions.laxmi.omnicompiler.core.model.ErrorReason
 import solutions.laxmi.omnicompiler.core.model.Outcome
+import solutions.laxmi.omnicompiler.core.model.ProjectPaths
 import java.io.File
 import java.io.IOException
 import java.util.zip.ZipEntry
@@ -39,6 +40,7 @@ internal class CacheProjectExporter @Inject constructor(
         return write("${workspace.project.name}.zip", MIME_ZIP) { file ->
             ZipOutputStream(file.outputStream().buffered()).use { zip ->
                 workspace.files.forEach { source ->
+                    // Entries keep their folders (src/util/helper.py), so the archive unpacks into the same tree.
                     zip.putNextEntry(ZipEntry(source.name))
                     zip.write(source.content.encodeToByteArray())
                     zip.closeEntry()
@@ -60,15 +62,16 @@ internal class CacheProjectExporter @Inject constructor(
     override suspend fun exportFile(projectId: String, fileId: String): Outcome<SharedFile> {
         val source = projects.snapshot(projectId)?.files?.firstOrNull { it.id == fileId }
             ?: return Outcome.Failure(AppError.NotFound(reason = ErrorReason.FileNotFound))
-        return write(source.name, MIME_TEXT) { it.writeText(source.content) }
+        return write(ProjectPaths.basename(source.name), MIME_TEXT) { it.writeText(source.content) }
     }
 
     private suspend fun write(name: String, mime: String, block: (File) -> Unit): Outcome<SharedFile> = withContext(io) {
         try {
             val dir = File(context.cacheDir, EXPORT_DIR).apply { mkdirs() }
-            // Old exports are disposable; keep the cache from growing.
-            dir.listFiles()?.forEach { it.delete() }
-            val file = File(dir, name.replace(Regex("[^A-Za-z0-9._-]"), "_"))
+            // Old exports are disposable, but a recent one may still be read by the app it was shared with.
+            val cutoff = System.currentTimeMillis() - EXPORT_TTL_MS
+            dir.listFiles()?.filter { it.lastModified() < cutoff }?.forEach { it.delete() }
+            val file = File(dir, safeFileName(name, MAX_EXPORT_NAME).ifEmpty { FALLBACK_NAME })
             block(file)
             Outcome.Success(SharedFile(FileProvider.getUriForFile(context, authority, file).toString(), mime, file.name))
         } catch (e: IOException) {
@@ -80,6 +83,9 @@ internal class CacheProjectExporter @Inject constructor(
         /** Must match the FileProvider declared in the app manifest and res/xml/file_paths.xml. */
         const val AUTHORITY_SUFFIX = ".files"
         const val EXPORT_DIR = "exports"
+        const val EXPORT_TTL_MS = 60 * 60 * 1000L
+        const val MAX_EXPORT_NAME = 120
+        const val FALLBACK_NAME = "export"
         const val MIME_ZIP = "application/zip"
         const val MIME_TEXT = "text/plain"
     }

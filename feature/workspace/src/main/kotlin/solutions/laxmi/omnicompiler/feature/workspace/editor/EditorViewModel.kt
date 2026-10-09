@@ -22,8 +22,6 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 import solutions.laxmi.omnicompiler.core.data.account.AccountRepository
 import solutions.laxmi.omnicompiler.core.data.auth.AuthRepository
 import solutions.laxmi.omnicompiler.core.data.project.ProjectRepository
@@ -33,7 +31,9 @@ import solutions.laxmi.omnicompiler.core.data.project.ProjectTemplate
 import solutions.laxmi.omnicompiler.core.model.Language
 import solutions.laxmi.omnicompiler.core.model.EditorSettings
 import solutions.laxmi.omnicompiler.core.model.LanguageInfo
+import solutions.laxmi.omnicompiler.core.model.AppError
 import solutions.laxmi.omnicompiler.core.model.Outcome
+import solutions.laxmi.omnicompiler.core.model.ProjectPaths
 import solutions.laxmi.omnicompiler.core.model.onSuccess
 import solutions.laxmi.omnicompiler.core.model.ProjectFilter
 import solutions.laxmi.omnicompiler.core.model.ProjectSummary
@@ -51,6 +51,8 @@ import solutions.laxmi.omnicompiler.feature.workspace.R
 data class EditorUiState(
     val loading: Boolean = true,
     val error: UiText? = null,
+    /** The startup error was a connection problem (vs. storage or a deleted project); picks the error's icon. */
+    val errorIsConnection: Boolean = false,
     val workspace: WorkspaceOutline? = null,
     val runtime: Runtime? = null,
     val language: LanguageInfo? = null,
@@ -91,10 +93,7 @@ class EditorViewModel @AssistedInject constructor(
 
     private val projectId = MutableStateFlow(route.projectId)
     private val activeFileId = MutableStateFlow<String?>(null)
-    private val startupError = MutableStateFlow<UiText?>(null)
-
-    /** Autosaves are written one at a time, in order, so an older buffer can never overwrite a newer one. */
-    private val saveLock = Mutex()
+    private val startupError = MutableStateFlow<AppError?>(null)
 
     private val events = Channel<EditorEvent>(Channel.BUFFERED)
     val eventFlow = events.receiveAsFlow()
@@ -123,10 +122,11 @@ class EditorViewModel @AssistedInject constructor(
     ) { (loaded, rt, lang), (activeId, error), settings, session ->
         val (loadedId, ws) = loaded
         // A resolved project that reads back as null was deleted while open (e.g. from Projects).
-        val shownError = error ?: UiText.Res(R.string.editor_project_deleted).takeIf { loadedId != null && ws == null }
+        val shownError = error?.toUiText() ?: UiText.Res(R.string.editor_project_deleted).takeIf { loadedId != null && ws == null }
         EditorUiState(
             loading = ws == null && shownError == null,
             error = shownError,
+            errorIsConnection = error is AppError.Offline || error is AppError.Timeout,
             workspace = ws,
             runtime = rt,
             language = lang,
@@ -182,8 +182,9 @@ class EditorViewModel @AssistedInject constructor(
     /** An open file's text; collected only by the pane showing it. */
     fun observeFile(fileId: String): Flow<OpenFile?> = projects.observeFile(fileId)
 
+    /** The repository orders saves and finishes them even if this screen goes away mid-write. */
     fun onContentChanged(fileId: String, text: String) {
-        viewModelScope.launch { saveLock.withLock { projects.updateFileContent(fileId, text) } }
+        viewModelScope.launch { projects.updateFileContent(fileId, text) }
     }
 
     fun toggleMinimap() = updateSettings { it.copy(minimap = !it.minimap) }
@@ -209,7 +210,9 @@ class EditorViewModel @AssistedInject constructor(
         viewModelScope.launch {
             val header = projects.addFile(id, "$baseName.h", "#pragma once\n")
             if (header is Outcome.Failure) return@launch events.send(EditorEvent.Message(header.error.toUiText()))
-            when (val source = projects.addFile(id, "$baseName.$sourceExtension", "#include \"$baseName.h\"\n")) {
+            // Both files go in the same folder, so the source includes the header by its bare name.
+            val includeName = ProjectPaths.basename(baseName)
+            when (val source = projects.addFile(id, "$baseName.$sourceExtension", "#include \"$includeName.h\"\n")) {
                 is Outcome.Success -> {
                     activeFileId.value = source.value.id
                     onDone()
@@ -298,7 +301,7 @@ class EditorViewModel @AssistedInject constructor(
                     projectId.value = result.value
                     projects.markOpened(result.value)
                 }
-                is Outcome.Failure -> startupError.value = result.error.toUiText()
+                is Outcome.Failure -> startupError.value = result.error
             }
         }
     }

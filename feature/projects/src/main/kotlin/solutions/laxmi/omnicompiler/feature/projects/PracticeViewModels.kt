@@ -85,6 +85,7 @@ class ExamplesViewModel @Inject internal constructor(
 }
 
 data class ProblemUiState(
+    val loading: Boolean = true,
     val problem: Problem? = null,
     val solutionLanguages: List<Language> = emptyList(),
     val allLanguages: List<Language> = emptyList(),
@@ -104,12 +105,14 @@ class ProblemViewModel @AssistedInject internal constructor(
     }
 
     private val problem = MutableStateFlow<Problem?>(null)
+    private val loaded = MutableStateFlow(false)
     private val events = Channel<PracticeEvent>(Channel.BUFFERED)
     val eventFlow = events.receiveAsFlow()
 
-    val uiState: StateFlow<ProblemUiState> = combine(problem, runtimes.languages) { p, languages ->
+    val uiState: StateFlow<ProblemUiState> = combine(problem, loaded, runtimes.languages) { p, done, languages ->
         val runnable = languages.filter { it.defaultRuntime?.isRunnable == true }
         ProblemUiState(
+            loading = !done,
             problem = p,
             solutionLanguages = runnable.filter { p?.solutions?.containsKey(it.base) == true },
             allLanguages = runnable,
@@ -117,7 +120,10 @@ class ProblemViewModel @AssistedInject internal constructor(
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ProblemUiState())
 
     init {
-        viewModelScope.launch { problem.value = practice.problem(slug) }
+        viewModelScope.launch {
+            problem.value = practice.problem(slug)
+            loaded.value = true
+        }
     }
 
     /** Opens a new project with the problem's tests and, when available, its starter solution in [language]. */

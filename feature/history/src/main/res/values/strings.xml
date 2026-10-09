@@ -17,6 +17,7 @@
         <item quantity="other">%1$d runs in 7 days · from cached history</item>
     </plurals>
     <string name="history_filter_all">All</string>
+    <string name="history_count_more">%1$d+</string>
     <string name="history_today">Today</string>
     <string name="history_yesterday">Yesterday</string>
     <string name="history_job">job %1$s</string>

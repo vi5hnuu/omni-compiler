@@ -22,6 +22,9 @@ import solutions.laxmi.omnicompiler.core.network.dto.GhTreeEntryDto
 import solutions.laxmi.omnicompiler.core.network.dto.GhUpdateRefDto
 import solutions.laxmi.omnicompiler.core.network.dto.GlCommitActionDto
 import solutions.laxmi.omnicompiler.core.network.dto.GlCreateCommitDto
+import solutions.laxmi.omnicompiler.core.network.error.transportError
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withPermit
 import java.io.IOException
 import javax.inject.Inject
 
@@ -36,6 +39,12 @@ interface GitNetworkDataSource {
     suspend fun head(host: GitHost, token: String, repoId: String, branch: String): Outcome<String>
     suspend fun list(host: GitHost, token: String, repoId: String, ref: String, path: String): Outcome<List<RemoteEntry>>
     suspend fun blobText(host: GitHost, token: String, repoId: String, sha: String): Outcome<String>
+
+    /**
+     * Every file below [path] at commit [commitSha], in all subfolders; each [RemoteEntry.name] is the path relative to
+     * [path] (`src/util/helper.py`). Fails rather than returning part of a listing too long to read completely.
+     */
+    suspend fun listFiles(host: GitHost, token: String, repoId: String, commitSha: String, path: String): Outcome<List<RemoteEntry>>
 
     /** Commits [changes] on top of [baseCommit] and moves [branch] to it only if it still points at the base. */
     suspend fun commit(host: GitHost, token: String, repoId: String, branch: String, baseCommit: String, message: String, changes: List<CommitChange>): Outcome<String>
@@ -64,8 +73,8 @@ internal class RetrofitGitNetworkDataSource @Inject constructor(
 
     override suspend fun branches(host: GitHost, token: String, repoId: String) = call {
         when (host) {
-            GitHost.GITHUB -> github.branches(bearer(token), repoId).map { it.name }
-            GitHost.GITLAB -> gitlab.branches(token, repoId).map { it.name }
+            GitHost.GITHUB -> allPages { page -> github.branches(bearer(token), repoId, page) }.map { it.name }
+            GitHost.GITLAB -> allPages { page -> gitlab.branches(token, repoId, page) }.map { it.name }
         }
     }
 
@@ -78,11 +87,30 @@ internal class RetrofitGitNetworkDataSource @Inject constructor(
 
     override suspend fun list(host: GitHost, token: String, repoId: String, ref: String, path: String) = call {
         when (host) {
-            GitHost.GITHUB -> github.contents(bearer(token), repoId, segments(path), ref).map {
-                RemoteEntry(it.name, it.path, it.type == "dir", it.sha, it.size)
-            }
-            GitHost.GITLAB -> gitlab.tree(token, repoId, path, ref).map { RemoteEntry(it.name, it.path, it.type == "tree", it.id, null) }
+            // GitHub's contents API silently stops at 1,000 entries; a listing that long may be cut short.
+            GitHost.GITHUB -> github.contents(bearer(token), repoId, segments(path), ref)
+                .also { if (it.size >= GITHUB_CONTENTS_LIMIT) throw TruncatedListingException() }
+                .map { RemoteEntry(it.name, it.path, it.type == "dir", it.sha, it.size) }
+            // A truncated listing would make pull treat the missing files as deleted upstream, so every page is read.
+            GitHost.GITLAB -> allPages { page -> gitlab.tree(token, repoId, path, ref, page) }.map { RemoteEntry(it.name, it.path, it.type == "tree", it.id, null) }
         }.sortedWith(compareByDescending<RemoteEntry> { it.isFolder }.thenBy { it.name.lowercase() })
+    }
+
+    override suspend fun listFiles(host: GitHost, token: String, repoId: String, commitSha: String, path: String) = call {
+        val folder = path.trim('/')
+        val prefix = if (folder.isEmpty()) "" else "$folder/"
+        when (host) {
+            GitHost.GITHUB -> {
+                val auth = bearer(token)
+                val listing = github.treeRecursive(auth, repoId, github.commit(auth, repoId, commitSha).tree.sha)
+                if (listing.truncated) throw TruncatedListingException()
+                listing.tree.filter { it.type == "blob" && it.path.startsWith(prefix) }
+                    .map { RemoteEntry(it.path.removePrefix(prefix), it.path, isFolder = false, sha = it.sha, size = it.size) }
+            }
+            GitHost.GITLAB -> allPages { page -> gitlab.tree(token, repoId, folder, commitSha, page, recursive = true) }
+                .filter { it.type == "blob" && it.path.startsWith(prefix) }
+                .map { RemoteEntry(it.path.removePrefix(prefix), it.path, isFolder = false, sha = it.id, size = null) }
+        }.sortedBy { it.name.lowercase() }
     }
 
     override suspend fun blobText(host: GitHost, token: String, repoId: String, sha: String) = call {
@@ -107,10 +135,13 @@ internal class RetrofitGitNetworkDataSource @Inject constructor(
             GitHost.GITHUB -> {
                 val auth = bearer(token)
                 val baseTree = github.commit(auth, repoId, baseCommit).tree.sha
+                // A few at a time: GitHub's secondary rate limits punish bursts of content-creating requests.
+                val uploads = Semaphore(MAX_PARALLEL_REQUESTS)
                 val entries = coroutineScope {
                     changes.map { change ->
                         async {
-                            GhTreeEntryDto(change.path, sha = change.content?.let { github.createBlob(auth, repoId, GhCreateBlobDto(it)).sha })
+                            val sha = change.content?.let { uploads.withPermit { github.createBlob(auth, repoId, GhCreateBlobDto(it)).sha } }
+                            GhTreeEntryDto(change.path, sha = sha)
                         }
                     }.awaitAll()
                 }
@@ -140,6 +171,27 @@ internal class RetrofitGitNetworkDataSource @Inject constructor(
 
     private fun bearer(token: String) = "Bearer $token"
 
+    /**
+     * Reads a 100-per-page listing to the end. Bounded so a huge repository can't loop forever; reaching the bound
+     * fails rather than returning part of the listing, since sync reads a missing file as deleted.
+     */
+    private suspend fun <T> allPages(fetch: suspend (page: Int) -> List<T>): List<T> {
+        val all = mutableListOf<T>()
+        for (page in 1..MAX_PAGES) {
+            val items = fetch(page)
+            all += items
+            if (items.size < PAGE_SIZE) return all
+        }
+        throw TruncatedListingException()
+    }
+
+    /** GitHub sends `X-RateLimit-Remaining: 0` (or `Retry-After` for secondary limits); GitLab sends `RateLimit-Remaining`. */
+    private fun HttpException.isRateLimited(): Boolean {
+        val headers = response()?.headers() ?: return code() == 429
+        return code() == 429 || headers["Retry-After"] != null ||
+            headers["X-RateLimit-Remaining"] == "0" || headers["RateLimit-Remaining"] == "0"
+    }
+
     /** Encodes each path segment but keeps the slashes GitHub routes on. */
     private fun segments(path: String) = path.split('/').filter { it.isNotEmpty() }.joinToString("/") { Uri.encode(it) }
 
@@ -149,14 +201,34 @@ internal class RetrofitGitNetworkDataSource @Inject constructor(
         Outcome.Failure(
             when (e.code()) {
                 401 -> AppError.Unauthorized(reason = ErrorReason.GitTokenRejected)
+                // Both hosts answer an exhausted quota with 403/429 plus their rate-limit headers.
+                403, 429 -> if (e.isRateLimited()) {
+                    AppError.RateLimited(reason = ErrorReason.GitRateLimited)
+                } else {
+                    AppError.Forbidden(reason = ErrorReason.GitAccessDenied)
+                }
+                404 -> AppError.NotFound(reason = ErrorReason.GitNotFound)
                 // 409/422 on a fast-forward-only ref update: the branch moved underneath us.
                 409, 422 -> AppError.Conflict(reason = ErrorReason.GitPullFirst)
                 else -> AppError.Unknown(reason = ErrorReason.GitRequestFailed)
             },
         )
+    } catch (e: TruncatedListingException) {
+        Outcome.Failure(AppError.Unknown(reason = ErrorReason.GitListingTooLarge))
     } catch (e: IOException) {
-        Outcome.Failure(AppError.Offline(reason = ErrorReason.NetworkError))
+        Outcome.Failure(transportError(e))
     } catch (e: SerializationException) {
         Outcome.Failure(AppError.Unknown(reason = ErrorReason.BadResponse))
     }
+
+    private companion object {
+        const val PAGE_SIZE = 100
+        /** 50 × 100 entries: room for a 500-file project with its folders. */
+        const val MAX_PAGES = 50
+        const val MAX_PARALLEL_REQUESTS = 4
+        const val GITHUB_CONTENTS_LIMIT = 1_000
+    }
 }
+
+/** A listing couldn't be read completely; callers must not act on part of it. */
+private class TruncatedListingException : Exception("Listing too long to read completely")

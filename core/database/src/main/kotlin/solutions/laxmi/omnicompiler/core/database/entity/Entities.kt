@@ -26,6 +26,8 @@ data class ProjectEntity(
     @ColumnInfo(name = "origin_uri") val originUri: String? = null,
     /** JSON of the tracked GitHub/GitLab folder (ManifestRemote); null for local-only projects. */
     @ColumnInfo(name = "remote_json") val remoteJson: String? = null,
+    /** Last-modified time of `.omni/project.json` as last read or written; an unchanged manifest isn't read again on rescans. */
+    @ColumnInfo(name = "manifest_modified", defaultValue = "0") val manifestModified: Long = 0,
 )
 
 @Entity(
@@ -49,6 +51,11 @@ data class FileEntity(
     @ColumnInfo(name = "doc_id") val docId: String? = null,
     @ColumnInfo(name = "last_modified", defaultValue = "0") val lastModified: Long = 0,
     @ColumnInfo(name = "size", defaultValue = "0") val size: Long = 0,
+    /**
+     * The editor saved text that isn't on disk yet. Such a file is written out, never read back, by rescans, so
+     * an edit can't be lost if the app dies between saving it and writing it to the project folder.
+     */
+    @ColumnInfo(name = "disk_dirty", defaultValue = "0") val diskDirty: Boolean = false,
 )
 
 /** A project with its files and tests read in one transaction, so a snapshot never sees a half-updated workspace. */
@@ -194,6 +201,7 @@ data class ProjectSummaryRow(
     @ColumnInfo(name = "issues") val issues: String,
     @ColumnInfo(name = "origin_uri") val originUri: String?,
     @ColumnInfo(name = "remote_json") val remoteJson: String?,
+    @ColumnInfo(name = "manifest_modified") val manifestModified: Long,
     @ColumnInfo(name = "file_names") val fileNames: String?,
     @ColumnInfo(name = "test_count") val testCount: Int,
 )

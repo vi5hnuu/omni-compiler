@@ -45,6 +45,12 @@ internal class JobSocket @Inject constructor(
                 }
             }
 
+            // The server closed without a `done` frame: answer at once, or OkHttp waits up to a minute before onClosed.
+            override fun onClosing(webSocket: WebSocket, code: Int, reason: String) {
+                webSocket.close(NORMAL_CLOSURE, null)
+                channel.close(JobStreamException("Stream closed before completion ($code)"))
+            }
+
             override fun onClosed(webSocket: WebSocket, code: Int, reason: String) {
                 channel.close(JobStreamException("Stream closed before completion ($code)"))
             }

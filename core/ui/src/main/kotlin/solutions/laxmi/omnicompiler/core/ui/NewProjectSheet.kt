@@ -67,7 +67,7 @@ fun NewProjectSheet(
             Text(stringResource(R.string.new_project_title), style = OmniTheme.typography.title, color = colors.textPrimary, modifier = Modifier.padding(horizontal = 16.dp))
             OmniTextField(
                 name, { name = it }, label = stringResource(R.string.new_project_name), placeholder = chosen?.let { "${it.base}-scratch" } ?: "two-sum",
-                keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.None, autoCorrectEnabled = false),
+                keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences, autoCorrectEnabled = false),
                 modifier = Modifier.padding(horizontal = 16.dp),
             )
             OmniTextField(query, { query = it }, placeholder = stringResource(R.string.new_project_search_languages), leadingIcon = OmniIcons.Search, modifier = Modifier.padding(horizontal = 16.dp))

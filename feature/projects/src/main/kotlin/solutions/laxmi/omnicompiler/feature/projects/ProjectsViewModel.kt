@@ -38,6 +38,8 @@ data class ProjectsUiState(
     val currentProjectId: String? = null,
     val now: Instant = Instant.fromEpochMilliseconds(0),
     val refreshing: Boolean = false,
+    /** An import is copying files; further imports wait so a double tap can't import twice. */
+    val importing: Boolean = false,
 )
 
 sealed interface ProjectsEvent {
@@ -56,6 +58,7 @@ class ProjectsViewModel @Inject constructor(
 
     private val query = MutableStateFlow("")
     private val refreshing = MutableStateFlow(false)
+    private val importing = MutableStateFlow(false)
     private val filter = MutableStateFlow(ProjectFilter.ALL)
     private val events = Channel<ProjectsEvent>(Channel.BUFFERED)
     val eventFlow = events.receiveAsFlow()
@@ -67,8 +70,8 @@ class ProjectsViewModel @Inject constructor(
         query,
         filter,
         combine(runtimes.languages, shortCodes, ::Pair),
-        combine(projects.lastProjectId, refreshing, ::Pair),
-    ) { all, q, f, (languages, codes), (lastId, isRefreshing) ->
+        combine(projects.lastProjectId, refreshing, importing, ::Triple),
+    ) { all, q, f, (languages, codes), (lastId, isRefreshing, isImporting) ->
         // One query feeds both the visible list and every tab's count.
         val visible = all.filter(f::matches)
         ProjectsUiState(
@@ -80,6 +83,7 @@ class ProjectsViewModel @Inject constructor(
             currentProjectId = lastId,
             now = time.now(),
             refreshing = isRefreshing,
+            importing = isImporting,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ProjectsUiState())
 
@@ -134,17 +138,21 @@ class ProjectsViewModel @Inject constructor(
     fun importFile(documentUri: String) = open { projects.importFile(documentUri) }
 
     private fun open(block: suspend () -> Outcome<String>) {
+        if (importing.value) return
+        importing.value = true
         viewModelScope.launch {
-            when (val result = block()) {
-                is Outcome.Success -> events.send(ProjectsEvent.Open(result.value))
-                is Outcome.Failure -> events.send(ProjectsEvent.Message(result.error.toUiText()))
+            try {
+                when (val result = block()) {
+                    is Outcome.Success -> events.send(ProjectsEvent.Open(result.value))
+                    is Outcome.Failure -> events.send(ProjectsEvent.Message(result.error.toUiText()))
+                }
+            } finally {
+                importing.value = false
             }
         }
     }
 
-    fun delete(projectId: String) {
-        viewModelScope.launch { projects.delete(projectId) }
-    }
+    fun delete(projectId: String) = launchReporting { projects.delete(projectId) }
 
     fun export(projectId: String) {
         viewModelScope.launch {

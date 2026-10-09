@@ -8,6 +8,7 @@ import org.junit.Test
 import retrofit2.HttpException
 import retrofit2.Response
 import solutions.laxmi.omnicompiler.core.model.AppError
+import solutions.laxmi.omnicompiler.core.model.ErrorReason
 import solutions.laxmi.omnicompiler.core.model.Outcome
 import solutions.laxmi.omnicompiler.core.network.error.ApiCallRunner
 import java.net.UnknownHostException
@@ -54,8 +55,8 @@ class ApiCallRunnerTest {
     }
 
     @Test
-    fun `unreachable host maps to offline`() = runTest {
+    fun `unreachable host is a connectivity error that names the server, not the device`() = runTest {
         val result = runner.judge<Unit> { throw UnknownHostException() }
-        assertThat((result as Outcome.Failure).error).isInstanceOf(AppError.Offline::class.java)
+        assertThat((result as Outcome.Failure).error).isEqualTo(AppError.Offline(reason = ErrorReason.ServerUnreachable))
     }
 }

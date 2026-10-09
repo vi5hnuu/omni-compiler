@@ -6,7 +6,13 @@ import solutions.laxmi.omnicompiler.core.data.mapper.toManifest
 import solutions.laxmi.omnicompiler.core.model.ProjectRemote
 import solutions.laxmi.omnicompiler.core.storage.ProjectRoot
 import solutions.laxmi.omnicompiler.core.storage.ProjectFolderStore
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import solutions.laxmi.omnicompiler.core.common.ApplicationScope
 import androidx.room.withTransaction
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
@@ -30,6 +36,8 @@ import solutions.laxmi.omnicompiler.core.model.Limits
 import solutions.laxmi.omnicompiler.core.model.OpenFile
 import solutions.laxmi.omnicompiler.core.model.Outcome
 import solutions.laxmi.omnicompiler.core.model.ProjectFilter
+import solutions.laxmi.omnicompiler.core.model.ProjectLimits
+import solutions.laxmi.omnicompiler.core.model.ProjectPaths
 import solutions.laxmi.omnicompiler.core.model.ProjectSummary
 import solutions.laxmi.omnicompiler.core.model.ProjectWorkspace
 import solutions.laxmi.omnicompiler.core.model.Runtime
@@ -70,7 +78,8 @@ interface ProjectRepository {
     suspend fun create(runtime: Runtime, template: ProjectTemplate? = null): Outcome<String>
     suspend fun duplicate(projectId: String): Outcome<String>
     suspend fun rename(projectId: String, name: String): Outcome<Unit>
-    suspend fun delete(projectId: String)
+    /** Deletes the project's folder and its index entry; nothing is removed when the folder can't be deleted. */
+    suspend fun delete(projectId: String): Outcome<Unit>
     suspend fun markOpened(projectId: String)
     suspend fun changeRuntime(projectId: String, runtime: Runtime): Outcome<Unit>
     suspend fun setLimits(projectId: String, limits: Limits)
@@ -109,10 +118,16 @@ interface ProjectRepository {
     suspend fun importRemote(name: String, files: Map<String, String>, remote: ProjectRemote): Outcome<String>
 
     /**
-     * Applies files from the remote (content, or null to delete) as outside edits (an open editor reloads),
-     * then records the new [remote] state. The entry file is never deleted this way.
+     * Applies files from the remote (content, or null to delete) as outside edits (an open editor reloads), then
+     * records the new [remote] state. [expectedLocal] is each touched file's text when the caller compared it (null:
+     * absent); if any differs now, nothing is written and the result is a conflict, so a pull can't overwrite an edit
+     * made after it looked. The entry file is never deleted this way, and files the project can't hold (too large,
+     * past the file limit) end up in the folder but not in the project, exactly as with any rescan.
      */
-    suspend fun applyRemote(projectId: String, changes: Map<String, String?>, remote: ProjectRemote): Outcome<Unit>
+    suspend fun applyRemote(projectId: String, changes: Map<String, String?>, remote: ProjectRemote, expectedLocal: Map<String, String?>): Outcome<Unit>
+
+    /** Names of the files in the project's folder (whether or not the project opens them); null when it can't be read. */
+    suspend fun folderFileNames(projectId: String): Set<String>?
 
     suspend fun setRemote(projectId: String, remote: ProjectRemote): Outcome<Unit>
 }
@@ -131,12 +146,20 @@ internal class LocalProjectRepository @Inject constructor(
     private val lock: ProjectDiskLock,
     private val ids: IdGenerator,
     private val time: TimeSource,
+    @ApplicationScope private val appScope: CoroutineScope,
 ) : ProjectRepository {
+
+    /**
+     * Orders writes of file text to the index, and snapshots behind them: saves queue on it in call order, and a
+     * snapshot waits for every save requested before it, so a run (or search, export, push) never reads text older
+     * than what was typed. Only the quick index write is held under it; the slower disk write follows outside.
+     */
+    private val saveLock = Mutex()
 
     override val lastProjectId: Flow<String?> = preferences.lastProjectId
 
     override fun observeSummaries(query: String, filter: ProjectFilter): Flow<List<ProjectSummary>> =
-        projects.observeSummaries(query.trim()).map { rows ->
+        projects.observeSummaries(query.trim().escapeLike()).map { rows ->
             rows.map { it.toModel() }.filter(filter::matches)
         }
 
@@ -157,7 +180,7 @@ internal class LocalProjectRepository @Inject constructor(
         }
 
     override suspend fun snapshot(projectId: String): ProjectWorkspace? =
-        projects.withChildren(projectId)?.let {
+        saveLock.withLock { projects.withChildren(projectId) }?.let {
             ProjectWorkspace(
                 project = it.project.toModel(),
                 files = it.files.sortedWith(compareByDescending<FileEntity> { f -> f.isEntry }.thenBy { f -> f.position }).map { f -> f.toModel() },
@@ -183,7 +206,7 @@ internal class LocalProjectRepository @Inject constructor(
         val drafts = template?.tests ?: info.starter?.tests ?: listOf(TestCaseDraft("", ""))
         val entryName = runtime.filename.ifBlank { "main" }
         val result = onDisk { root ->
-            val folder = store.createFolder(root, slugify(template?.name ?: "${info.base}-scratch").ifEmpty { "project" })
+            val folder = store.createFolder(root, projectName(template?.name ?: "${info.base}-scratch").ifEmpty { "project" })
             val entry = store.writeFile(root, folder.docId, entryName, code)
             db.withTransaction {
                 projects.upsert(ProjectEntity(projectId, folder.name, runtime.id, limits.timeMs, limits.memMb, null, now, now, folderDocId = folder.docId))
@@ -208,7 +231,7 @@ internal class LocalProjectRepository @Inject constructor(
             val folder = store.createFolder(root, "${source.name}-copy")
             val copies = files.list(projectId).map { file ->
                 val written = store.writeFile(root, folder.docId, file.name, file.content)
-                file.copy(id = ids.newId(), projectId = copyId, contentVersion = 0, docId = written.docId, lastModified = written.lastModified, size = written.size)
+                file.copy(id = ids.newId(), projectId = copyId, contentVersion = 0, docId = written.docId, lastModified = written.lastModified, size = written.size, diskDirty = false)
             }
             db.withTransaction {
                 projects.upsert(source.copy(id = copyId, name = folder.name, lastVerdict = null, createdAt = now, updatedAt = now, folderDocId = folder.docId, issues = ""))
@@ -221,11 +244,11 @@ internal class LocalProjectRepository @Inject constructor(
     }
 
     override suspend fun rename(projectId: String, name: String): Outcome<Unit> {
-        val slug = slugify(name)
-        if (slug.isEmpty()) return Outcome.Failure(AppError.Validation(reason = ErrorReason.NameRequired))
+        val wanted = projectName(name)
+        if (wanted.isEmpty()) return Outcome.Failure(AppError.Validation(reason = ErrorReason.NameRequired))
         val project = projects.get(projectId) ?: return Outcome.Failure(AppError.NotFound(reason = ErrorReason.ProjectNotFound))
-        if (slug == project.name) return Outcome.Success(Unit)
-        val unique = uniqueName(slug, except = projectId)
+        if (wanted == project.name) return Outcome.Success(Unit)
+        val unique = uniqueName(wanted, except = projectId)
         return onDisk { root ->
             val folderDocId = project.folderDocId
             if (folderDocId == null) {
@@ -239,12 +262,16 @@ internal class LocalProjectRepository @Inject constructor(
         }
     }
 
-    override suspend fun delete(projectId: String) {
-        val project = projects.get(projectId) ?: return
+    override suspend fun delete(projectId: String): Outcome<Unit> {
+        val project = projects.get(projectId) ?: return Outcome.Success(Unit)
         val folder = project.folderDocId
-        if (folder != null) onDisk { root -> store.delete(root, folder) }
+        // Keep the index when the folder survives: dropping it would only make the project reappear on the next rescan.
+        if (folder != null) onDisk { root -> store.delete(root, folder) }.let { if (it is Outcome.Failure) return it }
         projects.delete(projectId)
+        // Duplicates share the original document; its grant goes only with the last project that links to it.
+        project.originUri?.takeIf { projects.countWithOrigin(it) == 0 }?.let(store::releaseDocument)
         if (preferences.lastProjectId.first() == projectId) preferences.setLastProjectId(null)
+        return Outcome.Success(Unit)
     }
 
     override suspend fun markOpened(projectId: String) {
@@ -304,60 +331,85 @@ internal class LocalProjectRepository @Inject constructor(
         saveManifest(projectId)
     }
 
+    /**
+     * Runs in the application scope, so a screen closing mid-save (Back, switching projects) can't cancel it.
+     * Started undispatched: the save takes its place on [saveLock] before this call returns control to the caller,
+     * ahead of any snapshot requested afterwards. The text goes to the index first (flagged as not yet on disk), then
+     * to the project folder; if the app dies in between, the next rescan writes it out (see ProjectSync).
+     */
     override suspend fun updateFileContent(fileId: String, content: String) {
-        val file = files.get(fileId) ?: return
-        val docId = file.docId
-        // Disk and index change under one lock: a rescan in between would see the newer file, take it for an
-        // edit made in another app and reload the editor mid-typing.
-        if (docId != null && onDisk { root -> indexContent(fileId, content, store.updateFile(root, docId, content)) } is Outcome.Success) return
-        // The folder can't be reached: the index still keeps the text, and the next save retries the disk.
-        indexContent(fileId, content, written = null)
+        appScope.async(start = CoroutineStart.UNDISPATCHED) {
+            val indexed = saveLock.withLock { files.get(fileId)?.also { indexContent(fileId, content) } != null }
+            if (indexed) writeToDisk(fileId)
+        }.await()
+    }
+
+    /**
+     * Writes the file's current text (a newer save may have replaced the one that asked) and clears its "not on disk"
+     * flag only if that text is still current. Under the disk lock with the disk-state update, so a rescan can't read
+     * the file half-way. Unreachable folders keep the flag set: the next save or rescan writes it.
+     */
+    private suspend fun writeToDisk(fileId: String) {
+        onDisk { root ->
+            val row = files.get(fileId)?.takeIf { it.diskDirty } ?: return@onDisk
+            // Not in the folder yet (index-only project): the folder export writes it with the rest.
+            val docId = row.docId ?: return@onDisk
+            val written = store.updateFile(root, docId, row.content)
+            files.markWritten(fileId, row.content, written.docId, written.lastModified, written.size)
+        }
     }
 
     /** Edits count as activity: Projects ordering and "open most recent" follow them. */
-    private suspend fun indexContent(fileId: String, content: String, written: DocEntry?) = db.withTransaction {
+    private suspend fun indexContent(fileId: String, content: String) = db.withTransaction {
         files.updateContent(fileId, content)
-        written?.let { files.setDiskState(fileId, it.docId, it.lastModified, it.size) }
         projects.touchForFile(fileId, time.now().toEpochMilliseconds())
     }
 
+    /** [name] may be a path (`src/util/helper.py`); missing folders are created. */
     override suspend fun addFile(projectId: String, name: String, content: String): Outcome<SourceFile> {
         val existing = files.list(projectId)
-        validateFileName(name, existing.map { it.name })?.let { return Outcome.Failure(it) }
+        val path = ProjectPaths.normalize(name)
+        checkPath(path, existing.mapTo(HashSet()) { it.name })?.let { return Outcome.Failure(it) }
         if (existing.size > MAX_EXTRA_FILES) return Outcome.Failure(AppError.Validation(reason = ErrorReason.TooManyFiles(MAX_EXTRA_FILES)))
         val folder = projects.get(projectId)?.folderDocId ?: return Outcome.Failure(AppError.NotFound(reason = ErrorReason.ProjectNotFound))
-        val trimmed = name.trim()
         return onDisk { root ->
-            // A file the index skipped (binary, too large) may already sit there under this name; never overwrite it.
+            // A file the index skipped (binary, too large) may already sit there under this path; never overwrite it.
             val folderEntry = store.entry(root, folder) ?: throw java.io.IOException("Project folder is gone")
-            if (store.scanFolder(root, folderEntry).entries.any { it.name == trimmed }) {
+            if (store.scanFolder(root, folderEntry).files.any { it.path == path || it.path.startsWith("$path/") }) {
                 return@onDisk null
             }
-            val written = store.writeFile(root, folder, trimmed, content)
-            val entity = FileEntity(ids.newId(), projectId, trimmed, content, isEntry = false, position = files.nextPosition(projectId), docId = written.docId, lastModified = written.lastModified, size = written.size)
+            val written = store.writeFile(root, folder, path, content)
+            val entity = FileEntity(ids.newId(), projectId, path, content, isEntry = false, position = files.nextPosition(projectId), docId = written.docId, lastModified = written.lastModified, size = written.size)
             files.insert(entity)
             projects.touch(projectId, time.now().toEpochMilliseconds())
             entity.toModel()
         }.let { result ->
             when {
-                result is Outcome.Success && result.value == null -> Outcome.Failure(AppError.Validation(reason = ErrorReason.FileExists(trimmed)))
+                result is Outcome.Success && result.value == null -> Outcome.Failure(AppError.Validation(reason = ErrorReason.FileExists(path)))
                 result is Outcome.Success -> Outcome.Success(result.value!!)
                 else -> result as Outcome.Failure
             }
         }
     }
 
+    /** A new name in the same folder renames the file; a path elsewhere moves it (empty folders left behind go). */
     override suspend fun renameFile(fileId: String, projectId: String, name: String): Outcome<Unit> {
         val existing = files.list(projectId)
         val file = existing.firstOrNull { it.id == fileId } ?: return Outcome.Failure(AppError.NotFound(reason = ErrorReason.FileNotFound))
         if (file.isEntry) return Outcome.Failure(AppError.Validation(reason = ErrorReason.EntryNamedByRuntime))
-        validateFileName(name, existing.filter { it.id != fileId }.map { it.name })?.let { return Outcome.Failure(it) }
+        val path = ProjectPaths.normalize(name)
+        if (path == file.name) return Outcome.Success(Unit)
+        checkPath(path, existing.filter { it.id != fileId }.mapTo(HashSet()) { it.name })?.let { return Outcome.Failure(it) }
         val docId = file.docId ?: return Outcome.Failure(AppError.NotFound(reason = ErrorReason.FileNotFound))
+        val folder = projects.get(projectId)?.folderDocId ?: return Outcome.Failure(AppError.NotFound(reason = ErrorReason.ProjectNotFound))
         return onDisk { root ->
-            val renamed = store.rename(root, docId, name.trim())
+            val sameFolder = ProjectPaths.parent(path) == ProjectPaths.parent(file.name)
+            val written = if (sameFolder) store.rename(root, docId, ProjectPaths.basename(path)) else store.moveFile(root, folder, docId, file.name, path, file.content)
             db.withTransaction {
-                files.rename(fileId, renamed.name)
-                files.setDiskState(fileId, renamed.docId, renamed.lastModified, renamed.size)
+                files.rename(fileId, path)
+                files.setDiskState(fileId, written.docId, written.lastModified, written.size)
+                // A move rewrote the text from the index, so a pending disk write of it is done.
+                if (!sameFolder) files.markWritten(fileId, file.content, written.docId, written.lastModified, written.size)
             }
         }
     }
@@ -365,7 +417,8 @@ internal class LocalProjectRepository @Inject constructor(
     override suspend fun deleteFile(fileId: String) {
         val file = files.get(fileId)?.takeIf { !it.isEntry } ?: return
         val docId = file.docId
-        if (docId != null && onDisk { root -> store.delete(root, docId) } is Outcome.Failure) return
+        val folder = projects.get(file.projectId)?.folderDocId
+        if (docId != null && folder != null && onDisk { root -> store.deleteFile(root, folder, docId, file.name) } is Outcome.Failure) return
         files.deleteNonEntry(fileId)
     }
 
@@ -439,39 +492,62 @@ internal class LocalProjectRepository @Inject constructor(
     }
 
     override suspend fun importRemote(name: String, files: Map<String, String>, remote: ProjectRemote): Outcome<String> =
-        imported(onDisk { root -> sync.createFromFilesLocked(root, slugify(name).ifEmpty { "repo" }, files, remote.toManifest()) })
+        imported(onDisk { root -> sync.createFromFilesLocked(root, projectName(name).ifEmpty { "repo" }, files, remote.toManifest()) })
 
-    override suspend fun applyRemote(projectId: String, changes: Map<String, String?>, remote: ProjectRemote): Outcome<Unit> {
+    override suspend fun applyRemote(
+        projectId: String,
+        changes: Map<String, String?>,
+        remote: ProjectRemote,
+        expectedLocal: Map<String, String?>,
+    ): Outcome<Unit> = appScope.async(start = CoroutineStart.UNDISPATCHED) {
+        // Under the save lock (no editor save can land between the check and the writes) and in the application
+        // scope (leaving the screen can't stop it half-way).
+        saveLock.withLock { applyRemoteLocked(projectId, changes, remote, expectedLocal) }
+    }.await()
+
+    private suspend fun applyRemoteLocked(
+        projectId: String,
+        changes: Map<String, String?>,
+        remote: ProjectRemote,
+        expectedLocal: Map<String, String?>,
+    ): Outcome<Unit> {
         val project = projects.get(projectId) ?: return Outcome.Failure(AppError.NotFound(reason = ErrorReason.ProjectNotFound))
         val folder = project.folderDocId ?: return Outcome.Failure(AppError.Unknown(reason = ErrorReason.ProjectsFolderUnavailable))
-        return onDisk { root ->
+        val applied = onDisk { root ->
             val existing = files.list(projectId).associateBy { it.name }
+            if (changes.keys.any { existing[it]?.content != expectedLocal[it] }) return@onDisk false
             changes.forEach { (name, content) ->
                 val row = existing[name]
+                val docId = row?.docId
                 when {
-                    content == null && row != null && !row.isEntry -> {
-                        row.docId?.let { store.delete(root, it) }
-                        files.deleteNonEntry(row.id)
+                    content == null -> if (row != null && !row.isEntry && docId != null) store.deleteFile(root, folder, docId, name)
+                    docId != null -> {
+                        store.updateFile(root, docId, content)
+                        // The remote text replaces the file; a pending local write of the old text must not follow.
+                        files.clearDiskDirty(row.id)
                     }
-                    content != null && row != null -> {
-                        val written = row.docId?.let { store.updateFile(root, it, content) } ?: store.writeFile(root, folder, name, content)
-                        db.withTransaction {
-                            files.replaceContent(row.id, content)
-                            files.setDiskState(row.id, written.docId, written.lastModified, written.size)
-                        }
-                    }
-                    content != null -> {
-                        val written = store.writeFile(root, folder, name, content)
-                        files.insert(
-                            FileEntity(ids.newId(), projectId, name, content, isEntry = false, position = files.nextPosition(projectId),
-                                docId = written.docId, lastModified = written.lastModified, size = written.size),
-                        )
-                    }
+                    else -> store.writeFile(root, folder, name, content)
                 }
             }
             projects.upsert(project.copy(remoteJson = ManifestCodec.encodeRemote(remote.toManifest()), updatedAt = time.now().toEpochMilliseconds()))
             sync.writeManifestLocked(root, projectId)
+            // Index what the folder now holds through the same checks as any rescan (size, file limit, names).
+            sync.syncProjectLocked(root, projectId) is Outcome.Success
         }
+        return when {
+            applied is Outcome.Failure -> applied
+            (applied as Outcome.Success).value -> Outcome.Success(Unit)
+            else -> Outcome.Failure(AppError.Conflict(reason = ErrorReason.GitLocalChanged))
+        }
+    }
+
+    override suspend fun folderFileNames(projectId: String): Set<String>? {
+        val folder = projects.get(projectId)?.folderDocId ?: return null
+        val names = onDisk { root ->
+            val entry = store.entry(root, folder) ?: throw java.io.IOException("Project folder is gone")
+            store.scanFolder(root, entry).files.mapTo(HashSet()) { it.path }
+        }
+        return (names as? Outcome.Success)?.value
     }
 
     override suspend fun setRemote(projectId: String, remote: ProjectRemote): Outcome<Unit> {
@@ -507,6 +583,9 @@ internal class LocalProjectRepository @Inject constructor(
         onDisk { root -> sync.writeManifestLocked(root, projectId) }
     }
 
+    /** `%` and `_` are LIKE wildcards; the summaries query declares `\` as its escape character. */
+    private fun String.escapeLike() = replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+
     private fun TestCaseDraft.toEntity(projectId: String, position: Int) =
         TestCaseEntity(ids.newId(), projectId, name, stdin, expected, position)
 
@@ -516,28 +595,31 @@ internal class LocalProjectRepository @Inject constructor(
         return generateSequence(2) { it + 1 }.map { "$base-$it" }.first { it.lowercase() !in taken }
     }
 
-    /** Mirrors ls-judge's server-side checks so errors surface before a run is attempted. */
-    private fun validateFileName(name: String, taken: List<String>): AppError.Validation? {
-        val trimmed = name.trim()
-        return when {
-            trimmed.isEmpty() -> AppError.Validation(reason = ErrorReason.FileNameRequired)
-            '/' in trimmed || '\\' in trimmed || trimmed.contains("..") || '\u0000' in trimmed ->
-                AppError.Validation(reason = ErrorReason.FlatWorkspace)
-            trimmed.startsWith('.') -> AppError.Validation(reason = ErrorReason.FlatWorkspace)
-            trimmed.length > MAX_FILE_NAME -> AppError.Validation(reason = ErrorReason.FileNameTooLong(MAX_FILE_NAME))
-            trimmed in taken -> AppError.Validation(reason = ErrorReason.FileExists(trimmed))
-            else -> null
+    /**
+     * Mirrors ls-judge's structural path checks so a bad path is refused when typed, not when run. A path can't
+     * clash with another file, nor with a folder of one (`src` as a file while `src/a.py` exists, or the reverse).
+     */
+    private fun checkPath(path: String, taken: Set<String>): AppError.Validation? {
+        val reason = when (ProjectPaths.problem(path)) {
+            ProjectPaths.Problem.EMPTY -> ErrorReason.FileNameRequired
+            ProjectPaths.Problem.TOO_LONG -> ErrorReason.FileNameTooLong(ProjectPaths.MAX_LENGTH)
+            ProjectPaths.Problem.SEGMENT_TOO_LONG -> ErrorReason.FileNameTooLong(ProjectPaths.MAX_SEGMENT)
+            ProjectPaths.Problem.TOO_DEEP -> ErrorReason.PathTooDeep(ProjectPaths.MAX_DEPTH)
+            ProjectPaths.Problem.BAD_SEGMENT -> ErrorReason.InvalidPath
+            null -> when {
+                ProjectPaths.isInternal(path) -> ErrorReason.InvalidPath
+                path in taken || taken.any { it.startsWith("$path/") } || ProjectPaths.ancestors(path).any { it in taken } -> ErrorReason.FileExists(path)
+                else -> null
+            }
         }
+        return reason?.let { AppError.Validation(reason = it) }
     }
 
-    private fun slugify(value: String) = value.trim().lowercase()
-        .replace(Regex("[^a-z0-9._-]+"), "-")
-        .trim('-')
-        .take(MAX_PROJECT_NAME)
+    /** The folder name for a project: what the user typed, minus characters storage can't hold. */
+    private fun projectName(value: String) = safeFileName(value, MAX_PROJECT_NAME)
 
     private companion object {
-        const val MAX_EXTRA_FILES = 20
-        const val MAX_FILE_NAME = 128
-        const val MAX_PROJECT_NAME = 48
+        const val MAX_EXTRA_FILES = ProjectLimits.MAX_EXTRA_FILES
+        const val MAX_PROJECT_NAME = 64
     }
 }

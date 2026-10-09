@@ -18,7 +18,7 @@ internal object CompilerOutputParser {
             .filter { it.groupValues[4] != "note" && looksLikeSource(it.groupValues[1]) }
             .map { match ->
                 CompileProblem(
-                    fileName = match.groupValues[1].substringAfterLast('/'),
+                    fileName = projectPath(match.groupValues[1]),
                     line = match.groupValues[2].toIntOrNull(),
                     column = match.groupValues[3].toIntOrNull(),
                     message = match.groupValues[5].trim(),
@@ -34,6 +34,14 @@ internal object CompilerOutputParser {
             CompileProblem(entryFileName, structured.line, structured.column, structured.message, isError = true),
         ) + parsed
     }
+
+    /**
+     * The path as the project names it: compilers print `/workspace/src/a.cpp` or `./src/a.cpp` for a file the project
+     * calls `src/a.cpp`. Paths outside the workspace (system headers) are kept as printed and match no project file.
+     */
+    private fun projectPath(printed: String): String = printed.removePrefix(WORKSPACE).removePrefix("./")
+
+    private const val WORKSPACE = "/workspace/"
 
     /** Guards against matching timestamps or URLs: the "file" part must look like a file name. */
     private fun looksLikeSource(candidate: String) = '.' in candidate && ' ' !in candidate.trim() && !candidate.startsWith("http")

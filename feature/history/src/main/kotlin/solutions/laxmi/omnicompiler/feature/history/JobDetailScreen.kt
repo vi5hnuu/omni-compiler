@@ -1,6 +1,7 @@
 package solutions.laxmi.omnicompiler.feature.history
 
 import solutions.laxmi.omnicompiler.core.model.JobStatus
+import solutions.laxmi.omnicompiler.core.ui.clipForDisplay
 import solutions.laxmi.omnicompiler.core.ui.labelRes
 import solutions.laxmi.omnicompiler.core.ui.formatDuration
 import solutions.laxmi.omnicompiler.core.ui.asString
@@ -150,7 +151,9 @@ private fun ResultCard(result: TestResult) {
             if (!value.isNullOrEmpty()) {
                 val isError = labelRes == R.string.job_stderr
                 Text(stringResource(labelRes).uppercase(), style = OmniTheme.typography.overline, color = if (isError) colors.accentText else colors.textTertiary)
-                Text(value.trimEnd(), style = OmniTheme.typography.mono, color = colors.textPrimary, modifier = Modifier.horizontalScroll(rememberScrollState()))
+                // Very long output shows its beginning; the full text is in the console of the run that produced it.
+                val shown = remember(value) { clipForDisplay(value.trimEnd())?.let { it + "\n…" } ?: value.trimEnd() }
+                Text(shown, style = OmniTheme.typography.mono, color = colors.textPrimary, modifier = Modifier.horizontalScroll(rememberScrollState()))
             }
         }
     }

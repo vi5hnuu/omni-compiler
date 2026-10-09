@@ -83,6 +83,7 @@ import solutions.laxmi.omnicompiler.feature.workspace.console.RateLimitSheet
 import solutions.laxmi.omnicompiler.feature.workspace.console.TestActions
 import solutions.laxmi.omnicompiler.feature.workspace.console.TestEditorSheet
 import solutions.laxmi.omnicompiler.feature.workspace.console.problemsFor
+import solutions.laxmi.omnicompiler.feature.workspace.console.refersTo
 
 /** Where a picked stdin file should go. */
 private enum class StdinTarget { Input, TestEditor }
@@ -410,7 +411,8 @@ internal fun ColumnScope.WorkspaceBody(
                             onVerify = console::verify,
                             onGoTo = { problem ->
                                 collapseConsole()
-                                val target = state.workspace?.files?.firstOrNull { it.name == problem.fileName } ?: activeFile
+                                val files = state.workspace?.files.orEmpty()
+                                val target = files.firstOrNull { it.name == problem.fileName } ?: files.firstOrNull { problem.fileName.refersTo(it.name) } ?: activeFile
                                 if (target.id != activeFile.id) actions.onSelectFile(target.id)
                                 problem.line?.let { editorState.goTo(it, problem.column ?: 1) }
                             },

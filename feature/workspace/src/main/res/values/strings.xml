@@ -26,6 +26,7 @@
         <item quantity="other">%1$d problems</item>
     </plurals>
     <string name="editor_more_options">More options</string>
+    <string name="editor_file_actions">Actions for %1$s</string>
     <string name="editor_offline_banner">You\'re offline. Edits save on this device. Runs will be sent when you\'re back.</string>
     <string name="editor_runtime_label">%1$s %2$s</string>
 
@@ -108,6 +109,10 @@
     <string name="console_close">Close console</string>
     <string name="console_stdin_prompt" translatable="false">stdin ›</string>
     <string name="console_stdin_placeholder">custom input, then Run</string>
+    <plurals name="console_stdin_lines">
+        <item quantity="one">%1$d line of input · Edit</item>
+        <item quantity="other">%1$d lines of input · Edit</item>
+    </plurals>
     <string name="console_no_runs_title">No runs yet</string>
     <string name="console_no_runs_message">Tap Run to execute your tests, or use the Input tab to run with custom stdin.</string>
     <string name="console_command_tests">$ run %1$s · %2$s</string>
@@ -228,6 +233,9 @@
     <string name="sheet_test_stdin" translatable="false">stdin</string>
     <string name="sheet_test_expected">Expected output</string>
     <string name="sheet_test_save">Save test</string>
+    <string name="sheet_test_discard_title">Discard changes to this test?</string>
+    <string name="sheet_test_discard">Discard</string>
+    <string name="sheet_test_keep_editing">Keep editing</string>
     <string name="sheet_limits_title">Run limits</string>
     <string name="sheet_limits_subtitle">Applies to every test in this project.</string>
     <string name="sheet_limits_time">Time limit / test</string>

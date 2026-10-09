@@ -5,8 +5,8 @@ import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
 
 /**
- * `<project>/.omni/project.json`: everything about a project that isn't a source file. Source files sit flat
- * in the project folder, exactly as the judge's `/workspace` expects them.
+ * `<project>/.omni/project.json`: everything about a project that isn't a source file. Source files sit in the
+ * project folder and its subfolders, laid out exactly as the judge's `/workspace` receives them.
  */
 @Serializable
 data class ProjectManifest(
@@ -14,7 +14,7 @@ data class ProjectManifest(
     val id: String,
     val name: String,
     val runtimeId: String,
-    /** Entry file name; empty when unknown (the runtime's default file name is used). */
+    /** Entry file name (always a root file); empty when unknown (the runtime's default file name is used). */
     val entry: String = "",
     val limits: ManifestLimits,
     val tests: List<ManifestTest> = emptyList(),
@@ -91,6 +91,8 @@ object ProjectLayout {
     const val META_DIR = ".omni"
     const val MANIFEST = "project.json"
     const val MANIFEST_BACKUP = "project.json.bak"
+    /** Written first and renamed over the manifest, so an interrupted write never leaves a half-written manifest. */
+    const val MANIFEST_TEMP = "project.json.tmp"
     /** Subfolder created inside the user's pick unless the pick already holds projects. */
     const val ROOT_DIR = "OmniCompiler"
 }

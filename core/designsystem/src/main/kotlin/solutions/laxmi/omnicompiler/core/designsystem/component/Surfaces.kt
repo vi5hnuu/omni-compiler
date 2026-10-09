@@ -2,6 +2,7 @@ package solutions.laxmi.omnicompiler.core.designsystem.component
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -210,8 +211,9 @@ fun OmniTabRow(
     }
 }
 
+/** Announces which tab is selected to TalkBack, not just that it's a tab. */
 private fun Modifier.selectableTab(selected: Boolean, onClick: () -> Unit) =
-    this.then(Modifier.clickable(role = Role.Tab, onClick = onClick))
+    this.then(Modifier.selectable(selected = selected, role = Role.Tab, onClick = onClick))
 
 /** Mono badge box (verdicts, tags like LIVE/FREE/DEFAULT). */
 @Composable

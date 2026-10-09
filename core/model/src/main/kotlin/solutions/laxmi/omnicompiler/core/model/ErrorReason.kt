@@ -7,6 +7,10 @@ package solutions.laxmi.omnicompiler.core.model
 sealed interface ErrorReason {
     // Transport
     data object Offline : ErrorReason
+    /** The device has a network but the server couldn't be reached (DNS failure, refused connection, server down). */
+    data object ServerUnreachable : ErrorReason
+    /** The TLS handshake failed (captive portal, intercepting proxy, wrong device clock). */
+    data object SecureConnectionFailed : ErrorReason
     data object Timeout : ErrorReason
     data object NetworkError : ErrorReason
     data object BadResponse : ErrorReason
@@ -38,6 +42,20 @@ sealed interface ErrorReason {
     data object GitNothingToCommit : ErrorReason
     data object GitResolveConflictsFirst : ErrorReason
     data object GitRequestFailed : ErrorReason
+    /** 403: the token lacks a scope, SSO isn't authorised, or the repository forbids it. */
+    data object GitAccessDenied : ErrorReason
+    /** 403/429 with the host's rate-limit headers. */
+    data object GitRateLimited : ErrorReason
+    /** 404: the repository, branch or path doesn't exist or the token can't see it. */
+    data object GitNotFound : ErrorReason
+    /** A file pull or resolve was about to replace changed after it was compared; nothing was written. */
+    data object GitLocalChanged : ErrorReason
+    /** The remote version isn't text (binary or another encoding), so it can't be brought into the project. */
+    data object GitFileNotText : ErrorReason
+    /** A listing was too long to be read completely; syncing from a partial one could delete files. */
+    data object GitListingTooLarge : ErrorReason
+    /** The tracked folder is gone (or empty) on the remote; nothing is deleted locally on that basis. */
+    data object GitFolderMissing : ErrorReason
     /** No runtime matches the imported file's extension. */
     data class UnknownFileLanguage(val fileName: String) : ErrorReason
     data object FileNotFound : ErrorReason
@@ -46,7 +64,11 @@ sealed interface ErrorReason {
     data class EntryNameTaken(val fileName: String, val runtimeId: String) : ErrorReason
     data object NameRequired : ErrorReason
     data object FileNameRequired : ErrorReason
-    data object FlatWorkspace : ErrorReason
+    /** A path that can't name a project file (empty or `.`/`..` segments, backslashes; see ProjectPaths). */
+    data object InvalidPath : ErrorReason
+    data class PathTooDeep(val max: Int) : ErrorReason
+    /** Everything a run sends together would exceed the judge's total size. */
+    data class TotalSizeTooLarge(val maxMb: Int) : ErrorReason
     data class FileNameTooLong(val max: Int) : ErrorReason
     data class FileExists(val name: String) : ErrorReason
     data class TooManyFiles(val max: Int) : ErrorReason

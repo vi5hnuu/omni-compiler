@@ -13,6 +13,8 @@ data class DocEntry(
     val mimeType: String,
     val lastModified: Long,
     val size: Long,
+    /** The provider can rename it in place (not every storage provider supports renaming). */
+    val supportsRename: Boolean = false,
 ) {
     val isDirectory: Boolean get() = mimeType == Document.MIME_TYPE_DIR
     val isHidden: Boolean get() = name.startsWith('.')
@@ -83,6 +85,7 @@ internal class DocumentTree(private val resolver: ContentResolver, private val t
         mimeType = getString(2).orEmpty(),
         lastModified = if (isNull(3)) 0L else getLong(3),
         size = if (isNull(4)) 0L else getLong(4),
+        supportsRename = !isNull(5) && getInt(5) and Document.FLAG_SUPPORTS_RENAME != 0,
     )
 
     /** Providers throw a mix of runtime exceptions (revoked grant, missing document); callers see one type. */
@@ -106,6 +109,7 @@ internal class DocumentTree(private val resolver: ContentResolver, private val t
             Document.COLUMN_MIME_TYPE,
             Document.COLUMN_LAST_MODIFIED,
             Document.COLUMN_SIZE,
+            Document.COLUMN_FLAGS,
         )
     }
 }

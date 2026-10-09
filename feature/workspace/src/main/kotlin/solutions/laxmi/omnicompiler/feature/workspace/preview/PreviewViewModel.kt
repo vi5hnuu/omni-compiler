@@ -86,6 +86,6 @@ class PreviewViewModel @AssistedInject constructor(
         /** A blank page that loads the script, so browser JavaScript (DOM, console) can run on its own. */
         private fun runnerPage(script: String) =
             "<!doctype html><html><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width\"></head>" +
-                "<body><script src=\"${android.net.Uri.encode(script)}\"></script></body></html>"
+                "<body><script src=\"${encodePath(script)}\"></script></body></html>"
     }
 }

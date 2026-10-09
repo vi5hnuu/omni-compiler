@@ -111,7 +111,7 @@ internal class AssetLanguageCatalog @Inject constructor(
         shortCode = base.take(2).replaceFirstChar { it.uppercase() },
         category = LanguageCategory.SCRIPTING,
         starter = null,
-        importHint = "all files live together in /workspace (flat, import by bare name)",
+        importHint = "files keep their folders under /workspace; import by relative path",
         multiFileSupported = true,
         lineComment = "//",
         blockComment = null,
