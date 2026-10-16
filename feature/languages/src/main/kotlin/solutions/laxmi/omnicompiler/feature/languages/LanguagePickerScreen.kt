@@ -1,5 +1,6 @@
 package solutions.laxmi.omnicompiler.feature.languages
 
+import solutions.laxmi.omnicompiler.core.designsystem.component.ReadableContent
 import solutions.laxmi.omnicompiler.core.ads.AdBanner
 import solutions.laxmi.omnicompiler.core.ui.R as CommonR
 import solutions.laxmi.omnicompiler.core.ui.labelRes
@@ -100,34 +101,36 @@ fun LanguagePickerScreen(route: LanguagePickerRoute, navigator: Navigator) {
                 onBack = navigator::back,
                 navigationIcon = OmniIcons.Close,
             )
-            OmniTextField(
-                value = state.query,
-                onValueChange = viewModel::setQuery,
-                placeholder = stringResource(R.string.languages_search),
-                leadingIcon = OmniIcons.Search,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-            )
-            FilterChips(state.filter, viewModel::setFilter)
-            state.refreshError?.let {
-                InfoBanner(it.asString(), Modifier.padding(horizontal = 16.dp, vertical = 4.dp), icon = OmniIcons.WifiOff, action = { OmniTextButton(stringResource(CommonR.string.common_retry), viewModel::refresh) })
-            }
-            // Messages appear above the banner: nothing may overlap an ad.
-            Box(Modifier.weight(1f)) {
-            when {
-                state.loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { OmniSpinner() }
-                state.languages.isEmpty() -> EmptyState(stringResource(R.string.languages_no_matches_title), stringResource(R.string.languages_no_matches_message), Modifier.fillMaxSize(), icon = OmniIcons.Search)
-                else -> LazyColumn(Modifier.fillMaxSize()) {
-                    if (state.recent.isNotEmpty()) {
-                        item { SectionLabel(stringResource(R.string.languages_recent)) }
-                        items(state.recent, key = { "recent-${it.base}" }) { LanguageRow(it, state.currentRuntimeId, viewModel::select) }
-                        item { SectionLabel(stringResource(R.string.languages_all)) }
-                    }
-                    items(state.languages, key = { it.base }) { LanguageRow(it, state.currentRuntimeId, viewModel::select) }
+            ReadableContent {
+                OmniTextField(
+                    value = state.query,
+                    onValueChange = viewModel::setQuery,
+                    placeholder = stringResource(R.string.languages_search),
+                    leadingIcon = OmniIcons.Search,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                )
+                FilterChips(state.filter, viewModel::setFilter)
+                state.refreshError?.let {
+                    InfoBanner(it.asString(), Modifier.padding(horizontal = 16.dp, vertical = 4.dp), icon = OmniIcons.WifiOff, action = { OmniTextButton(stringResource(CommonR.string.common_retry), viewModel::refresh) })
                 }
+                // Messages appear above the banner: nothing may overlap an ad.
+                Box(Modifier.weight(1f)) {
+                when {
+                    state.loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { OmniSpinner() }
+                    state.languages.isEmpty() -> EmptyState(stringResource(R.string.languages_no_matches_title), stringResource(R.string.languages_no_matches_message), Modifier.fillMaxSize(), icon = OmniIcons.Search)
+                    else -> LazyColumn(Modifier.fillMaxSize()) {
+                        if (state.recent.isNotEmpty()) {
+                            item { SectionLabel(stringResource(R.string.languages_recent)) }
+                            items(state.recent, key = { "recent-${it.base}" }) { LanguageRow(it, state.currentRuntimeId, viewModel::select) }
+                            item { SectionLabel(stringResource(R.string.languages_all)) }
+                        }
+                        items(state.languages, key = { it.base }) { LanguageRow(it, state.currentRuntimeId, viewModel::select) }
+                    }
+                }
+                    OmniSnackbarHost(snackbar, Modifier.align(Alignment.BottomCenter))
+                }
+                AdBanner()
             }
-                OmniSnackbarHost(snackbar, Modifier.align(Alignment.BottomCenter))
-            }
-            AdBanner()
         }
     }
     state.selected?.let { language ->

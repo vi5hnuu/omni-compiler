@@ -14,16 +14,21 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.displayCutout
+import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.systemBars
+import androidx.compose.foundation.layout.union
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.mutableStateOf
@@ -101,8 +106,8 @@ internal fun EditorDrawer(
             .width(300.dp)
             .fillMaxHeight()
             .background(colors.surface)
-            .statusBarsPadding()
-            .navigationBarsPadding(),
+            // Anchored to the start edge as a modal drawer or a sidebar: only that edge's bars and cutout apply.
+            .windowInsetsPadding(screenInsets.only(WindowInsetsSides.Start + WindowInsetsSides.Vertical)),
     ) {
         AccountHeader(user, onAccount)
         LazyColumn(Modifier.weight(1f)) {
@@ -297,6 +302,10 @@ private fun fileTree(files: List<FileHeader>, expanded: Set<String>): List<TreeR
 }
 
 private val TREE_INDENT = 12.dp
+
+/** The system bars plus a display cutout: what the editor's panels keep clear of (cutouts matter in landscape). */
+internal val screenInsets: WindowInsets
+    @Composable get() = WindowInsets.systemBars.union(WindowInsets.displayCutout)
 
 @StringRes
 private fun fileRole(file: FileHeader): Int? = when {

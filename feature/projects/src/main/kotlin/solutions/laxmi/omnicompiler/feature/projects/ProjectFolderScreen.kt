@@ -41,6 +41,7 @@ import solutions.laxmi.omnicompiler.core.data.project.FolderStatus
 import solutions.laxmi.omnicompiler.core.data.project.ProjectFolderRepository
 import solutions.laxmi.omnicompiler.core.designsystem.component.InfoBanner
 import solutions.laxmi.omnicompiler.core.designsystem.component.OmniButton
+import solutions.laxmi.omnicompiler.core.designsystem.component.readableWidth
 import solutions.laxmi.omnicompiler.core.designsystem.component.OmniTopBar
 import solutions.laxmi.omnicompiler.core.designsystem.icon.OmniIcons
 import solutions.laxmi.omnicompiler.core.designsystem.theme.OmniTheme
@@ -104,7 +105,7 @@ fun ProjectFolderScreen(route: ProjectFolderRoute, navigator: Navigator) {
         } else {
             Box(Modifier.statusBarsPadding())
         }
-        BoxWithConstraints(Modifier.weight(1f)) {
+        BoxWithConstraints(Modifier.weight(1f).readableWidth()) {
             // First run has nothing else on screen, so the explanation sits centred above the button instead of
             // leaving the middle empty; from Settings it stays under the app bar like other settings pages.
             Column(
@@ -133,7 +134,7 @@ fun ProjectFolderScreen(route: ProjectFolderRoute, navigator: Navigator) {
                 },
             ),
             { pick.launch(documentsFolder()) },
-            Modifier.padding(16.dp),
+            Modifier.readableWidth().padding(16.dp),
             enabled = !state.busy,
             loading = state.busy,
             leadingIcon = OmniIcons.Folder,

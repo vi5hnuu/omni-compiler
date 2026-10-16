@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="settings_title">Settings</string>
+    <string name="settings_pick_title">Settings</string>
+    <string name="settings_pick_message">Pick a page on the left to open it here.</string>
     <string name="settings_editor">Editor</string>
     <string name="settings_theme_font">Editor theme · font</string>
     <string name="settings_appearance">Appearance</string>

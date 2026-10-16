@@ -21,6 +21,8 @@
     <string name="projects_duplicated">Duplicated.</string>
 
     <string name="practice_title">Examples &amp; problems</string>
+    <string name="practice_pick_title">Pick a problem</string>
+    <string name="practice_pick_message">Its statement, examples and starter code show here.</string>
     <string name="practice_tab_examples">Examples</string>
     <string name="practice_tab_problems">Problems</string>
     <string name="practice_problem">Problem</string>

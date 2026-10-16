@@ -9,6 +9,7 @@ import android.webkit.WebChromeClient
 import android.webkit.WebResourceRequest
 import android.webkit.WebResourceResponse
 import android.webkit.WebView
+import solutions.laxmi.omnicompiler.core.designsystem.component.readableWidth
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.key
 import android.webkit.RenderProcessGoneDetail
@@ -86,7 +87,7 @@ fun PreviewScreen(route: PreviewRoute, navigator: Navigator) {
         }
         when (state.kind) {
             null -> EmptyState(stringResource(R.string.preview_unsupported_title), stringResource(R.string.preview_unsupported_message), Modifier.weight(1f), icon = OmniIcons.File)
-            PreviewKind.Markdown -> Box(Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(16.dp)) {
+            PreviewKind.Markdown -> Box(Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).readableWidth().padding(16.dp)) {
                 Markdown(
                     content = state.markdown,
                     colors = markdownColor(text = colors.textPrimary, codeBackground = colors.surfaceRaised),

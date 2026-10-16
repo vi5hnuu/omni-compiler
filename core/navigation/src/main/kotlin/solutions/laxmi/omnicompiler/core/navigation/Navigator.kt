@@ -10,4 +10,16 @@ interface Navigator {
 
     /** Replaces the top destination (e.g. switching projects in the editor). */
     fun replace(route: Route)
+
+    /**
+     * Opens [detail] from the list screen [from]. Whatever that list opened before is replaced, so on large screens,
+     * where list and detail show side by side, picking item after item swaps the detail instead of stacking them.
+     */
+    fun openDetail(from: Route, detail: Route)
+
+    /**
+     * Closes [route] and whatever was opened from it. A list screen's own Back uses this: beside its detail on a large
+     * screen, plain [back] would only close the detail.
+     */
+    fun exit(route: Route)
 }

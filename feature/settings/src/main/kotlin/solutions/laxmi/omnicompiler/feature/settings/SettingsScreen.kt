@@ -1,8 +1,10 @@
 package solutions.laxmi.omnicompiler.feature.settings
 
+import solutions.laxmi.omnicompiler.core.designsystem.component.ReadableContent
 import androidx.activity.compose.LocalActivity
 import solutions.laxmi.omnicompiler.core.ads.LocalAds
 import solutions.laxmi.omnicompiler.core.review.LocalAppReview
+import solutions.laxmi.omnicompiler.core.navigation.SettingsRoute
 import solutions.laxmi.omnicompiler.core.navigation.GitAccountsRoute
 import solutions.laxmi.omnicompiler.core.navigation.ProjectFolderRoute
 import solutions.laxmi.omnicompiler.core.model.AppTheme
@@ -83,84 +85,86 @@ fun SettingsScreen(navigator: Navigator, appVersion: String) {
     // Segment labels are plain lambdas, so resolve the localized names up front.
     val appThemeLabels = AppTheme.entries.associateWith { stringResource(it.labelRes) }
     Column(Modifier.fillMaxSize().background(colors.background).navigationBarsPadding()) {
-        OmniTopBar(stringResource(R.string.settings_title), onBack = navigator::back)
-        Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
-            // The app theme is the setting people look for first; it is also in Editor appearance.
-            SectionLabel(stringResource(R.string.settings_appearance))
-            OmniSegmented(
-                AppTheme.entries, state.appTheme, { appThemeLabels.getValue(it) }, viewModel::setAppTheme,
-                Modifier.padding(horizontal = 16.dp).fillMaxWidth(),
-            )
+        OmniTopBar(stringResource(R.string.settings_title), onBack = { navigator.exit(SettingsRoute) })
+        ReadableContent {
+            Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
+                // The app theme is the setting people look for first; it is also in Editor appearance.
+                SectionLabel(stringResource(R.string.settings_appearance))
+                OmniSegmented(
+                    AppTheme.entries, state.appTheme, { appThemeLabels.getValue(it) }, viewModel::setAppTheme,
+                    Modifier.padding(horizontal = 16.dp).fillMaxWidth(),
+                )
 
-            SectionLabel(stringResource(R.string.settings_editor))
-            OmniListRow(
-                stringResource(R.string.settings_theme_font),
-                subtitle = stringResource(R.string.settings_theme_font_value, stringResource(editor.theme.labelRes), editor.font.displayName, editor.fontSizeSp),
-                trailing = { Chevron() },
-                onClick = { navigator.navigate(AppearanceRoute) },
-            )
-            ToggleRow(stringResource(R.string.settings_minimap), stringResource(R.string.settings_minimap_note), editor.minimap) { v -> viewModel.updateEditor { it.copy(minimap = v) } }
-            ToggleRow(stringResource(R.string.settings_symbol_row), stringResource(R.string.settings_symbol_row_note), editor.symbolRow) { v -> viewModel.updateEditor { it.copy(symbolRow = v) } }
-            ToggleRow(stringResource(R.string.settings_autocomplete), stringResource(R.string.settings_autocomplete_note), editor.autocomplete) { v -> viewModel.updateEditor { it.copy(autocomplete = v) } }
-            ToggleRow(stringResource(R.string.settings_word_wrap), stringResource(R.string.settings_word_wrap_note), editor.wordWrap) { v -> viewModel.updateEditor { it.copy(wordWrap = v) } }
-            ToggleRow(stringResource(R.string.settings_sticky_scroll), stringResource(R.string.settings_sticky_scroll_note), editor.stickyScroll) { v -> viewModel.updateEditor { it.copy(stickyScroll = v) } }
-            ToggleRow(stringResource(R.string.settings_invisibles), stringResource(R.string.settings_invisibles_note), editor.showInvisibles) { v -> viewModel.updateEditor { it.copy(showInvisibles = v) } }
-            ToggleRow(stringResource(R.string.settings_hardware_keyboard), stringResource(R.string.settings_hardware_keyboard_note), editor.hardwareKeyboardOnly) { v -> viewModel.updateEditor { it.copy(hardwareKeyboardOnly = v) } }
-            OmniListRow(stringResource(R.string.settings_tab_size), trailing = {
-                OmniSegmented(EditorSettings.TabSizes, editor.tabSize, { "$it" }, { size -> viewModel.updateEditor { it.copy(tabSize = size) } }, Modifier.width(132.dp))
-            })
+                SectionLabel(stringResource(R.string.settings_editor))
+                OmniListRow(
+                    stringResource(R.string.settings_theme_font),
+                    subtitle = stringResource(R.string.settings_theme_font_value, stringResource(editor.theme.labelRes), editor.font.displayName, editor.fontSizeSp),
+                    trailing = { Chevron() },
+                    onClick = { navigator.openDetail(SettingsRoute, AppearanceRoute) },
+                )
+                ToggleRow(stringResource(R.string.settings_minimap), stringResource(R.string.settings_minimap_note), editor.minimap) { v -> viewModel.updateEditor { it.copy(minimap = v) } }
+                ToggleRow(stringResource(R.string.settings_symbol_row), stringResource(R.string.settings_symbol_row_note), editor.symbolRow) { v -> viewModel.updateEditor { it.copy(symbolRow = v) } }
+                ToggleRow(stringResource(R.string.settings_autocomplete), stringResource(R.string.settings_autocomplete_note), editor.autocomplete) { v -> viewModel.updateEditor { it.copy(autocomplete = v) } }
+                ToggleRow(stringResource(R.string.settings_word_wrap), stringResource(R.string.settings_word_wrap_note), editor.wordWrap) { v -> viewModel.updateEditor { it.copy(wordWrap = v) } }
+                ToggleRow(stringResource(R.string.settings_sticky_scroll), stringResource(R.string.settings_sticky_scroll_note), editor.stickyScroll) { v -> viewModel.updateEditor { it.copy(stickyScroll = v) } }
+                ToggleRow(stringResource(R.string.settings_invisibles), stringResource(R.string.settings_invisibles_note), editor.showInvisibles) { v -> viewModel.updateEditor { it.copy(showInvisibles = v) } }
+                ToggleRow(stringResource(R.string.settings_hardware_keyboard), stringResource(R.string.settings_hardware_keyboard_note), editor.hardwareKeyboardOnly) { v -> viewModel.updateEditor { it.copy(hardwareKeyboardOnly = v) } }
+                OmniListRow(stringResource(R.string.settings_tab_size), trailing = {
+                    OmniSegmented(EditorSettings.TabSizes, editor.tabSize, { "$it" }, { size -> viewModel.updateEditor { it.copy(tabSize = size) } }, Modifier.width(132.dp))
+                })
 
-            SectionLabel(stringResource(R.string.settings_storage))
-            OmniListRow(
-                stringResource(R.string.settings_projects_folder),
-                subtitle = state.projectsFolder ?: stringResource(R.string.settings_projects_folder_none),
-                trailing = { Chevron() },
-                onClick = { navigator.navigate(ProjectFolderRoute(change = true)) },
-            )
-            OmniListRow(stringResource(R.string.settings_git_accounts), subtitle = stringResource(R.string.settings_git_accounts_note), trailing = { Chevron() }, onClick = { navigator.navigate(GitAccountsRoute) })
-            SectionLabel(stringResource(R.string.settings_run))
-            OmniListRow(
-                stringResource(R.string.settings_default_language),
-                subtitle = defaultRuntimeLabel ?: stringResource(R.string.settings_default_language_auto),
-                trailing = { Chevron() },
-                onClick = { pickingDefault = true },
-            )
-            OmniListRow(
-                stringResource(R.string.settings_default_limits),
-                subtitle = stringResource(R.string.settings_default_limits_value, state.run.defaultLimits.timeMs, state.run.defaultLimits.memMb),
-                trailing = { Chevron() },
-                onClick = { editingLimits = true },
-            )
-            ToggleRow(stringResource(R.string.settings_ctrl_enter), stringResource(R.string.settings_ctrl_enter_note), state.run.runOnCtrlEnter) { v -> viewModel.updateRun { it.copy(runOnCtrlEnter = v) } }
-            ToggleRow(stringResource(R.string.settings_skip_cache), stringResource(R.string.settings_skip_cache_note), state.run.bypassCache) { v -> viewModel.updateRun { it.copy(bypassCache = v) } }
-            ToggleRow(stringResource(R.string.settings_send_queued), stringResource(R.string.settings_send_queued_note), state.run.sendQueuedWhenOnline) { v -> viewModel.updateRun { it.copy(sendQueuedWhenOnline = v) } }
+                SectionLabel(stringResource(R.string.settings_storage))
+                OmniListRow(
+                    stringResource(R.string.settings_projects_folder),
+                    subtitle = state.projectsFolder ?: stringResource(R.string.settings_projects_folder_none),
+                    trailing = { Chevron() },
+                    onClick = { navigator.navigate(ProjectFolderRoute(change = true)) },
+                )
+                OmniListRow(stringResource(R.string.settings_git_accounts), subtitle = stringResource(R.string.settings_git_accounts_note), trailing = { Chevron() }, onClick = { navigator.openDetail(SettingsRoute, GitAccountsRoute) })
+                SectionLabel(stringResource(R.string.settings_run))
+                OmniListRow(
+                    stringResource(R.string.settings_default_language),
+                    subtitle = defaultRuntimeLabel ?: stringResource(R.string.settings_default_language_auto),
+                    trailing = { Chevron() },
+                    onClick = { pickingDefault = true },
+                )
+                OmniListRow(
+                    stringResource(R.string.settings_default_limits),
+                    subtitle = stringResource(R.string.settings_default_limits_value, state.run.defaultLimits.timeMs, state.run.defaultLimits.memMb),
+                    trailing = { Chevron() },
+                    onClick = { editingLimits = true },
+                )
+                ToggleRow(stringResource(R.string.settings_ctrl_enter), stringResource(R.string.settings_ctrl_enter_note), state.run.runOnCtrlEnter) { v -> viewModel.updateRun { it.copy(runOnCtrlEnter = v) } }
+                ToggleRow(stringResource(R.string.settings_skip_cache), stringResource(R.string.settings_skip_cache_note), state.run.bypassCache) { v -> viewModel.updateRun { it.copy(bypassCache = v) } }
+                ToggleRow(stringResource(R.string.settings_send_queued), stringResource(R.string.settings_send_queued_note), state.run.sendQueuedWhenOnline) { v -> viewModel.updateRun { it.copy(sendQueuedWhenOnline = v) } }
 
-            SectionLabel(stringResource(R.string.settings_account))
-            val user = state.user
-            OmniListRow(
-                title = user?.let { if (it.isGuest) stringResource(R.string.settings_guest_account) else it.email ?: it.shownName() } ?: stringResource(R.string.settings_not_signed_in),
-                subtitle = stringResource(if (user == null) R.string.settings_sign_in_note else R.string.settings_account_note),
-                trailing = { Chevron() },
-                onClick = { navigator.navigate(if (user == null) WelcomeRoute else ProfileRoute) },
-            )
-            if (user != null) {
-                OmniListRow(stringResource(R.string.settings_sign_out), titleColor = colors.accentText, onClick = { confirmingSignOut = true })
+                SectionLabel(stringResource(R.string.settings_account))
+                val user = state.user
+                OmniListRow(
+                    title = user?.let { if (it.isGuest) stringResource(R.string.settings_guest_account) else it.email ?: it.shownName() } ?: stringResource(R.string.settings_not_signed_in),
+                    subtitle = stringResource(if (user == null) R.string.settings_sign_in_note else R.string.settings_account_note),
+                    trailing = { Chevron() },
+                    onClick = { navigator.navigate(if (user == null) WelcomeRoute else ProfileRoute) },
+                )
+                if (user != null) {
+                    OmniListRow(stringResource(R.string.settings_sign_out), titleColor = colors.accentText, onClick = { confirmingSignOut = true })
+                }
+
+                SectionLabel(stringResource(R.string.settings_about))
+                OmniListRow(
+                    stringResource(R.string.settings_rate),
+                    subtitle = stringResource(R.string.settings_rate_note),
+                    trailing = { Icon(OmniIcons.ExternalLink, null, tint = colors.textTertiary) },
+                    onClick = { review.openStoreListing(context) },
+                )
+                if (privacyChoices) {
+                    OmniListRow(stringResource(R.string.settings_privacy_choices), trailing = { Chevron() }, onClick = { activity?.let(ads::showPrivacyOptions) })
+                }
+                OmniListRow(stringResource(R.string.settings_privacy), trailing = { Icon(OmniIcons.ExternalLink, null, tint = colors.textTertiary) }, onClick = { context.openUrl(viewModel.config.privacyPolicyUrl) })
+                OmniListRow(stringResource(R.string.settings_terms), trailing = { Icon(OmniIcons.ExternalLink, null, tint = colors.textTertiary) }, onClick = { context.openUrl(viewModel.config.termsUrl) })
+                OmniListRow(stringResource(R.string.settings_open_source), trailing = { Chevron() }, onClick = { navigator.openDetail(SettingsRoute, OpenSourceRoute) })
+                OmniListRow(stringResource(R.string.settings_version), trailing = { Text(appVersion, style = OmniTheme.typography.mono, color = colors.textTertiary) })
             }
-
-            SectionLabel(stringResource(R.string.settings_about))
-            OmniListRow(
-                stringResource(R.string.settings_rate),
-                subtitle = stringResource(R.string.settings_rate_note),
-                trailing = { Icon(OmniIcons.ExternalLink, null, tint = colors.textTertiary) },
-                onClick = { review.openStoreListing(context) },
-            )
-            if (privacyChoices) {
-                OmniListRow(stringResource(R.string.settings_privacy_choices), trailing = { Chevron() }, onClick = { activity?.let(ads::showPrivacyOptions) })
-            }
-            OmniListRow(stringResource(R.string.settings_privacy), trailing = { Icon(OmniIcons.ExternalLink, null, tint = colors.textTertiary) }, onClick = { context.openUrl(viewModel.config.privacyPolicyUrl) })
-            OmniListRow(stringResource(R.string.settings_terms), trailing = { Icon(OmniIcons.ExternalLink, null, tint = colors.textTertiary) }, onClick = { context.openUrl(viewModel.config.termsUrl) })
-            OmniListRow(stringResource(R.string.settings_open_source), trailing = { Chevron() }, onClick = { navigator.navigate(OpenSourceRoute) })
-            OmniListRow(stringResource(R.string.settings_version), trailing = { Text(appVersion, style = OmniTheme.typography.mono, color = colors.textTertiary) })
         }
     }
     if (confirmingSignOut) {

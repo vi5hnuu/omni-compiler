@@ -1,5 +1,6 @@
 package solutions.laxmi.omnicompiler.feature.vcs
 
+import solutions.laxmi.omnicompiler.core.designsystem.component.ReadableContent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -190,48 +191,50 @@ fun SourceControlScreen(route: SourceControlRoute, navigator: Navigator) {
             ) {
                 OmniTextButton(stringResource(R.string.git_pull), viewModel::pull, Modifier.padding(end = 12.dp), enabled = !state.busy && status != null)
             }
-            if (status == null) {
-                EmptyState(stringResource(R.string.git_not_tracked_title), stringResource(R.string.git_not_tracked_message), Modifier.weight(1f), icon = OmniIcons.Link)
-                return@Column
-            }
-            LazyColumn(Modifier.weight(1f)) {
-                if (status.remote.conflicts.isNotEmpty()) {
-                    item { SectionLabel(stringResource(R.string.git_conflicts)) }
-                    items(status.remote.conflicts.sorted()) { name ->
-                        Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
-                            Text(name, style = OmniTheme.typography.mono, color = colors.status.limit.text)
-                            Text(stringResource(R.string.git_conflict_note), style = OmniTheme.typography.bodySmall, color = colors.textTertiary)
-                            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                                OmniTextButton(stringResource(R.string.git_compare), { viewModel.compare(name) }, enabled = !state.busy, color = colors.textSecondary)
-                                OmniTextButton(stringResource(R.string.git_keep_mine), { viewModel.resolve(name, keepMine = true) }, enabled = !state.busy)
-                                OmniTextButton(stringResource(R.string.git_take_theirs), { takingTheirs = name }, enabled = !state.busy, color = colors.textSecondary)
+            ReadableContent {
+                if (status == null) {
+                    EmptyState(stringResource(R.string.git_not_tracked_title), stringResource(R.string.git_not_tracked_message), Modifier.weight(1f), icon = OmniIcons.Link)
+                    return@ReadableContent
+                }
+                LazyColumn(Modifier.weight(1f)) {
+                    if (status.remote.conflicts.isNotEmpty()) {
+                        item { SectionLabel(stringResource(R.string.git_conflicts)) }
+                        items(status.remote.conflicts.sorted()) { name ->
+                            Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
+                                Text(name, style = OmniTheme.typography.mono, color = colors.status.limit.text)
+                                Text(stringResource(R.string.git_conflict_note), style = OmniTheme.typography.bodySmall, color = colors.textTertiary)
+                                Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                                    OmniTextButton(stringResource(R.string.git_compare), { viewModel.compare(name) }, enabled = !state.busy, color = colors.textSecondary)
+                                    OmniTextButton(stringResource(R.string.git_keep_mine), { viewModel.resolve(name, keepMine = true) }, enabled = !state.busy)
+                                    OmniTextButton(stringResource(R.string.git_take_theirs), { takingTheirs = name }, enabled = !state.busy, color = colors.textSecondary)
+                                }
                             }
                         }
                     }
+                    item { SectionLabel(stringResource(R.string.git_changes)) }
+                    if (status.changes.isEmpty()) {
+                        item { Text(stringResource(R.string.git_no_changes), style = OmniTheme.typography.bodySmall, color = colors.textTertiary, modifier = Modifier.padding(horizontal = 16.dp)) }
+                    }
+                    items(status.changes, key = { it.name }) { change ->
+                        OmniListRow(title = change.name, trailing = { ChangeBadge(change.kind) }, onClick = if (state.busy) null else ({ viewModel.compare(change.name) }))
+                    }
                 }
-                item { SectionLabel(stringResource(R.string.git_changes)) }
-                if (status.changes.isEmpty()) {
-                    item { Text(stringResource(R.string.git_no_changes), style = OmniTheme.typography.bodySmall, color = colors.textTertiary, modifier = Modifier.padding(horizontal = 16.dp)) }
-                }
-                items(status.changes, key = { it.name }) { change ->
-                    OmniListRow(title = change.name, trailing = { ChangeBadge(change.kind) }, onClick = if (state.busy) null else ({ viewModel.compare(change.name) }))
-                }
+                OmniTextField(
+                    value = message,
+                    onValueChange = { message = it },
+                    placeholder = stringResource(R.string.git_commit_message),
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                )
+                OmniButton(
+                    stringResource(R.string.git_commit_push),
+                    { viewModel.commitAndPush(message) { message = "" } },
+                    Modifier.padding(16.dp),
+                    enabled = status.changes.isNotEmpty() && status.remote.conflicts.isEmpty() && !state.busy,
+                    loading = state.working == GitAction.Push,
+                    leadingIcon = OmniIcons.Upload,
+                    trailingIcon = null,
+                )
             }
-            OmniTextField(
-                value = message,
-                onValueChange = { message = it },
-                placeholder = stringResource(R.string.git_commit_message),
-                modifier = Modifier.padding(horizontal = 16.dp),
-            )
-            OmniButton(
-                stringResource(R.string.git_commit_push),
-                { viewModel.commitAndPush(message) { message = "" } },
-                Modifier.padding(16.dp),
-                enabled = status.changes.isNotEmpty() && status.remote.conflicts.isEmpty() && !state.busy,
-                loading = state.working == GitAction.Push,
-                leadingIcon = OmniIcons.Upload,
-                trailingIcon = null,
-            )
         }
         OmniSnackbarHost(snackbar, Modifier.align(Alignment.BottomCenter).padding(bottom = 140.dp))
     }

@@ -1,5 +1,6 @@
 package solutions.laxmi.omnicompiler.feature.history
 
+import solutions.laxmi.omnicompiler.core.designsystem.component.ReadableContent
 import solutions.laxmi.omnicompiler.core.ads.AdBanner
 import solutions.laxmi.omnicompiler.core.ui.formatDuration
 import solutions.laxmi.omnicompiler.core.ui.R as CommonR
@@ -55,6 +56,7 @@ import solutions.laxmi.omnicompiler.core.designsystem.theme.OmniTheme
 import solutions.laxmi.omnicompiler.core.model.AppError
 import solutions.laxmi.omnicompiler.core.model.Submission
 import solutions.laxmi.omnicompiler.core.model.Verdict
+import solutions.laxmi.omnicompiler.core.navigation.HistoryRoute
 import solutions.laxmi.omnicompiler.core.navigation.JobDetailRoute
 import solutions.laxmi.omnicompiler.core.navigation.Navigator
 import solutions.laxmi.omnicompiler.core.navigation.WelcomeRoute
@@ -74,62 +76,64 @@ fun HistoryScreen(navigator: Navigator) {
     val items = viewModel.items.collectAsLazyPagingItems()
     val colors = OmniTheme.colors
     Column(Modifier.fillMaxSize().background(colors.background).navigationBarsPadding()) {
-        OmniTopBar(stringResource(R.string.history_title), onBack = navigator::back, subtitle = stringResource(R.string.history_subtitle))
-        if (!state.signedIn) {
-            EmptyState(
-                stringResource(R.string.history_signed_out_title),
-                stringResource(R.string.history_signed_out_message),
-                icon = OmniIcons.History,
-                action = { OmniButton(stringResource(CommonR.string.common_sign_in), { navigator.navigate(WelcomeRoute) }) },
-            )
-            return@Column
-        }
-        val refresh = items.loadState.refresh
-        PullToRefreshBox(
-            isRefreshing = refresh is LoadState.Loading && items.itemCount > 0,
-            onRefresh = {
-                items.refresh()
-                viewModel.refreshStats()
-            },
-            modifier = Modifier.weight(1f),
-        ) {
-            LazyColumn(Modifier.fillMaxSize()) {
-                item { StatsRow(state) }
-                item { WeekChart(state.week) }
-                item { VerdictFilters(state, viewModel::setFilter) }
-                if (refresh is LoadState.Error) {
-                    item {
-                        val error = (refresh.error as? AppErrorException)?.error
-                        InfoBanner(
-                            text = when {
-                                error is AppError.Unauthorized -> stringResource(R.string.history_session_expired)
-                                error != null -> error.toUiText().asString()
-                                else -> stringResource(R.string.history_load_failed)
-                            },
-                            icon = OmniIcons.WifiOff,
-                            modifier = Modifier.padding(16.dp),
-                            action = { OmniTextButton(stringResource(CommonR.string.common_retry), items::retry) },
-                        )
-                    }
-                }
-                if (refresh is LoadState.NotLoading && items.itemCount == 0) {
-                    item { EmptyState(stringResource(R.string.history_empty_title), stringResource(R.string.history_empty_message), icon = OmniIcons.History) }
-                }
-                items(items.itemCount, key = items.itemKey { it.key() }, contentType = items.itemContentType { it::class }) { index ->
-                    when (val item = items[index]) {
-                        is HistoryItem.Header -> DayHeader(item.dayStartEpochMs)
-                        is HistoryItem.Row -> SubmissionRow(item.submission, runtimeNames[item.submission.runtimeId]) {
-                            navigator.navigate(JobDetailRoute(item.submission.id, item.submission.runtimeId))
+        OmniTopBar(stringResource(R.string.history_title), onBack = { navigator.exit(HistoryRoute) }, subtitle = stringResource(R.string.history_subtitle))
+        ReadableContent {
+            if (!state.signedIn) {
+                EmptyState(
+                    stringResource(R.string.history_signed_out_title),
+                    stringResource(R.string.history_signed_out_message),
+                    icon = OmniIcons.History,
+                    action = { OmniButton(stringResource(CommonR.string.common_sign_in), { navigator.navigate(WelcomeRoute) }) },
+                )
+                return@ReadableContent
+            }
+            val refresh = items.loadState.refresh
+            PullToRefreshBox(
+                isRefreshing = refresh is LoadState.Loading && items.itemCount > 0,
+                onRefresh = {
+                    items.refresh()
+                    viewModel.refreshStats()
+                },
+                modifier = Modifier.weight(1f),
+            ) {
+                LazyColumn(Modifier.fillMaxSize()) {
+                    item { StatsRow(state) }
+                    item { WeekChart(state.week) }
+                    item { VerdictFilters(state, viewModel::setFilter) }
+                    if (refresh is LoadState.Error) {
+                        item {
+                            val error = (refresh.error as? AppErrorException)?.error
+                            InfoBanner(
+                                text = when {
+                                    error is AppError.Unauthorized -> stringResource(R.string.history_session_expired)
+                                    error != null -> error.toUiText().asString()
+                                    else -> stringResource(R.string.history_load_failed)
+                                },
+                                icon = OmniIcons.WifiOff,
+                                modifier = Modifier.padding(16.dp),
+                                action = { OmniTextButton(stringResource(CommonR.string.common_retry), items::retry) },
+                            )
                         }
-                        null -> Unit
                     }
-                }
-                if (items.loadState.append is LoadState.Loading || (refresh is LoadState.Loading && items.itemCount == 0)) {
-                    item { Box(Modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) { OmniSpinner() } }
+                    if (refresh is LoadState.NotLoading && items.itemCount == 0) {
+                        item { EmptyState(stringResource(R.string.history_empty_title), stringResource(R.string.history_empty_message), icon = OmniIcons.History) }
+                    }
+                    items(items.itemCount, key = items.itemKey { it.key() }, contentType = items.itemContentType { it::class }) { index ->
+                        when (val item = items[index]) {
+                            is HistoryItem.Header -> DayHeader(item.dayStartEpochMs)
+                            is HistoryItem.Row -> SubmissionRow(item.submission, runtimeNames[item.submission.runtimeId]) {
+                                navigator.openDetail(HistoryRoute, JobDetailRoute(item.submission.id, item.submission.runtimeId))
+                            }
+                            null -> Unit
+                        }
+                    }
+                    if (items.loadState.append is LoadState.Loading || (refresh is LoadState.Loading && items.itemCount == 0)) {
+                        item { Box(Modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) { OmniSpinner() } }
+                    }
                 }
             }
+            AdBanner()
         }
-        AdBanner()
     }
 }
 

@@ -8,6 +8,7 @@ android {
 }
 
 dependencies {
+    implementation(libs.androidx.compose.material3.adaptive.navigation3)
     implementation(projects.core.ads)
     implementation(projects.core.review)
     implementation(projects.core.editor)

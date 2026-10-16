@@ -1,5 +1,6 @@
 package solutions.laxmi.omnicompiler.feature.vcs
 
+import solutions.laxmi.omnicompiler.core.designsystem.component.ReadableContent
 import androidx.compose.foundation.background
 import androidx.compose.material3.AlertDialog
 import androidx.compose.ui.graphics.RectangleShape
@@ -93,22 +94,24 @@ fun GitAccountsScreen(navigator: Navigator) {
     val colors = OmniTheme.colors
     Column(Modifier.fillMaxSize().background(colors.background).navigationBarsPadding().imePadding()) {
         OmniTopBar(stringResource(R.string.git_accounts_title), onBack = navigator::back)
-        Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
-            Text(
-                stringResource(R.string.git_accounts_intro),
-                style = OmniTheme.typography.bodySmall,
-                color = colors.textSecondary,
-                modifier = Modifier.padding(16.dp),
-            )
-            GitHost.entries.forEach { host ->
-                HostSection(
-                    host = host,
-                    account = state.accounts[host],
-                    busy = state.connecting == host,
-                    error = state.errors[host],
-                    onConnect = { viewModel.connect(host, it) },
-                    onDisconnect = { viewModel.disconnect(host) },
+        ReadableContent {
+            Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
+                Text(
+                    stringResource(R.string.git_accounts_intro),
+                    style = OmniTheme.typography.bodySmall,
+                    color = colors.textSecondary,
+                    modifier = Modifier.padding(16.dp),
                 )
+                GitHost.entries.forEach { host ->
+                    HostSection(
+                        host = host,
+                        account = state.accounts[host],
+                        busy = state.connecting == host,
+                        error = state.errors[host],
+                        onConnect = { viewModel.connect(host, it) },
+                        onDisconnect = { viewModel.disconnect(host) },
+                    )
+                }
             }
         }
     }

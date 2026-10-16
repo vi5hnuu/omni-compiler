@@ -26,13 +26,17 @@ import solutions.laxmi.omnicompiler.feature.workspace.R
 /** Wide windows (tablets, foldables, landscape) can show two files side by side. */
 internal val SplitMinWidth = 600.dp
 
-/** Two panes with a draggable divider; [fraction] is the first pane's share of the width. */
+/**
+ * Two panes with a draggable divider; [fraction] is the first pane's share of the width. Without a [second] pane the
+ * first takes the whole width at the same place in the composition, so showing or hiding the second keeps the first's
+ * state (an open editor's text, undo history and scroll).
+ */
 @Composable
 internal fun SplitPanes(
     fraction: Float,
     onFractionChange: (Float) -> Unit,
     first: @Composable (Modifier) -> Unit,
-    second: @Composable (Modifier) -> Unit,
+    second: (@Composable (Modifier) -> Unit)?,
     modifier: Modifier = Modifier,
 ) {
     val colors = OmniTheme.colors
@@ -40,7 +44,8 @@ internal fun SplitPanes(
         val totalPx = with(LocalDensity.current) { maxWidth.toPx() }.coerceAtLeast(1f)
         val drag = rememberDraggableState { delta -> onFractionChange((fraction + delta / totalPx).coerceIn(MIN_FRACTION, 1f - MIN_FRACTION)) }
         Row {
-            first(Modifier.weight(fraction).fillMaxHeight())
+            first(Modifier.weight(if (second == null) 1f else fraction).fillMaxHeight())
+            if (second == null) return@Row
             val description = stringResource(R.string.editor_split_divider)
             Box(
                 Modifier

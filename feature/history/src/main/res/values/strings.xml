@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="history_title">Run history</string>
+    <string name="history_pick_title">Pick a run</string>
+    <string name="history_pick_message">Its verdict, code and test results show here.</string>
     <string name="history_subtitle">Recorded by the judge for this account</string>
     <string name="history_signed_out_title">Sign in to see history</string>
     <string name="history_signed_out_message">Runs are tied to your account. Guests and signed-in users keep a history.</string>
