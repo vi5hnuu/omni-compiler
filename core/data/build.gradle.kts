@@ -43,5 +43,6 @@ dependencies {
     implementation(libs.androidx.credentials.play.services)
     implementation(libs.googleid)
     implementation(libs.androidx.browser)
+    implementation(libs.java.diff.utils)
     testImplementation(libs.okhttp.mockwebserver)
 }

@@ -14,6 +14,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -118,6 +119,8 @@ private fun HostSection(host: GitHost, account: GitAccount?, busy: Boolean, erro
     val colors = OmniTheme.colors
     val context = LocalContext.current
     var token by rememberSaveable(host) { mutableStateOf("") }
+    // Once connected the token lives encrypted in the credential store; it mustn't linger in this field's saved state.
+    LaunchedEffect(account) { if (account != null) token = "" }
     SectionLabel(host.displayName())
     // Bottom padding separates one provider's button from the next provider's heading.
     Column(Modifier.padding(start = 16.dp, end = 16.dp, bottom = 16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {

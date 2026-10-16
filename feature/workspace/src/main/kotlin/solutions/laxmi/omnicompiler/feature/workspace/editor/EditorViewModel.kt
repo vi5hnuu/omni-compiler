@@ -232,8 +232,10 @@ class EditorViewModel @AssistedInject constructor(
 
     fun deleteFile(fileId: String) {
         viewModelScope.launch {
-            if (activeFileId.value == fileId) activeFileId.value = null
-            projects.deleteFile(fileId)
+            when (val result = projects.deleteFile(fileId)) {
+                is Outcome.Success -> if (activeFileId.value == fileId) activeFileId.value = null
+                is Outcome.Failure -> events.send(EditorEvent.Message(result.error.toUiText()))
+            }
         }
     }
 

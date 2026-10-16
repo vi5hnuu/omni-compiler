@@ -52,8 +52,8 @@ import solutions.laxmi.omnicompiler.core.ui.Avatar
 import solutions.laxmi.omnicompiler.core.ui.VerdictBadge
 import solutions.laxmi.omnicompiler.core.ui.fileBadgeFor
 
-/** Where drawer rows lead; the screen maps them to routes. */
-enum class DrawerDestination(@StringRes val labelRes: Int, val icon: ImageVector) {
+/** Where drawer rows lead; the screen maps them to routes. [external] rows leave the app (e.g. the Play Store). */
+enum class DrawerDestination(@StringRes val labelRes: Int, val icon: ImageVector, val external: Boolean = false) {
     Projects(R.string.drawer_all_projects, OmniIcons.Folder),
     ImportGit(R.string.drawer_import_git, OmniIcons.Download),
     Examples(R.string.drawer_examples, OmniIcons.Book),
@@ -61,6 +61,7 @@ enum class DrawerDestination(@StringRes val labelRes: Int, val icon: ImageVector
     Usage(R.string.drawer_usage, OmniIcons.Chart),
     Developer(R.string.drawer_developer, OmniIcons.Key),
     Settings(R.string.drawer_settings, OmniIcons.Settings),
+    RateApp(R.string.drawer_rate, OmniIcons.Star, external = true),
 }
 
 /** Design W1: account header, project switcher, current project's files, navigation. */
@@ -178,7 +179,7 @@ internal fun EditorDrawer(
                 DrawerRow(selected = false, onClick = { onDestination(destination) }) {
                     Icon(destination.icon, null, tint = colors.textSecondary, modifier = Modifier.size(16.dp))
                     Text(stringResource(destination.labelRes), style = OmniTheme.typography.bodyStrong, color = colors.textPrimary, modifier = Modifier.weight(1f))
-                    Icon(OmniIcons.ChevronRight, null, tint = colors.textTertiary, modifier = Modifier.size(14.dp))
+                    Icon(if (destination.external) OmniIcons.ExternalLink else OmniIcons.ChevronRight, null, tint = colors.textTertiary, modifier = Modifier.size(14.dp))
                 }
             }
         }

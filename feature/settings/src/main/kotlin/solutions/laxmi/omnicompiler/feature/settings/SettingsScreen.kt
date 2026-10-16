@@ -2,6 +2,7 @@ package solutions.laxmi.omnicompiler.feature.settings
 
 import androidx.activity.compose.LocalActivity
 import solutions.laxmi.omnicompiler.core.ads.LocalAds
+import solutions.laxmi.omnicompiler.core.review.LocalAppReview
 import solutions.laxmi.omnicompiler.core.navigation.GitAccountsRoute
 import solutions.laxmi.omnicompiler.core.navigation.ProjectFolderRoute
 import solutions.laxmi.omnicompiler.core.model.AppTheme
@@ -69,6 +70,7 @@ fun SettingsScreen(navigator: Navigator, appVersion: String) {
     val colors = OmniTheme.colors
     val editor = state.editor
     val ads = LocalAds.current
+    val review = LocalAppReview.current
     val activity = LocalActivity.current
     val privacyChoices by ads.privacyOptionsRequired.collectAsStateWithLifecycle()
     val defaultRuntime = state.run.defaultRuntimeId
@@ -146,6 +148,12 @@ fun SettingsScreen(navigator: Navigator, appVersion: String) {
             }
 
             SectionLabel(stringResource(R.string.settings_about))
+            OmniListRow(
+                stringResource(R.string.settings_rate),
+                subtitle = stringResource(R.string.settings_rate_note),
+                trailing = { Icon(OmniIcons.ExternalLink, null, tint = colors.textTertiary) },
+                onClick = { review.openStoreListing(context) },
+            )
             if (privacyChoices) {
                 OmniListRow(stringResource(R.string.settings_privacy_choices), trailing = { Chevron() }, onClick = { activity?.let(ads::showPrivacyOptions) })
             }

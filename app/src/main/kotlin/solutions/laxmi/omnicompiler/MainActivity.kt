@@ -3,6 +3,8 @@ package solutions.laxmi.omnicompiler
 import javax.inject.Inject
 import solutions.laxmi.omnicompiler.core.ads.LocalAds
 import solutions.laxmi.omnicompiler.core.ads.Ads
+import solutions.laxmi.omnicompiler.core.review.AppReview
+import solutions.laxmi.omnicompiler.core.review.LocalAppReview
 import androidx.compose.runtime.CompositionLocalProvider
 import solutions.laxmi.omnicompiler.core.model.AppTheme
 import androidx.compose.runtime.DisposableEffect
@@ -29,6 +31,7 @@ class MainActivity : ComponentActivity() {
     private val viewModel: MainViewModel by viewModels()
 
     @Inject lateinit var ads: Ads
+    @Inject lateinit var review: AppReview
 
     override fun onCreate(savedInstanceState: Bundle?) {
         // Keep the splash until the stored session is read, so the first frame is the right root.
@@ -36,6 +39,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         // Once per launch: consent first (the form only shows where the law requires it), then the ads SDK.
         if (savedInstanceState == null) {
+            review.onLaunch()
             ads.start(this)
             openSharedFile(intent)
         }
@@ -52,7 +56,7 @@ class MainActivity : ComponentActivity() {
                 enableEdgeToEdge(statusBarStyle = style, navigationBarStyle = style)
                 onDispose { }
             }
-            CompositionLocalProvider(LocalAds provides ads) {
+            CompositionLocalProvider(LocalAds provides ads, LocalAppReview provides review) {
                 OmniTheme(darkTheme = dark) {
                     val gate by viewModel.gate.collectAsStateWithLifecycle()
                     val userId by viewModel.userId.collectAsStateWithLifecycle()

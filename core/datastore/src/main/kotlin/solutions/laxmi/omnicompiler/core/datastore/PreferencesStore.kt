@@ -22,6 +22,9 @@ import solutions.laxmi.omnicompiler.core.model.RunSettings
 import javax.inject.Inject
 import javax.inject.Singleton
 
+/** How much the app has been used on this device; read by the review prompt's policy. */
+data class Engagement(val firstLaunchAt: Long, val launches: Int, val acceptedRuns: Int, val lastReviewRequestAt: Long?)
+
 /** Non-sensitive user preferences. */
 interface PreferencesStore {
     val editorSettings: Flow<EditorSettings>
@@ -38,6 +41,12 @@ interface PreferencesStore {
     suspend fun firstLaunchAt(now: Long): Long
     suspend fun lastInterstitialAt(): Long?
     suspend fun setLastInterstitialAt(at: Long)
+
+    /** Counts an app launch (and records the first one, which also starts the ads' grace period). Device-level. */
+    suspend fun recordLaunch(now: Long)
+    suspend fun recordAcceptedRun()
+    suspend fun engagement(): Engagement
+    suspend fun setLastReviewRequestAt(at: Long)
 
     suspend fun updateEditor(transform: (EditorSettings) -> EditorSettings)
     suspend fun updateRun(transform: (RunSettings) -> RunSettings)
@@ -81,6 +90,31 @@ internal class DataStorePreferencesStore @Inject constructor(
 
     override suspend fun setLastInterstitialAt(at: Long) {
         dataStore.edit { it[Keys.LAST_INTERSTITIAL] = at }
+    }
+
+    override suspend fun recordLaunch(now: Long) {
+        dataStore.edit { prefs ->
+            if (prefs[Keys.FIRST_LAUNCH] == null) prefs[Keys.FIRST_LAUNCH] = now
+            prefs[Keys.LAUNCH_COUNT] = (prefs[Keys.LAUNCH_COUNT] ?: 0) + 1
+        }
+    }
+
+    override suspend fun recordAcceptedRun() {
+        dataStore.edit { prefs -> prefs[Keys.ACCEPTED_RUNS] = (prefs[Keys.ACCEPTED_RUNS] ?: 0) + 1 }
+    }
+
+    override suspend fun engagement(): Engagement {
+        val prefs = dataStore.data.first()
+        return Engagement(
+            firstLaunchAt = prefs[Keys.FIRST_LAUNCH] ?: 0L,
+            launches = prefs[Keys.LAUNCH_COUNT] ?: 0,
+            acceptedRuns = prefs[Keys.ACCEPTED_RUNS] ?: 0,
+            lastReviewRequestAt = prefs[Keys.LAST_REVIEW_REQUEST],
+        )
+    }
+
+    override suspend fun setLastReviewRequestAt(at: Long) {
+        dataStore.edit { it[Keys.LAST_REVIEW_REQUEST] = at }
     }
 
     override suspend fun setProjectsRoot(treeUri: String, docId: String) {
@@ -201,6 +235,9 @@ internal class DataStorePreferencesStore @Inject constructor(
         val ROOT_DOC = stringPreferencesKey("projects_root_doc")
         val FIRST_LAUNCH = longPreferencesKey("first_launch_at")
         val LAST_INTERSTITIAL = longPreferencesKey("last_interstitial_at")
+        val LAUNCH_COUNT = intPreferencesKey("launch_count")
+        val ACCEPTED_RUNS = intPreferencesKey("accepted_runs")
+        val LAST_REVIEW_REQUEST = longPreferencesKey("last_review_request_at")
         val FONT = stringPreferencesKey("editor_font")
         val FONT_SIZE = intPreferencesKey("editor_font_size")
         val LIGATURES = booleanPreferencesKey("editor_ligatures")

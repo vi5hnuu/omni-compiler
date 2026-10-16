@@ -12,8 +12,10 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.withContext
 import solutions.laxmi.omnicompiler.core.common.Dispatcher
 import solutions.laxmi.omnicompiler.core.common.OmniDispatcher
+import solutions.laxmi.omnicompiler.core.common.decodeUtf8OrNull
 import solutions.laxmi.omnicompiler.core.data.project.ProjectRepository
 import solutions.laxmi.omnicompiler.core.data.project.ProjectSync
 import solutions.laxmi.omnicompiler.core.datastore.GitCredentialStore
@@ -60,11 +62,15 @@ interface GitRepository {
     /** Settles a conflict: keep the local version (it will overwrite the remote on push) or take the remote one. */
     suspend fun resolve(projectId: String, fileName: String, keepMine: Boolean): Outcome<Unit>
 
-    /** A file's local text and its text at the tracked commit (null where it doesn't exist), to review before push or resolve. */
+    /**
+     * A file's local text and its remote text (null where it doesn't exist), to review before push or resolve: the
+     * version at the last pull or push, or for a conflict the remote's current version it conflicts with.
+     */
     suspend fun compare(projectId: String, fileName: String): Outcome<FileComparison>
 }
 
-data class FileComparison(val local: String?, val remote: String?)
+/** [diff] goes from [remote] to [local], i.e. what a push would change. */
+data class FileComparison(val local: String?, val remote: String?, val diff: FileDiff)
 
 @Singleton
 internal class DefaultGitRepository @Inject constructor(
@@ -107,7 +113,8 @@ internal class DefaultGitRepository @Inject constructor(
             .take(ProjectSync.MAX_FILES)
         val fetched = fetchTexts(repo, token, candidates).valueOr { return@withToken it }
         val name = path.substringAfterLast('/').ifEmpty { repo.fullName.substringAfterLast('/') }
-        val remote = ProjectRemote(repo.host, repo.id, repo.fullName, branch, path, head, fetched.mapValues { (fileName, _) -> candidates.first { it.name == fileName }.sha })
+        val shas = candidates.associate { it.name to it.sha }
+        val remote = ProjectRemote(repo.host, repo.id, repo.fullName, branch, path, head, fetched.mapValues { (fileName, _) -> shas.getValue(fileName) })
         when (val created = projects.importRemote(name, fetched, remote)) {
             is Outcome.Failure -> created
             is Outcome.Success -> {
@@ -221,14 +228,25 @@ internal class DefaultGitRepository @Inject constructor(
         val workspace = projects.snapshot(projectId) ?: return notFound()
         val remote = workspace.project.remote ?: return notFound()
         val local = workspace.files.firstOrNull { it.name == fileName }?.content
-        val sha = remote.baseBlobs[fileName] ?: return Outcome.Success(FileComparison(local, remote = null))
+        // A file added here has no remote version to fetch, so it is shown without needing the account.
+        if (fileName !in remote.conflicts && fileName !in remote.baseBlobs) return Outcome.Success(comparison(local, remote = null))
         return withToken(remote.host) { token ->
-            when (val text = network.blobText(remote.host, token, remote.repoId, sha)) {
-                is Outcome.Success -> Outcome.Success(FileComparison(local, text.value))
-                is Outcome.Failure -> text
+            // A conflict keeps the old base blob (so the file stays "changed"); the version it conflicts with is the one
+            // at the pulled commit, found the same way resolve() finds it.
+            val sha = if (fileName in remote.conflicts) {
+                network.listFiles(remote.host, token, remote.repoId, remote.baseCommit, remote.path).valueOr { return@withToken it }
+                    .firstOrNull { it.isTrackable() && it.name == fileName }?.sha
+            } else {
+                remote.baseBlobs[fileName]
             }
+            if (sha == null) return@withToken Outcome.Success(comparison(local, remote = null))
+            val bytes = network.blob(remote.host, token, remote.repoId, sha).valueOr { return@withToken it }
+            val text = decodeUtf8OrNull(bytes) ?: return@withToken Outcome.Failure(AppError.Validation(reason = ErrorReason.GitFileNotText))
+            Outcome.Success(comparison(local, text))
         }
     }
+
+    private suspend fun comparison(local: String?, remote: String?) = withContext(cpu) { FileComparison(local, remote, FileDiff.of(remote, local)) }
 
     /**
      * Files written from the remote that the project then refused (too large, past the file limit, a name it can't
@@ -270,16 +288,16 @@ internal class DefaultGitRepository @Inject constructor(
         fetchTexts(remote.host, remote.repoId, token, entries)
 
     /**
-     * Downloads blobs a few at a time; files known to be binary by name aren't fetched at all, and any other binary
-     * file (NUL bytes) is skipped rather than corrupted.
+     * Downloads blobs a few at a time; files known to be binary by name aren't fetched at all, and any other file that
+     * isn't UTF-8 text (binary, or another encoding) is skipped rather than corrupted.
      */
     private suspend fun fetchTexts(host: GitHost, repoId: String, token: String, entries: List<RemoteEntry>): Outcome<Map<String, String>> = coroutineScope {
         val downloads = Semaphore(MAX_PARALLEL_DOWNLOADS)
         val results = entries.filter { !isBinaryName(it.name) }
-            .map { entry -> async { entry.name to downloads.withPermit { network.blobText(host, token, repoId, entry.sha) } } }
+            .map { entry -> async { entry.name to downloads.withPermit { network.blob(host, token, repoId, entry.sha) } } }
             .awaitAll()
         results.firstOrNull { it.second is Outcome.Failure }?.let { return@coroutineScope it.second as Outcome.Failure }
-        Outcome.Success(results.mapNotNull { (name, result) -> (result as Outcome.Success).value.takeIf { '\u0000' !in it }?.let { name to it } }.toMap())
+        Outcome.Success(results.mapNotNull { (name, result) -> decodeUtf8OrNull((result as Outcome.Success).value)?.let { name to it } }.toMap())
     }
 
     private suspend fun <T> withToken(host: GitHost, block: suspend (String) -> Outcome<T>): Outcome<T> {

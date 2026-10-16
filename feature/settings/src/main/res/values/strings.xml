@@ -33,6 +33,8 @@
     <string name="settings_account_note">Profile, password, delete account</string>
     <string name="settings_sign_out">Sign out</string>
     <string name="settings_about">About</string>
+    <string name="settings_rate">Rate omni compiler</string>
+    <string name="settings_rate_note">Tell others what you think on Google Play</string>
     <string name="settings_privacy">Privacy policy</string>
     <string name="settings_terms">Terms of service</string>
     <string name="settings_open_source">Open-source licenses</string>

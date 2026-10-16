@@ -61,8 +61,9 @@ internal fun ProjectSearchSheet(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     LaunchedEffect(projectId) { viewModel.open(projectId) }
     val colors = OmniTheme.colors
-    // The field keeps what is typed; the view model searches a debounced copy.
-    var typed by rememberSaveable { mutableStateOf("") }
+    // The field keeps what is typed; the view model searches a debounced copy. Reopening the sheet shows the last
+    // search again (the view model outlives the sheet), so the field starts from it rather than empty.
+    var typed by rememberSaveable { mutableStateOf(viewModel.currentQuery) }
     val focus = remember { FocusRequester() }
     LaunchedEffect(Unit) { focus.requestFocus() }
     ModalBottomSheet(

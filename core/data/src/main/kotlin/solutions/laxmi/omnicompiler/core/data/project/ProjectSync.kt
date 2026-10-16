@@ -6,6 +6,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import solutions.laxmi.omnicompiler.core.common.IdGenerator
 import solutions.laxmi.omnicompiler.core.common.TimeSource
+import solutions.laxmi.omnicompiler.core.common.decodeUtf8OrNull
 import solutions.laxmi.omnicompiler.core.data.mapper.toStored
 import solutions.laxmi.omnicompiler.core.data.runtime.RuntimeRepository
 import solutions.laxmi.omnicompiler.core.database.OmniDatabase
@@ -154,9 +155,8 @@ internal class ProjectSync @Inject constructor(
         var copied = 0
         // Subfolders come along: each file keeps its path relative to the picked folder.
         checked.sourceFiles.forEach { file ->
-            val bytes = store.readBytes(source, file.doc.docId, MAX_FILE_BYTES)
-            if (bytes.none { it == 0.toByte() }) {
-                store.writeFile(root, target.docId, file.path, bytes.decodeToString())
+            decodeUtf8OrNull(store.readBytes(source, file.doc.docId, MAX_FILE_BYTES))?.let { text ->
+                store.writeFile(root, target.docId, file.path, text)
                 copied++
             }
         }
@@ -171,12 +171,13 @@ internal class ProjectSync @Inject constructor(
     /**
      * Copies one picked file into a new project (runtime chosen from its extension) and remembers where it
      * came from so it can be saved back. Returns the project id; throws [UnknownLanguageException] when no
-     * runtime matches and returns null when the file isn't text.
+     * runtime matches, [NotTextException] when the file isn't UTF-8 text, and returns null when it has no name.
      */
     suspend fun importFileLocked(root: ProjectRoot, documentUri: String): String? {
         val picked = store.readDocument(documentUri, MAX_FILE_BYTES, keepAccess = true)
-        if (picked.bytes.any { it == 0.toByte() } || picked.name.isBlank()) return null
-        return createSingleFileLocked(root, picked.name, picked.bytes.decodeToString(), origin = documentUri)
+        if (picked.name.isBlank()) return null
+        val text = decodeUtf8OrNull(picked.bytes) ?: throw NotTextException()
+        return createSingleFileLocked(root, picked.name, text, origin = documentUri)
     }
 
     /**
@@ -275,7 +276,8 @@ internal class ProjectSync @Inject constructor(
         val existing = files.list(manifest.id).associateBy { it.name }
 
         // Disk I/O happens before the transaction. Files with a local save not yet on disk are written out (the local
-        // text is newer), changed files are read, and binaries that slipped past the MIME check are dropped.
+        // text is newer), changed files are read, and binaries that slipped past the MIME check (or text in another
+        // encoding, which saving would garble) are dropped.
         val fresh = mutableMapOf<String, String>()
         val writtenBack = mutableMapOf<String, Pair<String, DocEntry>>()
         val kept = checked.sourceFiles.filter { file ->
@@ -288,12 +290,12 @@ internal class ProjectSync @Inject constructor(
                 }
                 row != null && row.lastModified == doc.lastModified && row.size == doc.size -> true
                 else -> {
-                    val bytes = store.readBytes(root, doc.docId, MAX_FILE_BYTES)
-                    if (bytes.any { it == 0.toByte() }) {
+                    val text = decodeUtf8OrNull(store.readBytes(root, doc.docId, MAX_FILE_BYTES))
+                    if (text == null) {
                         issues += ProjectIssue.FileSkipped(file.path, ProjectIssue.SkipReason.BINARY)
                         false
                     } else {
-                        fresh[file.path] = bytes.decodeToString()
+                        fresh[file.path] = text
                         true
                     }
                 }
@@ -401,3 +403,6 @@ internal class ProjectSync @Inject constructor(
 
 /** No runtime runs files with this name's extension. */
 internal class UnknownLanguageException(val fileName: String) : Exception(fileName)
+
+/** A picked file is binary or in an encoding other than UTF-8, so it can't be edited as code. */
+internal class NotTextException : Exception()

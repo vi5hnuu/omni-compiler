@@ -34,7 +34,7 @@ fun AdBanner(modifier: Modifier = Modifier, spacing: Int = 8) {
             factory = { context ->
                 AdView(context).apply {
                     adUnitId = BuildConfig.BANNER_UNIT_ID
-                    setAdSize(AdSize.getCurrentOrientationAnchoredAdaptiveBannerAdSize(context, width))
+                    setAdSize(AdSize.getLargeAnchoredAdaptiveBannerAdSize(context, width))
                     loadAd(AdRequest.Builder().build())
                     view = this
                 }

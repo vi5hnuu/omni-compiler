@@ -32,8 +32,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.RectangleShape
-import androidx.compose.ui.platform.LocalClipboardManager
-import androidx.compose.ui.text.AnnotatedString
+import solutions.laxmi.omnicompiler.core.ui.rememberCopyToClipboard
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -62,7 +61,7 @@ fun DeveloperScreen(navigator: Navigator) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
     val resources = LocalResources.current
-    val clipboard = LocalClipboardManager.current
+    val copyText = rememberCopyToClipboard()
     var confirmRotate by rememberSaveable { mutableStateOf(false) }
     var addingWebhook by rememberSaveable { mutableStateOf(false) }
     var deleting by remember { mutableStateOf<Webhook?>(null) }
@@ -91,7 +90,7 @@ fun DeveloperScreen(navigator: Navigator) {
                         }
                         Text(key, style = OmniTheme.typography.mono, color = colors.textPrimary)
                         Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                            OmniTextButton(stringResource(R.string.developer_copy_key), { clipboard.setText(AnnotatedString(key)) })
+                            OmniTextButton(stringResource(R.string.developer_copy_key), { copyText(key) })
                             OmniTextButton(stringResource(R.string.developer_hide), viewModel::hideKey, color = colors.textSecondary)
                         }
                     }
@@ -117,7 +116,7 @@ fun DeveloperScreen(navigator: Navigator) {
                     OmniIconButton(
                         OmniIcons.Copy,
                         stringResource(CommonR.string.common_copy),
-                        { clipboard.setText(AnnotatedString(snippet)) },
+                        { copyText(snippet) },
                         modifier = Modifier.align(Alignment.TopEnd).background(colors.surfaceRaised),
                     )
                 }
@@ -136,7 +135,7 @@ fun DeveloperScreen(navigator: Navigator) {
                         icon = OmniIcons.Lock,
                         action = {
                             Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                                OmniTextButton(stringResource(CommonR.string.common_copy), { clipboard.setText(AnnotatedString(secret)) })
+                                OmniTextButton(stringResource(CommonR.string.common_copy), { copyText(secret) })
                                 OmniTextButton(stringResource(CommonR.string.common_done), viewModel::dismissCreatedSecret, color = colors.textSecondary)
                             }
                         },

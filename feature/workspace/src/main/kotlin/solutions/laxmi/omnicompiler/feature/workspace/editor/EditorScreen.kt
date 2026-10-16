@@ -4,6 +4,7 @@ import solutions.laxmi.omnicompiler.core.model.OpenFile
 import kotlinx.coroutines.flow.Flow
 import androidx.activity.compose.LocalActivity
 import solutions.laxmi.omnicompiler.core.ads.LocalAds
+import solutions.laxmi.omnicompiler.core.review.LocalAppReview
 import solutions.laxmi.omnicompiler.core.navigation.SourceControlRoute
 import solutions.laxmi.omnicompiler.core.navigation.PreviewRoute
 import solutions.laxmi.omnicompiler.core.ui.R as CommonR
@@ -60,6 +61,7 @@ import solutions.laxmi.omnicompiler.core.designsystem.component.SheetHandle
 import solutions.laxmi.omnicompiler.core.designsystem.icon.OmniIcons
 import solutions.laxmi.omnicompiler.core.designsystem.theme.OmniTheme
 import solutions.laxmi.omnicompiler.core.editor.CodeEditor
+import solutions.laxmi.omnicompiler.core.editor.CodeEditorState
 import solutions.laxmi.omnicompiler.core.editor.EditorDocument
 import solutions.laxmi.omnicompiler.core.editor.SymbolRow
 import solutions.laxmi.omnicompiler.core.editor.rememberCodeEditorState
@@ -87,6 +89,7 @@ fun EditorScreen(route: EditorRoute, navigator: Navigator) {
     val resources = LocalResources.current
     val context = LocalContext.current
     val ads = LocalAds.current
+    val review = LocalAppReview.current
     val activity = LocalActivity.current
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     // Opening or open: subscribe to drawer data only then, so editing never pays for it.
@@ -95,12 +98,20 @@ fun EditorScreen(route: EditorRoute, navigator: Navigator) {
     val drawerUsage by viewModel.drawerUsage.collectAsStateWithLifecycle()
     LaunchedEffect(drawerVisible) { if (drawerVisible) viewModel.onDrawerOpened() }
     var creatingProject by rememberSaveable { mutableStateOf(false) }
+    val editorState = rememberCodeEditorState()
+    val splitState = rememberCodeEditorState()
+    // Replacing this screen ends its view model, so edits still in the autosave debounce are written first.
+    val openProject: (String) -> Unit = { id ->
+        editorState.flush()
+        splitState.flush()
+        navigator.replace(EditorRoute(id))
+    }
 
     LaunchedEffect(viewModel) {
         viewModel.eventFlow.collect { event ->
             when (event) {
                 is EditorEvent.Message -> snackbar.showSnackbar(event.text.asString(resources))
-                is EditorEvent.OpenProject -> navigator.replace(EditorRoute(event.projectId))
+                is EditorEvent.OpenProject -> openProject(event.projectId)
                 is EditorEvent.Share -> context.shareFile(event.file.uri, event.file.mimeType, resources.getString(R.string.editor_share_title, event.file.displayName))
             }
         }
@@ -108,6 +119,8 @@ fun EditorScreen(route: EditorRoute, navigator: Navigator) {
 
     EditorContent(
         state = state,
+        editorState = editorState,
+        splitState = splitState,
         drawer = DrawerContent(drawerState, drawerProjects, drawerUsage, viewModel.drawerDestinations),
         snackbar = snackbar,
         actions = EditorActions(
@@ -134,23 +147,22 @@ fun EditorScreen(route: EditorRoute, navigator: Navigator) {
             onOpenProject = { id ->
                 // Switching projects from the drawer is a natural break (never mid-run: runs belong to the old project).
                 activity?.let { ads.onNaturalBreak(it) }
-                navigator.replace(EditorRoute(id))
+                openProject(id)
             },
             onPickRuntime = { state.workspace?.project?.id?.let { navigator.navigate(LanguagePickerRoute(it)) } },
             onAccount = { navigator.navigate(ProfileRoute) },
             onConvertGuest = { navigator.navigate(SignUpRoute(convertGuest = true)) },
             onDestination = { destination ->
-                navigator.navigate(
-                    when (destination) {
-                        DrawerDestination.Projects -> ProjectsRoute
-                        DrawerDestination.ImportGit -> RepoImportRoute
-                        DrawerDestination.Examples -> ExamplesRoute
-                        DrawerDestination.History -> HistoryRoute
-                        DrawerDestination.Usage -> UsageRoute
-                        DrawerDestination.Developer -> DeveloperRoute
-                        DrawerDestination.Settings -> SettingsRoute
-                    },
-                )
+                when (destination) {
+                    DrawerDestination.Projects -> navigator.navigate(ProjectsRoute)
+                    DrawerDestination.ImportGit -> navigator.navigate(RepoImportRoute)
+                    DrawerDestination.Examples -> navigator.navigate(ExamplesRoute)
+                    DrawerDestination.History -> navigator.navigate(HistoryRoute)
+                    DrawerDestination.Usage -> navigator.navigate(UsageRoute)
+                    DrawerDestination.Developer -> navigator.navigate(DeveloperRoute)
+                    DrawerDestination.Settings -> navigator.navigate(SettingsRoute)
+                    DrawerDestination.RateApp -> review.openStoreListing(context)
+                }
             },
             onAppearance = { navigator.navigate(AppearanceRoute) },
         ),
@@ -203,12 +215,17 @@ internal class EditorActions(
 
 @OptIn(ExperimentalLayoutApi::class, ExperimentalFoundationApi::class)
 @Composable
-private fun EditorContent(state: EditorUiState, drawer: DrawerContent, snackbar: SnackbarHostState, actions: EditorActions) {
+private fun EditorContent(
+    state: EditorUiState,
+    editorState: CodeEditorState,
+    splitState: CodeEditorState,
+    drawer: DrawerContent,
+    snackbar: SnackbarHostState,
+    actions: EditorActions,
+) {
     val colors = OmniTheme.colors
     val drawerState = drawer.state
     val scope = rememberCoroutineScope()
-    val editorState = rememberCodeEditorState()
-    val splitState = rememberCodeEditorState()
     // Typing mode is for code only; a keyboard raised by another field (stdin, test editor) keeps the normal chrome.
     val typing = WindowInsets.isImeVisible && (editorState.hasFocus || splitState.hasFocus)
     var searching by rememberSaveable { mutableStateOf(false) }

@@ -77,6 +77,9 @@ sealed interface ConsoleEvent {
     data class Message(val text: UiText) : ConsoleEvent
     data class RunStarted(val mode: RunMode) : ConsoleEvent
     data class TestDeleted(val test: TestCase) : ConsoleEvent
+
+    /** A run the user watched here finished Accepted; [sheetShown] when a console sheet (e.g. the guest prompt) is up. */
+    data class AcceptedRun(val sheetShown: Boolean) : ConsoleEvent
 }
 
 @HiltViewModel(assistedFactory = ConsoleViewModel.Factory::class)
@@ -139,16 +142,19 @@ class ConsoleViewModel @AssistedInject constructor(
         viewModelScope.launch { offerKeepWorkAfterFirstAccept() }
     }
 
-    /** Guests are invited to keep their work (design X3) when a run they watched here finishes Accepted. */
+    /**
+     * A run the user watched here finishing Accepted is the screen's positive moment: guests are invited to keep their
+     * work (design X3), and the moment is reported so the app can ask for a rating when it's due.
+     */
     private suspend fun offerKeepWorkAfterFirstAccept() {
         val watched = mutableSetOf<String>()
         executions.observeConsole(projectId).collect { runs ->
             val latest = runs.firstOrNull() ?: return@collect
             if (latest.phase.isActive) watched += latest.id
             val accepted = latest.phase == RunPhase.DONE && latest.verdict == Verdict.AC && watched.remove(latest.id)
-            if (accepted && overlayState.value == null) {
-                guestPrompt.claimOffer(projectId)?.let { overlayState.value = ConsoleOverlay.KeepWork(it) }
-            }
+            if (!accepted) return@collect
+            if (overlayState.value == null) guestPrompt.claimOffer(projectId)?.let { overlayState.value = ConsoleOverlay.KeepWork(it) }
+            events.send(ConsoleEvent.AcceptedRun(sheetShown = overlayState.value != null))
         }
     }
 

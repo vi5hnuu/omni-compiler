@@ -1,7 +1,6 @@
 package solutions.laxmi.omnicompiler.feature.workspace.editor
 
 import solutions.laxmi.omnicompiler.feature.workspace.search.ProjectSearchSheet
-import solutions.laxmi.omnicompiler.feature.workspace.search.ProjectSearchHit
 import android.content.res.Configuration
 import solutions.laxmi.omnicompiler.core.model.OpenFile
 import kotlinx.coroutines.flow.flowOf
@@ -24,6 +23,8 @@ import androidx.compose.material3.SheetValue
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.BottomSheetScaffold
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.LocalActivity
+import solutions.laxmi.omnicompiler.core.review.LocalAppReview
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -39,7 +40,10 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
@@ -88,6 +92,9 @@ import solutions.laxmi.omnicompiler.feature.workspace.console.refersTo
 /** Where a picked stdin file should go. */
 private enum class StdinTarget { Input, TestEditor }
 
+/** A caret move waiting for its file to be the one the editor shows; [openFind] keeps the find bar open (search hits). */
+private data class PendingGoTo(val fileId: String, val line: Int, val column: Int, val openFind: Boolean)
+
 /** Editor + console for a resolved project. Owns the console ViewModel, keyed by project. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -116,6 +123,8 @@ internal fun ColumnScope.WorkspaceBody(
     val loadedTestStdin by console.loadedTestStdin.collectAsStateWithLifecycle()
 
     val resources = LocalResources.current
+    val review = LocalAppReview.current
+    val activity = LocalActivity.current
     // The console is a standard (persistent) bottom sheet: collapsed it shows the peek row, dragged or tapped it expands.
     val sheetState = rememberStandardBottomSheetState(initialValue = SheetValue.PartiallyExpanded)
     val scaffoldState = rememberBottomSheetScaffoldState(bottomSheetState = sheetState)
@@ -131,13 +140,13 @@ internal fun ColumnScope.WorkspaceBody(
     var goingToLine by rememberSaveable { mutableStateOf(false) }
     var showShortcuts by rememberSaveable { mutableStateOf(false) }
     var projectSearch by rememberSaveable { mutableStateOf(false) }
-    // A project-search result waits here until its file is the one the editor shows, then the caret moves to it.
-    var pendingHit by remember { mutableStateOf<ProjectSearchHit?>(null) }
+    // A search result or compile problem in another file waits here until that file is shown, then the caret moves to it.
+    var pendingGoTo by remember { mutableStateOf<PendingGoTo?>(null) }
     var findSeed by remember { mutableStateOf<FindSeed?>(null) }
     // Split view: the second pane's file (never the primary's, so two panes never save over each other).
     var splitFileId by rememberSaveable { mutableStateOf<String?>(null) }
-    var splitFraction by rememberSaveable { mutableStateOf(0.5f) }
-    val wide = LocalConfiguration.current.screenWidthDp.dp >= SplitMinWidth
+    var splitFraction by rememberSaveable { mutableFloatStateOf(0.5f) }
+    val wide = with(LocalDensity.current) { LocalWindowInfo.current.containerSize.width.toDp() } >= SplitMinWidth
     val projectFiles = state.workspace?.files.orEmpty()
     val splitFile = splitFileId?.let { id -> projectFiles.firstOrNull { it.id == id && it.id != activeFile.id } }
         ?.takeIf { wide }
@@ -164,12 +173,12 @@ internal fun ColumnScope.WorkspaceBody(
         }
     }
 
-    LaunchedEffect(pendingHit, editorState.shownDocumentId) {
-        val hit = pendingHit ?: return@LaunchedEffect
-        if (editorState.shownDocumentId != hit.fileId) return@LaunchedEffect
-        pendingHit = null
-        onSearchChange(true)
-        editorState.goTo(hit.line, hit.column)
+    LaunchedEffect(pendingGoTo, editorState.shownDocumentId) {
+        val target = pendingGoTo ?: return@LaunchedEffect
+        if (editorState.shownDocumentId != target.fileId) return@LaunchedEffect
+        pendingGoTo = null
+        if (target.openFind) onSearchChange(true)
+        editorState.goTo(target.line, target.column)
     }
 
     // Hardware-keyboard shortcuts raise these from inside the code view.
@@ -210,6 +219,8 @@ internal fun ColumnScope.WorkspaceBody(
                     )
                     if (result == SnackbarResult.ActionPerformed) console.restoreTest(event.test)
                 }
+                // The rating card never competes with another sheet on screen.
+                is ConsoleEvent.AcceptedRun -> activity?.let { review.onPositiveMoment(it, mayPrompt = !event.sheetShown) }
                 is ConsoleEvent.RunStarted -> {
                     tab = if (event.mode == RunMode.TESTS) ConsoleTab.Tests else ConsoleTab.Console
                     launch { sheetState.expand() }
@@ -413,8 +424,8 @@ internal fun ColumnScope.WorkspaceBody(
                                 collapseConsole()
                                 val files = state.workspace?.files.orEmpty()
                                 val target = files.firstOrNull { it.name == problem.fileName } ?: files.firstOrNull { problem.fileName.refersTo(it.name) } ?: activeFile
-                                if (target.id != activeFile.id) actions.onSelectFile(target.id)
-                                problem.line?.let { editorState.goTo(it, problem.column ?: 1) }
+                                problem.line?.let { line -> pendingGoTo = PendingGoTo(target.id, line, problem.column ?: 1, openFind = false) }
+                                if (target.id != activeFile.id) selectFile(target.id)
                             },
                             onCancelPending = console::cancelPending,
                             onSendPendingNow = console::sendPendingNow,
@@ -522,7 +533,7 @@ internal fun ColumnScope.WorkspaceBody(
             onOpen = { hit, query, options ->
                 projectSearch = false
                 findSeed = FindSeed(query, options)
-                pendingHit = hit
+                pendingGoTo = PendingGoTo(hit.fileId, hit.line, hit.column, openFind = true)
                 if (hit.fileId != activeFile.id) selectFile(hit.fileId)
             },
             onDismiss = { projectSearch = false },

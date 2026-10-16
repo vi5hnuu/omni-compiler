@@ -4,8 +4,7 @@ import solutions.laxmi.omnicompiler.core.ui.tone
 import solutions.laxmi.omnicompiler.core.ui.clipForDisplay
 import solutions.laxmi.omnicompiler.core.ui.R as CommonR
 import androidx.compose.runtime.remember
-import androidx.compose.ui.platform.LocalClipboardManager
-import androidx.compose.ui.text.AnnotatedString
+import solutions.laxmi.omnicompiler.core.ui.rememberCopyToClipboard
 import solutions.laxmi.omnicompiler.core.ui.testCount
 import solutions.laxmi.omnicompiler.core.ui.formatDuration
 import solutions.laxmi.omnicompiler.feature.workspace.R
@@ -176,12 +175,12 @@ private fun OutputRow(key: String, tag: String, text: String, tagColor: Color = 
     val clipped = remember(text) { clipForDisplay(text) }
     LogRow(tag, if (showAll || clipped == null) text else clipped, tagColor = tagColor)
     if (clipped != null && !showAll) {
-        val clipboard = LocalClipboardManager.current
+        val copyText = rememberCopyToClipboard()
         DisableSelection {
             Row(Modifier.padding(horizontal = 12.dp), horizontalArrangement = Arrangement.spacedBy(16.dp), verticalAlignment = Alignment.CenterVertically) {
                 Text(stringResource(CommonR.string.common_output_clipped), style = OmniTheme.typography.monoSmall, color = OmniTheme.colors.textTertiary)
                 OmniTextButton(stringResource(CommonR.string.common_show_full_output), { showAll = true })
-                OmniTextButton(stringResource(CommonR.string.common_copy), { clipboard.setText(AnnotatedString(text)) }, color = OmniTheme.colors.textSecondary)
+                OmniTextButton(stringResource(CommonR.string.common_copy), { copyText(text) }, color = OmniTheme.colors.textSecondary)
             }
         }
     }

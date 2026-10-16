@@ -107,7 +107,11 @@ fun ProjectsScreen(navigator: Navigator) {
     Box(Modifier.fillMaxSize().background(colors.background)) {
         Column(Modifier.fillMaxSize().navigationBarsPadding()) {
             OmniTopBar(stringResource(R.string.projects_title), onBack = navigator::back) {
-                OmniIconButton(OmniIcons.Search, stringResource(R.string.projects_search), { searching = !searching }, selected = searching)
+                OmniIconButton(OmniIcons.Search, stringResource(R.string.projects_search), {
+                    // A hidden query would keep filtering the list, so closing search clears it.
+                    if (searching) viewModel.setQuery("")
+                    searching = !searching
+                }, selected = searching)
                 Box {
                     OmniIconButton(OmniIcons.MoreVertical, stringResource(R.string.projects_more), { menu = true })
                     DropdownMenu(menu, { menu = false }, containerColor = colors.surfaceRaised, shape = RectangleShape) {
@@ -134,36 +138,36 @@ fun ProjectsScreen(navigator: Navigator) {
             }
             // Messages appear above "New project" and the banner, never over them.
             Box(Modifier.weight(1f)) {
-            // Pull to refresh works on the empty state too: projects copied into the folder by another app appear.
-            PullToRefreshBox(isRefreshing = state.refreshing, onRefresh = viewModel::refresh, modifier = Modifier.fillMaxSize()) {
-            if (state.projects.isEmpty()) {
-                EmptyState(
-                    title = stringResource(if (state.query.isBlank()) R.string.projects_empty_title else R.string.projects_no_matches),
-                    message = stringResource(R.string.projects_empty_message),
-                    icon = OmniIcons.Folder,
-                    modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()),
-                )
-            } else {
-                LazyColumn(Modifier.fillMaxSize()) {
-                    items(state.projects, key = { it.summary.project.id }) { row ->
-                        ProjectRow(
-                            row = row,
-                            age = formatAge(row.summary.project.updatedAt, state.now),
-                            current = row.summary.project.id == state.currentProjectId,
-                            onOpen = {
-                                // Opening a different project is a natural break for a (rate-limited) interstitial.
-                                if (row.summary.project.id != state.currentProjectId) activity?.let { ads.onNaturalBreak(it) }
-                                navigator.resetTo(EditorRoute(row.summary.project.id))
-                            },
-                            onRename = { renaming = row },
-                            onDuplicate = { viewModel.duplicate(row.summary.project.id) },
-                            onExport = { viewModel.export(row.summary.project.id) },
-                            onDelete = { deleting = row },
+                // Pull to refresh works on the empty state too: projects copied into the folder by another app appear.
+                PullToRefreshBox(isRefreshing = state.refreshing, onRefresh = viewModel::refresh, modifier = Modifier.fillMaxSize()) {
+                    if (state.projects.isEmpty()) {
+                        EmptyState(
+                            title = stringResource(if (state.query.isBlank()) R.string.projects_empty_title else R.string.projects_no_matches),
+                            message = stringResource(R.string.projects_empty_message),
+                            icon = OmniIcons.Folder,
+                            modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()),
                         )
+                    } else {
+                        LazyColumn(Modifier.fillMaxSize()) {
+                            items(state.projects, key = { it.summary.project.id }) { row ->
+                                ProjectRow(
+                                    row = row,
+                                    age = formatAge(row.summary.project.updatedAt, state.now),
+                                    current = row.summary.project.id == state.currentProjectId,
+                                    onOpen = {
+                                        // Opening a different project is a natural break for a (rate-limited) interstitial.
+                                        if (row.summary.project.id != state.currentProjectId) activity?.let { ads.onNaturalBreak(it) }
+                                        navigator.resetTo(EditorRoute(row.summary.project.id))
+                                    },
+                                    onRename = { renaming = row },
+                                    onDuplicate = { viewModel.duplicate(row.summary.project.id) },
+                                    onExport = { viewModel.export(row.summary.project.id) },
+                                    onDelete = { deleting = row },
+                                )
+                            }
+                        }
                     }
                 }
-                }
-            }
                 OmniSnackbarHost(snackbar, Modifier.align(Alignment.BottomCenter))
             }
             OmniButton(stringResource(R.string.projects_new), { creating = true }, Modifier.padding(16.dp), leadingIcon = OmniIcons.Plus, trailingIcon = null)

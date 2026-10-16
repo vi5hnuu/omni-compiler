@@ -37,7 +37,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalClipboardManager
+import solutions.laxmi.omnicompiler.core.ui.rememberCopyToClipboard
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
@@ -119,7 +119,7 @@ internal fun TestsPanel(
 @Composable
 private fun VerdictBanner(run: RunRecord) {
     val colors = OmniTheme.colors
-    val clipboard = LocalClipboardManager.current
+    val copyText = rememberCopyToClipboard()
     val verdict = run.verdict ?: return
     val tone = verdict.tone(colors)
     // A wash of the verdict's colour with a solid edge: readable in both themes, and the badge stays visible.
@@ -145,7 +145,7 @@ private fun VerdictBanner(run: RunRecord) {
             )
         }
         run.jobId?.let { jobId ->
-            OmniIconButton(OmniIcons.Copy, stringResource(R.string.tests_copy_job_id), { clipboard.setText(AnnotatedString(jobId)) }, tint = colors.textSecondary)
+            OmniIconButton(OmniIcons.Copy, stringResource(R.string.tests_copy_job_id), { copyText(jobId) }, tint = colors.textSecondary)
         }
     }
 }
@@ -272,16 +272,20 @@ private fun resultLocator(run: RunRecord, tests: List<TestCase>): (TestCase, Int
 @Composable
 internal fun CodeBlock(label: String, text: String, highlight: Set<Int>, modifier: Modifier = Modifier, accentLabel: Boolean = false) {
     val colors = OmniTheme.colors
-    val clipboard = LocalClipboardManager.current
+    val copyText = rememberCopyToClipboard()
     Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Text(label.uppercase(), style = OmniTheme.typography.overline, color = if (accentLabel) colors.accentText else colors.textTertiary)
         // Huge outputs render their beginning only; Copy still takes the whole text.
         val shown = remember(text) { clipForDisplay(text) ?: text }
-        val content = buildAnnotatedString {
-            val lines = shown.replace("\r\n", "\n").trimEnd('\n').split('\n')
-            lines.forEachIndexed { i, line ->
-                if (i in highlight) withStyle(SpanStyle(background = colors.status.rejected.highlight)) { append(line.ifEmpty { " " }) } else append(line)
-                if (i < lines.lastIndex) append('\n')
+        // Built once per text, not on every recomposition of the expanded test row.
+        val highlightColor = colors.status.rejected.highlight
+        val content = remember(shown, highlight, highlightColor) {
+            buildAnnotatedString {
+                val lines = shown.replace("\r\n", "\n").trimEnd('\n').split('\n')
+                lines.forEachIndexed { i, line ->
+                    if (i in highlight) withStyle(SpanStyle(background = highlightColor)) { append(line.ifEmpty { " " }) } else append(line)
+                    if (i < lines.lastIndex) append('\n')
+                }
             }
         }
         // Copy sits inside the block's corner so side-by-side blocks (expected | output) keep their labels aligned.
@@ -296,7 +300,7 @@ internal fun CodeBlock(label: String, text: String, highlight: Set<Int>, modifie
                 OmniIconButton(
                     OmniIcons.Copy,
                     stringResource(CommonR.string.common_copy),
-                    { clipboard.setText(AnnotatedString(text)) },
+                    { copyText(text) },
                     modifier = Modifier.align(Alignment.TopEnd),
                     size = 32.dp,
                     iconSize = 14.dp,

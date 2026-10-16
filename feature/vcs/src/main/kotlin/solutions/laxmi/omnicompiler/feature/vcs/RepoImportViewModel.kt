@@ -8,7 +8,6 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -59,18 +58,29 @@ class RepoImportViewModel @Inject constructor(private val git: GitRepository) : 
     private var loadJob: Job? = null
 
     init {
+        // Followed, not read once: an account connected from the empty state appears on return, and a disconnected
+        // host's repositories go away.
         viewModelScope.launch {
-            val accounts = git.accounts.first()
-            val hosts = accounts.map { it.host }
-            state.update { it.copy(hosts = hosts, logins = accounts.associate { it.host to it.login }) }
-            hosts.firstOrNull()?.let(::selectHost)
+            git.accounts.collect { accounts ->
+                val hosts = accounts.map { it.host }
+                state.update { it.copy(hosts = hosts, logins = accounts.associate { it.host to it.login }) }
+                val current = state.value.host
+                if (current == null || current !in hosts) hosts.firstOrNull()?.let(::selectHost) ?: clearHost()
+            }
         }
     }
 
     fun selectHost(host: GitHost) {
+        // A page still loading belongs to the previous host; it must not land in this host's list.
+        loadJob?.cancel()
         page = 1
-        state.update { it.copy(host = host, repos = emptyList(), browse = null, error = null) }
+        state.update { it.copy(host = host, repos = emptyList(), canLoadMore = false, browse = null, loading = false, error = null) }
         loadMore()
+    }
+
+    private fun clearHost() {
+        loadJob?.cancel()
+        state.update { it.copy(host = null, repos = emptyList(), canLoadMore = false, browse = null, loading = false) }
     }
 
     fun setQuery(value: String) = state.update { it.copy(query = value) }

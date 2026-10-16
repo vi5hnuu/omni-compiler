@@ -22,6 +22,7 @@ import solutions.laxmi.omnicompiler.core.network.dto.GhTreeEntryDto
 import solutions.laxmi.omnicompiler.core.network.dto.GhUpdateRefDto
 import solutions.laxmi.omnicompiler.core.network.dto.GlCommitActionDto
 import solutions.laxmi.omnicompiler.core.network.dto.GlCreateCommitDto
+import solutions.laxmi.omnicompiler.core.network.dto.FILE_MODE
 import solutions.laxmi.omnicompiler.core.network.error.transportError
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
@@ -38,7 +39,9 @@ interface GitNetworkDataSource {
     suspend fun branches(host: GitHost, token: String, repoId: String): Outcome<List<String>>
     suspend fun head(host: GitHost, token: String, repoId: String, branch: String): Outcome<String>
     suspend fun list(host: GitHost, token: String, repoId: String, ref: String, path: String): Outcome<List<RemoteEntry>>
-    suspend fun blobText(host: GitHost, token: String, repoId: String, sha: String): Outcome<String>
+
+    /** A file's raw bytes; deciding whether they are text is the caller's call. */
+    suspend fun blob(host: GitHost, token: String, repoId: String, sha: String): Outcome<ByteArray>
 
     /**
      * Every file below [path] at commit [commitSha], in all subfolders; each [RemoteEntry.name] is the path relative to
@@ -113,12 +116,12 @@ internal class RetrofitGitNetworkDataSource @Inject constructor(
         }.sortedBy { it.name.lowercase() }
     }
 
-    override suspend fun blobText(host: GitHost, token: String, repoId: String, sha: String) = call {
+    override suspend fun blob(host: GitHost, token: String, repoId: String, sha: String) = call {
         when (host) {
             GitHost.GITHUB -> github.blob(bearer(token), repoId, sha).let { blob ->
-                if (blob.encoding == "base64") Base64.decode(blob.content, Base64.DEFAULT).decodeToString() else blob.content
+                if (blob.encoding == "base64") Base64.decode(blob.content, Base64.DEFAULT) else blob.content.encodeToByteArray()
             }
-            GitHost.GITLAB -> gitlab.rawBlob(token, repoId, sha).use { it.string() }
+            GitHost.GITLAB -> gitlab.rawBlob(token, repoId, sha).use { it.bytes() }
         }
     }
 
@@ -135,13 +138,14 @@ internal class RetrofitGitNetworkDataSource @Inject constructor(
             GitHost.GITHUB -> {
                 val auth = bearer(token)
                 val baseTree = github.commit(auth, repoId, baseCommit).tree.sha
+                val modes = existingModes(auth, repoId, baseTree, changes)
                 // A few at a time: GitHub's secondary rate limits punish bursts of content-creating requests.
                 val uploads = Semaphore(MAX_PARALLEL_REQUESTS)
                 val entries = coroutineScope {
                     changes.map { change ->
                         async {
                             val sha = change.content?.let { uploads.withPermit { github.createBlob(auth, repoId, GhCreateBlobDto(it)).sha } }
-                            GhTreeEntryDto(change.path, sha = sha)
+                            GhTreeEntryDto(change.path, mode = modes[change.path] ?: FILE_MODE, sha = sha)
                         }
                     }.awaitAll()
                 }
@@ -170,6 +174,20 @@ internal class RetrofitGitNetworkDataSource @Inject constructor(
     }
 
     private fun bearer(token: String) = "Bearer $token"
+
+    /**
+     * Modes of the files [changes] update, so a push keeps an executable script (`100755`) or symlink (`120000`)
+     * as it was instead of turning it into a plain file. One listing, and only when an existing file changes; a
+     * listing too long to read leaves the remaining files at the plain mode.
+     */
+    private suspend fun existingModes(auth: String, repoId: String, baseTree: String, changes: List<CommitChange>): Map<String, String> {
+        val updated = changes.filter { it.existed && it.content != null }.mapTo(HashSet()) { it.path }
+        if (updated.isEmpty()) return emptyMap()
+        return github.treeRecursive(auth, repoId, baseTree).tree
+            .filter { it.type == "blob" && it.path in updated }
+            .mapNotNull { item -> item.mode?.let { item.path to it } }
+            .toMap()
+    }
 
     /**
      * Reads a 100-per-page listing to the end. Bounded so a huge repository can't loop forever; reaching the bound

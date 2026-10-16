@@ -25,7 +25,6 @@ internal fun Project.configureKotlinCompiler() {
             freeCompilerArgs.addAll(
                 "-opt-in=kotlinx.coroutines.ExperimentalCoroutinesApi",
                 "-opt-in=kotlin.time.ExperimentalTime",
-                "-Xannotation-default-target=param-property",
             )
         }
     }

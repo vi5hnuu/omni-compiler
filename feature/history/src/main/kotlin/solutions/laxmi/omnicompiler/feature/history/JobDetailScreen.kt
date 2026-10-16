@@ -30,8 +30,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalClipboardManager
-import androidx.compose.ui.text.AnnotatedString
+import solutions.laxmi.omnicompiler.core.ui.rememberCopyToClipboard
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -60,7 +59,7 @@ fun JobDetailScreen(route: JobDetailRoute, navigator: Navigator) {
     val viewModel = hiltViewModel<JobDetailViewModel, JobDetailViewModel.Factory> { it.create(route) }
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
-    val clipboard = LocalClipboardManager.current
+    val copyText = rememberCopyToClipboard()
     val resources = LocalResources.current
     LaunchedEffect(viewModel) {
         viewModel.eventFlow.collect { event ->
@@ -79,7 +78,7 @@ fun JobDetailScreen(route: JobDetailRoute, navigator: Navigator) {
                 onBack = navigator::back,
                 subtitle = runtimeName?.let { stringResource(R.string.history_runtime_name, it.language, it.version) } ?: route.runtimeId,
             ) {
-                OmniIconButton(OmniIcons.Copy, stringResource(R.string.job_copy_id), { clipboard.setText(AnnotatedString(route.jobId)) })
+                OmniIconButton(OmniIcons.Copy, stringResource(R.string.job_copy_id), { copyText(route.jobId) })
             }
             val job = state.job
             when {

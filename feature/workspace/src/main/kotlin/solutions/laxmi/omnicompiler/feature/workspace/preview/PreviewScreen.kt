@@ -9,6 +9,9 @@ import android.webkit.WebChromeClient
 import android.webkit.WebResourceRequest
 import android.webkit.WebResourceResponse
 import android.webkit.WebView
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.key
+import android.webkit.RenderProcessGoneDetail
 import android.webkit.WebViewClient
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -126,6 +129,10 @@ private fun ProjectPage(
     var view by remember { mutableStateOf<WebView?>(null) }
     val currentConsole by rememberUpdatedState(onConsole)
     val pageUrl = "https://${WebViewAssetLoader.DEFAULT_DOMAIN}$PROJECT_PATH${encodePath(pageName)}"
+    val crashedMessage = stringResource(R.string.preview_page_crashed)
+    // Bumped when the page's renderer dies (user code ran out of memory, or the system killed it): a new WebView
+    // replaces the dead one instead of the app crashing with it.
+    var renderer by remember { mutableIntStateOf(0) }
     val loader = remember {
         WebViewAssetLoader.Builder()
             .addPathHandler(PROJECT_PATH) { path ->
@@ -135,49 +142,61 @@ private fun ProjectPage(
             }
             .build()
     }
-    AndroidView(
-        modifier = modifier,
-        factory = { ctx ->
-            WebView(ctx).apply {
-                settings.javaScriptEnabled = true
-                settings.domStorageEnabled = true
-                // Pages only see their own project files through the loader; no file:// or content:// access.
-                settings.allowFileAccess = false
-                settings.allowContentAccess = false
-                if (WebViewFeature.isFeatureSupported(WebViewFeature.SAFE_BROWSING_ENABLE)) WebSettingsCompat.setSafeBrowsingEnabled(settings, true)
-                webViewClient = object : WebViewClient() {
-                    override fun shouldInterceptRequest(view: WebView, request: WebResourceRequest): WebResourceResponse? =
-                        loader.shouldInterceptRequest(request.url)
+    key(renderer) {
+        AndroidView(
+            modifier = modifier,
+            factory = { ctx ->
+                WebView(ctx).apply {
+                    settings.javaScriptEnabled = true
+                    settings.domStorageEnabled = true
+                    // Pages only see their own project files through the loader; no file:// or content:// access.
+                    settings.allowFileAccess = false
+                    settings.allowContentAccess = false
+                    if (WebViewFeature.isFeatureSupported(WebViewFeature.SAFE_BROWSING_ENABLE)) WebSettingsCompat.setSafeBrowsingEnabled(settings, true)
+                    webViewClient = object : WebViewClient() {
+                        override fun shouldInterceptRequest(view: WebView, request: WebResourceRequest): WebResourceResponse? =
+                            loader.shouldInterceptRequest(request.url)
 
-                    override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
-                        if (request.url.host == WebViewAssetLoader.DEFAULT_DOMAIN) return false
-                        openExternally(ctx, request.url)
-                        return true
-                    }
-                }
-                webChromeClient = object : WebChromeClient() {
-                    override fun onConsoleMessage(message: ConsoleMessage): Boolean {
-                        val level = when (message.messageLevel()) {
-                            ConsoleMessage.MessageLevel.ERROR -> ConsoleLine.Level.Error
-                            ConsoleMessage.MessageLevel.WARNING -> ConsoleLine.Level.Warn
-                            else -> ConsoleLine.Level.Log
+                        override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
+                            if (request.url.host == WebViewAssetLoader.DEFAULT_DOMAIN) return false
+                            openExternally(ctx, request.url)
+                            return true
                         }
-                        val where = message.sourceId().substringAfterLast('/').takeIf { it.isNotEmpty() }?.let { " ($it:${message.lineNumber()})" }.orEmpty()
-                        currentConsole(ConsoleLine(level, message.message() + if (level == ConsoleLine.Level.Error) where else ""))
-                        return true
+
+                        override fun onRenderProcessGone(view: WebView, detail: RenderProcessGoneDetail): Boolean {
+                            currentConsole(ConsoleLine(ConsoleLine.Level.Error, crashedMessage))
+                            renderer++
+                            return true
+                        }
                     }
+                    webChromeClient = object : WebChromeClient() {
+                        override fun onConsoleMessage(message: ConsoleMessage): Boolean {
+                            val level = when (message.messageLevel()) {
+                                ConsoleMessage.MessageLevel.ERROR -> ConsoleLine.Level.Error
+                                ConsoleMessage.MessageLevel.WARNING -> ConsoleLine.Level.Warn
+                                else -> ConsoleLine.Level.Log
+                            }
+                            val where = message.sourceId().substringAfterLast('/').takeIf { it.isNotEmpty() }?.let { " ($it:${message.lineNumber()})" }.orEmpty()
+                            currentConsole(ConsoleLine(level, message.message() + if (level == ConsoleLine.Level.Error) where else ""))
+                            return true
+                        }
+                    }
+                    view = this
+                    onWebView(this)
+                    loadUrl(pageUrl)
                 }
-                view = this
-                onWebView(this)
-                loadUrl(pageUrl)
-            }
-        },
-        onRelease = { released ->
-            view = null
-            onWebView(null)
-            released.destroy()
-        },
-    )
+            },
+            onRelease = { released ->
+                // After a renderer crash the replacement view is created before this one is released; only clear the
+                // references if they still point here.
+                if (view === released) {
+                    view = null
+                    onWebView(null)
+                }
+                released.destroy()
+            },
+        )
+    }
     // Autosave updates the served files; reload once edits settle (the first load is the factory's).
     var firstFiles by remember { mutableStateOf(true) }
     LaunchedEffect(files) {

@@ -88,7 +88,11 @@ interface ProjectRepository {
     suspend fun updateFileContent(fileId: String, content: String)
     suspend fun addFile(projectId: String, name: String, content: String): Outcome<SourceFile>
     suspend fun renameFile(fileId: String, projectId: String, name: String): Outcome<Unit>
-    suspend fun deleteFile(fileId: String)
+    /**
+     * Removes a non-entry file from the folder and the index; nothing changes when the folder can't be written. A file
+     * that is already gone (e.g. removed by a rescan) counts as deleted.
+     */
+    suspend fun deleteFile(fileId: String): Outcome<Unit>
 
     suspend fun addTest(projectId: String, draft: TestCaseDraft): TestCase
     suspend fun updateTest(test: TestCase)
@@ -414,12 +418,16 @@ internal class LocalProjectRepository @Inject constructor(
         }
     }
 
-    override suspend fun deleteFile(fileId: String) {
-        val file = files.get(fileId)?.takeIf { !it.isEntry } ?: return
+    override suspend fun deleteFile(fileId: String): Outcome<Unit> {
+        val file = files.get(fileId) ?: return Outcome.Success(Unit)
+        if (file.isEntry) return Outcome.Failure(AppError.Validation(reason = ErrorReason.EntryNamedByRuntime))
         val docId = file.docId
         val folder = projects.get(file.projectId)?.folderDocId
-        if (docId != null && folder != null && onDisk { root -> store.deleteFile(root, folder, docId, file.name) } is Outcome.Failure) return
+        if (docId != null && folder != null) {
+            onDisk { root -> store.deleteFile(root, folder, docId, file.name) }.let { if (it is Outcome.Failure) return it }
+        }
         files.deleteNonEntry(fileId)
+        return Outcome.Success(Unit)
     }
 
     override suspend fun addTest(projectId: String, draft: TestCaseDraft): TestCase {
@@ -477,6 +485,8 @@ internal class LocalProjectRepository @Inject constructor(
         imported(onDisk { root -> sync.importFileLocked(root, documentUri) })
     } catch (e: UnknownLanguageException) {
         Outcome.Failure(AppError.Validation(reason = ErrorReason.UnknownFileLanguage(e.fileName)))
+    } catch (e: NotTextException) {
+        Outcome.Failure(AppError.Validation(reason = ErrorReason.DocumentNotText))
     }
 
     override suspend fun importText(fileName: String, text: String): Outcome<String> = try {
