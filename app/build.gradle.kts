@@ -44,8 +44,8 @@ android {
         applicationId = "solutions.laxmi.omnicompiler"
         // The published listing that "Rate" opens; debug's ".debug" id has none.
         buildConfigField("String", "STORE_PACKAGE", "\"$applicationId\"")
-        versionCode = 2
-        versionName = "1.0.1"
+        versionCode = 3
+        versionName = "1.1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
