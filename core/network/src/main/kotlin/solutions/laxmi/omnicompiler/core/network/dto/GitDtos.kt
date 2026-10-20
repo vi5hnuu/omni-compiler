@@ -76,6 +76,9 @@ internal data class GlBranchDto(val name: String, val commit: GlCommitIdDto)
 internal data class GlCommitIdDto(val id: String)
 
 @Serializable
+internal data class GlCreatedCommitDto(val id: String, @SerialName("parent_ids") val parentIds: List<String> = emptyList())
+
+@Serializable
 internal data class GlTreeEntryDto(val id: String, val name: String, val type: String, val path: String)
 
 @Serializable

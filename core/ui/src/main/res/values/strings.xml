@@ -94,6 +94,7 @@
     <string name="common_error_project_not_found">Project not found.</string>
     <string name="common_error_file_not_found">File not found.</string>
     <string name="common_error_entry_missing">This project has no entry file.</string>
+    <string name="common_error_language_not_chosen">Choose a language for this project first.</string>
     <string name="common_error_entry_named_by_runtime">The entry file is named by its runtime.</string>
     <string name="common_error_entry_name_taken">Rename %1$s first: the %2$s entry file uses that name.</string>
     <string name="common_error_name_required">Enter a name.</string>

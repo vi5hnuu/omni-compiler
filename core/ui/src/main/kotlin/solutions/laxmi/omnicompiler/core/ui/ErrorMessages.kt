@@ -40,6 +40,7 @@ fun ErrorReason.toUiText(): UiText = when (this) {
     ErrorReason.ProjectNotFound -> UiText.Res(R.string.common_error_project_not_found)
     ErrorReason.FileNotFound -> UiText.Res(R.string.common_error_file_not_found)
     ErrorReason.EntryFileMissing -> UiText.Res(R.string.common_error_entry_missing)
+    ErrorReason.LanguageNotChosen -> UiText.Res(R.string.common_error_language_not_chosen)
     ErrorReason.EntryNamedByRuntime -> UiText.Res(R.string.common_error_entry_named_by_runtime)
     is ErrorReason.EntryNameTaken -> UiText.Res(R.string.common_error_entry_name_taken, fileName, runtimeId)
     ErrorReason.NameRequired -> UiText.Res(R.string.common_error_name_required)

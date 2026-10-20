@@ -21,6 +21,7 @@ import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
+import androidx.compose.material3.adaptive.navigation.BackNavigationBehavior
 import androidx.compose.material3.adaptive.navigation3.rememberListDetailSceneStrategy
 import solutions.laxmi.omnicompiler.AppGate
 import solutions.laxmi.omnicompiler.R
@@ -88,7 +89,9 @@ fun OmniNavHost(gate: AppGate, userId: String?, appVersion: String, externalFile
         modifier = Modifier.fillMaxSize().background(OmniTheme.colors.background),
         onBack = navigator::back,
         // Large windows show a list screen and the detail opened from it side by side (entries declare their pane).
-        sceneStrategies = listOf(rememberListDetailSceneStrategy()),
+        // Back closes the open detail back to the list; the default would skip it, since the placeholder keeps the
+        // panes looking the same, and leave the list screen too.
+        sceneStrategies = listOf(rememberListDetailSceneStrategy(backNavigationBehavior = BackNavigationBehavior.PopUntilCurrentDestinationChange)),
         entryDecorators = listOf(
             rememberSaveableStateHolderNavEntryDecorator(),
             rememberViewModelStoreNavEntryDecorator(),
@@ -139,5 +142,10 @@ private class BackStackNavigator(private val backStack: NavBackStack<NavKey>) : 
         val list = backStack.lastIndexOf(from)
         if (list >= 0) while (backStack.lastIndex > list) backStack.removeAt(backStack.lastIndex)
         backStack.add(detail)
+    }
+
+    override fun openedFrom(list: Route): Route? {
+        val index = backStack.lastIndexOf(list)
+        return if (index >= 0) backStack.getOrNull(index + 1) as? Route else null
     }
 }

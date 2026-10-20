@@ -18,6 +18,12 @@ interface Navigator {
     fun openDetail(from: Route, detail: Route)
 
     /**
+     * The detail currently open from the list screen [list] (see [openDetail]), or null. Read in composition it
+     * updates as details open and close, so a list beside its detail can mark the picked item.
+     */
+    fun openedFrom(list: Route): Route?
+
+    /**
      * Closes [route] and whatever was opened from it. A list screen's own Back uses this: beside its detail on a large
      * screen, plain [back] would only close the detail.
      */

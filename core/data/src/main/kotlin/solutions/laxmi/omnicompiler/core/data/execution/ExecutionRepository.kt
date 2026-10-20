@@ -303,6 +303,8 @@ internal class DefaultExecutionRepository @Inject constructor(
     private suspend fun prepare(projectId: String, options: RunOptions): Outcome<Prepared> {
         val workspace = projects.snapshot(projectId)
             ?: return Outcome.Failure(AppError.NotFound(reason = ErrorReason.ProjectNotFound))
+        // Checked before anything is queued: a run without a runtime would only be rejected by the judge later.
+        if (workspace.project.runtimeId.isBlank()) return Outcome.Failure(AppError.Validation(reason = ErrorReason.LanguageNotChosen))
         val entry = workspace.entry ?: return Outcome.Failure(AppError.Validation(reason = ErrorReason.EntryFileMissing))
         if (entry.content.isBlank()) return Outcome.Failure(AppError.Validation(reason = ErrorReason.WriteCodeFirst))
         val extras = workspace.files.filter { !it.isEntry }

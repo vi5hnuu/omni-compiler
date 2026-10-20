@@ -45,6 +45,9 @@ object EditorLanguages {
     private fun initialize(context: Context): Map<String, Entry> = synchronized(this) {
         definitions?.let { return it }
         FileProviderRegistry.getInstance().addFileProvider(AssetsFileResolver(context.assets))
+        // The grammar registry follows theme changes only once it exists; create it first, or a theme set before the
+        // first grammar loads never reaches it and the code stays uncoloured until the theme is set again.
+        GrammarRegistry.getInstance()
         val themes = ThemeRegistry.getInstance()
         EditorTheme.entries.filter { it != EditorTheme.AUTO }.forEach { theme ->
             val json = theme.palette().toTextMateThemeJson(theme.name)

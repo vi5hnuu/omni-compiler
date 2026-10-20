@@ -32,6 +32,12 @@ import javax.inject.Inject
 /** One file change in a commit: new [content], or null to delete the file. */
 data class CommitChange(val path: String, val content: String?, val existed: Boolean)
 
+/**
+ * A pushed commit. [onBase] is false when it landed on top of someone else's newer commit instead of the base it was
+ * made from: GitLab's commit API always commits onto the branch's current head and can't refuse a moved branch.
+ */
+data class PushedCommit(val sha: String, val onBase: Boolean)
+
 /** GitHub and GitLab behind one interface; every call takes the account's token. */
 interface GitNetworkDataSource {
     suspend fun login(host: GitHost, token: String): Outcome<String>
@@ -49,8 +55,11 @@ interface GitNetworkDataSource {
      */
     suspend fun listFiles(host: GitHost, token: String, repoId: String, commitSha: String, path: String): Outcome<List<RemoteEntry>>
 
-    /** Commits [changes] on top of [baseCommit] and moves [branch] to it only if it still points at the base. */
-    suspend fun commit(host: GitHost, token: String, repoId: String, branch: String, baseCommit: String, message: String, changes: List<CommitChange>): Outcome<String>
+    /**
+     * Commits [changes] to [branch]. GitHub moves the branch only if it still points at [baseCommit] (otherwise the
+     * push fails as a conflict); GitLab commits onto the branch's head, and the result says whether that was the base.
+     */
+    suspend fun commit(host: GitHost, token: String, repoId: String, branch: String, baseCommit: String, message: String, changes: List<CommitChange>): Outcome<PushedCommit>
 }
 
 internal class RetrofitGitNetworkDataSource @Inject constructor(
@@ -152,7 +161,7 @@ internal class RetrofitGitNetworkDataSource @Inject constructor(
                 val tree = github.createTree(auth, repoId, GhCreateTreeDto(baseTree, entries)).sha
                 val commit = github.createCommit(auth, repoId, GhCreateCommitDto(message, tree, listOf(baseCommit))).sha
                 github.updateBranch(auth, repoId, segments(branch), GhUpdateRefDto(commit)).close()
-                commit
+                PushedCommit(commit, onBase = true)
             }
             GitHost.GITLAB -> gitlab.createCommit(
                 token,
@@ -169,7 +178,7 @@ internal class RetrofitGitNetworkDataSource @Inject constructor(
                         GlCommitActionDto(action, change.path, change.content)
                     },
                 ),
-            ).id
+            ).let { PushedCommit(it.id, onBase = it.parentIds == listOf(baseCommit)) }
         }
     }
 

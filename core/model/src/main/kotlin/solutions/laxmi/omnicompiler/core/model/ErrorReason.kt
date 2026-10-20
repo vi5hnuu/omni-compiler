@@ -60,6 +60,8 @@ sealed interface ErrorReason {
     data class UnknownFileLanguage(val fileName: String) : ErrorReason
     data object FileNotFound : ErrorReason
     data object EntryFileMissing : ErrorReason
+    /** The project has no runtime yet (e.g. an imported folder whose language couldn't be told); one must be picked. */
+    data object LanguageNotChosen : ErrorReason
     data object EntryNamedByRuntime : ErrorReason
     data class EntryNameTaken(val fileName: String, val runtimeId: String) : ErrorReason
     data object NameRequired : ErrorReason

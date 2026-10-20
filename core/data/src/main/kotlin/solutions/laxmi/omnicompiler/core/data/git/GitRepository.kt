@@ -158,7 +158,10 @@ internal class DefaultGitRepository @Inject constructor(
             // Only what was pushed moves the base; a file edited while the push was in flight stays "modified".
             val newBase = remote.trackedBase().toMutableMap()
             pushed.forEach { change -> newBase.setOrRemove(change.name, contents[change.name]?.takeIf { change.kind != FileChange.Kind.Deleted }?.let(::blobId)) }
-            projects.setRemote(projectId, remote.copy(baseCommit = commit, baseBlobs = newBase))
+            // Landed on someone else's newer commit (GitLab): keep the old base commit so the next pull still brings
+            // in their changes; the pushed files already match, so they don't come back as conflicts.
+            val baseCommit = if (commit.onBase) commit.sha else remote.baseCommit
+            projects.setRemote(projectId, remote.copy(baseCommit = baseCommit, baseBlobs = newBase))
         }
     }
 
