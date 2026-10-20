@@ -1,5 +1,6 @@
 package solutions.laxmi.omnicompiler.feature.developer
 
+import solutions.laxmi.omnicompiler.core.designsystem.component.ReadableContent
 import solutions.laxmi.omnicompiler.core.ui.asString
 import androidx.compose.ui.platform.LocalResources
 import solutions.laxmi.omnicompiler.core.ui.R as CommonR
@@ -32,8 +33,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.RectangleShape
-import androidx.compose.ui.platform.LocalClipboardManager
-import androidx.compose.ui.text.AnnotatedString
+import solutions.laxmi.omnicompiler.core.ui.rememberCopyToClipboard
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -62,7 +62,7 @@ fun DeveloperScreen(navigator: Navigator) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
     val resources = LocalResources.current
-    val clipboard = LocalClipboardManager.current
+    val copyText = rememberCopyToClipboard()
     var confirmRotate by rememberSaveable { mutableStateOf(false) }
     var addingWebhook by rememberSaveable { mutableStateOf(false) }
     var deleting by remember { mutableStateOf<Webhook?>(null) }
@@ -71,88 +71,90 @@ fun DeveloperScreen(navigator: Navigator) {
     Box(Modifier.fillMaxSize().background(colors.background)) {
         Column(Modifier.fillMaxSize().navigationBarsPadding().imePadding()) {
             OmniTopBar(stringResource(R.string.developer_title), onBack = navigator::back)
-            if (!state.signedIn) {
-                EmptyState(stringResource(R.string.developer_signed_out_title), stringResource(R.string.developer_signed_out_message), icon = OmniIcons.Key, action = { OmniButton(stringResource(CommonR.string.common_sign_in), { navigator.navigate(WelcomeRoute) }) })
-                return@Column
-            }
-            Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
-                SectionLabel(stringResource(R.string.developer_api_key))
-                Text(
-                    stringResource(R.string.developer_api_key_explainer),
-                    style = OmniTheme.typography.bodySmall,
-                    color = colors.textSecondary,
-                    modifier = Modifier.padding(horizontal = 16.dp),
-                )
-                state.revealedKey?.let { key ->
-                    Column(Modifier.fillMaxWidth().padding(16.dp).background(colors.surfaceRaised).padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            OmniBadge(stringResource(R.string.developer_new_key), container = colors.accent, content = colors.onAccent)
-                            Text("  " + stringResource(R.string.developer_copy_now), style = OmniTheme.typography.bodySmall, color = colors.textSecondary)
-                        }
-                        Text(key, style = OmniTheme.typography.mono, color = colors.textPrimary)
-                        Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                            OmniTextButton(stringResource(R.string.developer_copy_key), { clipboard.setText(AnnotatedString(key)) })
-                            OmniTextButton(stringResource(R.string.developer_hide), viewModel::hideKey, color = colors.textSecondary)
+            ReadableContent {
+                if (!state.signedIn) {
+                    EmptyState(stringResource(R.string.developer_signed_out_title), stringResource(R.string.developer_signed_out_message), icon = OmniIcons.Key, action = { OmniButton(stringResource(CommonR.string.common_sign_in), { navigator.navigate(WelcomeRoute) }) })
+                    return@ReadableContent
+                }
+                Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
+                    SectionLabel(stringResource(R.string.developer_api_key))
+                    Text(
+                        stringResource(R.string.developer_api_key_explainer),
+                        style = OmniTheme.typography.bodySmall,
+                        color = colors.textSecondary,
+                        modifier = Modifier.padding(horizontal = 16.dp),
+                    )
+                    state.revealedKey?.let { key ->
+                        Column(Modifier.fillMaxWidth().padding(16.dp).background(colors.surfaceRaised).padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                OmniBadge(stringResource(R.string.developer_new_key), container = colors.accent, content = colors.onAccent)
+                                Text("  " + stringResource(R.string.developer_copy_now), style = OmniTheme.typography.bodySmall, color = colors.textSecondary)
+                            }
+                            Text(key, style = OmniTheme.typography.mono, color = colors.textPrimary)
+                            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                                OmniTextButton(stringResource(R.string.developer_copy_key), { copyText(key) })
+                                OmniTextButton(stringResource(R.string.developer_hide), viewModel::hideKey, color = colors.textSecondary)
+                            }
                         }
                     }
-                }
-                OmniButton(
-                    stringResource(if (state.revealedKey == null) R.string.developer_generate else R.string.developer_generate_another),
-                    { confirmRotate = true },
-                    Modifier.padding(16.dp),
-                    style = OmniButtonStyle.Outline,
-                    leadingIcon = OmniIcons.Key,
-                    loading = state.rotating,
-                )
-                SectionLabel(stringResource(R.string.developer_quick_start))
-                val snippet = quickStart(state.apiBaseUrl)
-                // Same shape as the console's code blocks: the snippet scrolls sideways and Copy stays in the corner.
-                Box(Modifier.fillMaxWidth().padding(horizontal = 16.dp).background(colors.surfaceRaised)) {
-                    Text(
-                        snippet,
-                        style = OmniTheme.typography.mono,
-                        color = colors.textPrimary,
-                        modifier = Modifier.horizontalScroll(rememberScrollState()).padding(start = 12.dp, top = 12.dp, bottom = 12.dp, end = 44.dp),
-                    )
-                    OmniIconButton(
-                        OmniIcons.Copy,
-                        stringResource(CommonR.string.common_copy),
-                        { clipboard.setText(AnnotatedString(snippet)) },
-                        modifier = Modifier.align(Alignment.TopEnd).background(colors.surfaceRaised),
-                    )
-                }
-
-                SectionLabel(stringResource(R.string.developer_webhooks)) { OmniTextButton(stringResource(R.string.developer_add), { addingWebhook = true }) }
-                Text(
-                    stringResource(R.string.developer_webhooks_explainer),
-                    style = OmniTheme.typography.bodySmall,
-                    color = colors.textSecondary,
-                    modifier = Modifier.padding(horizontal = 16.dp),
-                )
-                state.createdSecret?.let { secret ->
-                    InfoBanner(
-                        stringResource(R.string.developer_secret_once, secret),
+                    OmniButton(
+                        stringResource(if (state.revealedKey == null) R.string.developer_generate else R.string.developer_generate_another),
+                        { confirmRotate = true },
                         Modifier.padding(16.dp),
-                        icon = OmniIcons.Lock,
-                        action = {
-                            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                                OmniTextButton(stringResource(CommonR.string.common_copy), { clipboard.setText(AnnotatedString(secret)) })
-                                OmniTextButton(stringResource(CommonR.string.common_done), viewModel::dismissCreatedSecret, color = colors.textSecondary)
-                            }
-                        },
+                        style = OmniButtonStyle.Outline,
+                        leadingIcon = OmniIcons.Key,
+                        loading = state.rotating,
                     )
-                }
-                when {
-                    state.webhooksLoading -> Box(Modifier.fillMaxWidth().padding(16.dp)) { OmniSpinner() }
-                    state.webhooksError != null -> InfoBanner(state.webhooksError!!.asString(), Modifier.padding(16.dp), icon = OmniIcons.WifiOff, action = { OmniTextButton(stringResource(CommonR.string.common_retry), viewModel::loadWebhooks) })
-                    state.webhooks.isEmpty() -> Text(stringResource(R.string.developer_no_webhooks), style = OmniTheme.typography.bodySmall, color = colors.textTertiary, modifier = Modifier.padding(16.dp))
-                    else -> state.webhooks.forEach { hook ->
-                        Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Column(Modifier.weight(1f)) {
-                                Text(hook.url, style = OmniTheme.typography.mono, color = colors.textPrimary, maxLines = 1)
-                                Text(listOfNotNull(stringResource(if (hook.enabled) R.string.developer_enabled else R.string.developer_disabled), hook.createdAt?.take(10)).joinToString(" · "), style = OmniTheme.typography.monoSmall, color = colors.textTertiary)
+                    SectionLabel(stringResource(R.string.developer_quick_start))
+                    val snippet = quickStart(state.apiBaseUrl)
+                    // Same shape as the console's code blocks: the snippet scrolls sideways and Copy stays in the corner.
+                    Box(Modifier.fillMaxWidth().padding(horizontal = 16.dp).background(colors.surfaceRaised)) {
+                        Text(
+                            snippet,
+                            style = OmniTheme.typography.mono,
+                            color = colors.textPrimary,
+                            modifier = Modifier.horizontalScroll(rememberScrollState()).padding(start = 12.dp, top = 12.dp, bottom = 12.dp, end = 44.dp),
+                        )
+                        OmniIconButton(
+                            OmniIcons.Copy,
+                            stringResource(CommonR.string.common_copy),
+                            { copyText(snippet) },
+                            modifier = Modifier.align(Alignment.TopEnd).background(colors.surfaceRaised),
+                        )
+                    }
+
+                    SectionLabel(stringResource(R.string.developer_webhooks)) { OmniTextButton(stringResource(R.string.developer_add), { addingWebhook = true }) }
+                    Text(
+                        stringResource(R.string.developer_webhooks_explainer),
+                        style = OmniTheme.typography.bodySmall,
+                        color = colors.textSecondary,
+                        modifier = Modifier.padding(horizontal = 16.dp),
+                    )
+                    state.createdSecret?.let { secret ->
+                        InfoBanner(
+                            stringResource(R.string.developer_secret_once, secret),
+                            Modifier.padding(16.dp),
+                            icon = OmniIcons.Lock,
+                            action = {
+                                Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                                    OmniTextButton(stringResource(CommonR.string.common_copy), { copyText(secret) })
+                                    OmniTextButton(stringResource(CommonR.string.common_done), viewModel::dismissCreatedSecret, color = colors.textSecondary)
+                                }
+                            },
+                        )
+                    }
+                    when {
+                        state.webhooksLoading -> Box(Modifier.fillMaxWidth().padding(16.dp)) { OmniSpinner() }
+                        state.webhooksError != null -> InfoBanner(state.webhooksError!!.asString(), Modifier.padding(16.dp), icon = OmniIcons.WifiOff, action = { OmniTextButton(stringResource(CommonR.string.common_retry), viewModel::loadWebhooks) })
+                        state.webhooks.isEmpty() -> Text(stringResource(R.string.developer_no_webhooks), style = OmniTheme.typography.bodySmall, color = colors.textTertiary, modifier = Modifier.padding(16.dp))
+                        else -> state.webhooks.forEach { hook ->
+                            Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                                Column(Modifier.weight(1f)) {
+                                    Text(hook.url, style = OmniTheme.typography.mono, color = colors.textPrimary, maxLines = 1)
+                                    Text(listOfNotNull(stringResource(if (hook.enabled) R.string.developer_enabled else R.string.developer_disabled), hook.createdAt?.take(10)).joinToString(" · "), style = OmniTheme.typography.monoSmall, color = colors.textTertiary)
+                                }
+                                OmniIconButton(OmniIcons.Trash, stringResource(R.string.developer_delete_webhook), { deleting = hook })
                             }
-                            OmniIconButton(OmniIcons.Trash, stringResource(R.string.developer_delete_webhook), { deleting = hook })
                         }
                     }
                 }

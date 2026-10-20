@@ -15,14 +15,15 @@ aboutLibraries {
         configPath = rootProject.file("config/aboutlibraries")
     }
     library {
-        // Only open-source code the app ships. Google Play services, AdMob/UMP, Google ID and Play's hsdp are
-        // proprietary (Android SDK licence / Google terms); BOMs are version lists and the Dagger lint AAR isn't
+        // Only open-source code the app ships. Google Play services, AdMob/UMP, Google ID, Play's hsdp and Play In-App
+        // Review are proprietary (Android SDK licence / Google terms); BOMs are version lists and the Dagger lint AAR isn't
         // packaged, so neither carries code to attribute.
         exclusionPatterns = setOf(
             Regex("com\\.google\\.android\\.gms:.*").toPattern(),
             Regex("com\\.google\\.android\\.ump:.*").toPattern(),
             Regex("com\\.google\\.android\\.libraries\\.identity\\..*").toPattern(),
             Regex("com\\.google\\.android\\.play:hsdp").toPattern(),
+            Regex("com\\.google\\.android\\.play:(review|core-common)").toPattern(),
             Regex(".*:.*-bom").toPattern(),
             Regex("com\\.google\\.dagger:dagger-lint-aar").toPattern(),
         )
@@ -41,8 +42,10 @@ android {
 
     defaultConfig {
         applicationId = "solutions.laxmi.omnicompiler"
-        versionCode = 2
-        versionName = "1.0.1"
+        // The published listing that "Rate" opens; debug's ".debug" id has none.
+        buildConfigField("String", "STORE_PACKAGE", "\"$applicationId\"")
+        versionCode = 3
+        versionName = "1.1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -87,6 +90,7 @@ dependencies {
     implementation(projects.feature.settings)
     implementation(projects.feature.vcs)
     implementation(projects.core.ads)
+    implementation(projects.core.review)
 
     // Installs the bundled baseline profile so first launches run precompiled code paths.
     implementation(libs.androidx.profileinstaller)
@@ -100,6 +104,7 @@ dependencies {
     implementation(libs.androidx.lifecycle.viewmodel.navigation3)
     implementation(libs.androidx.navigation3.runtime)
     implementation(libs.androidx.navigation3.ui)
+    implementation(libs.androidx.compose.material3.adaptive.navigation3)
     implementation(libs.androidx.hilt.lifecycle.viewmodel.compose)
     implementation(libs.androidx.hilt.work)
     implementation(libs.androidx.work.runtime)

@@ -10,10 +10,8 @@ import solutions.laxmi.omnicompiler.core.model.Outcome
 import solutions.laxmi.omnicompiler.core.storage.AccessLostException
 import solutions.laxmi.omnicompiler.core.storage.FileTooLargeException
 import solutions.laxmi.omnicompiler.core.storage.ProjectFolderStore
+import solutions.laxmi.omnicompiler.core.common.decodeUtf8OrNull
 import java.io.IOException
-import java.nio.ByteBuffer
-import java.nio.charset.CharacterCodingException
-import java.nio.charset.CodingErrorAction
 import javax.inject.Inject
 
 /** A file opened from another app, edited where it lives. [writable] is false when it was shared read-only. */
@@ -58,15 +56,5 @@ internal class DefaultExternalFileRepository @Inject constructor(
     }
 
     /** Strict UTF-8 decoding: binary files (images, archives) and other encodings are refused rather than garbled. */
-    private fun decodeText(bytes: ByteArray): String? {
-        if (bytes.any { it == 0.toByte() }) return null
-        val decoder = Charsets.UTF_8.newDecoder()
-            .onMalformedInput(CodingErrorAction.REPORT)
-            .onUnmappableCharacter(CodingErrorAction.REPORT)
-        return try {
-            decoder.decode(ByteBuffer.wrap(bytes)).toString().removePrefix("\uFEFF")
-        } catch (e: CharacterCodingException) {
-            null
-        }
-    }
+    private fun decodeText(bytes: ByteArray): String? = decodeUtf8OrNull(bytes)?.removePrefix("\uFEFF")
 }

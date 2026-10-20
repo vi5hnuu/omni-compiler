@@ -18,6 +18,8 @@ object OmniDimens {
     val screenPadding = 16.dp
     /** Widest a single-column form (sign-in, account) grows on landscape and tablets. */
     val formMaxWidth = 480.dp
+    /** Widest single-column content (lists, settings, details) grows on tablets before it is centred. */
+    val contentMaxWidth = 720.dp
     val appBarHeight = 48.dp
     val compactAppBarHeight = 44.dp
     val tabHeight = 32.dp

@@ -4,7 +4,6 @@ import solutions.laxmi.omnicompiler.feature.workspace.R
 import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -61,9 +60,11 @@ internal fun ConsolePeek(latest: RunRecord?, expanded: Boolean, onToggle: () -> 
                 }
                 latest.displayVerdict() != null -> VerdictBadge(latest.displayVerdict()!!)
             }
-            Text(latest.headline(), style = OmniTheme.typography.bodyStrong, color = colors.textPrimary, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
-            Text(latest.meta(), style = OmniTheme.typography.monoSmall, color = colors.textTertiary, maxLines = 1)
-            Box(Modifier.weight(1f))
+            // The headline shrinks first; whatever room is left pushes the strip to the end of the row.
+            Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(latest.headline(), style = OmniTheme.typography.bodyStrong, color = colors.textPrimary, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
+                Text(latest.meta(), style = OmniTheme.typography.monoSmall, color = colors.textTertiary, maxLines = 1)
+            }
             VerdictStrip(latest.stripStates().take(MAX_STRIP))
         }
     }

@@ -64,6 +64,7 @@ object OmniIcons {
     val User by icon(circle(12f, 8f, 4f), "M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1")
     val LogOut by icon("M9 21H3V3h6", "M16 17l5-5-5-5", "M21 12H9")
     val Book by icon("M4 19.5V4h16v18H6.5A2.5 2.5 0 0 1 4 19.5z", "M4 19.5A2.5 2.5 0 0 1 6.5 17H20")
+    val Star by icon("M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01z")
     val Zap by icon("M13 2 3 14h9l-1 8 10-12h-9l1-8z")
     val Braces by icon(
         "M8 3H7a2 2 0 0 0-2 2v5a2 2 0 0 1-2 2 2 2 0 0 1 2 2v5a2 2 0 0 0 2 2h1",

@@ -1,5 +1,6 @@
 package solutions.laxmi.omnicompiler.feature.settings
 
+import solutions.laxmi.omnicompiler.core.designsystem.component.ReadableContent
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.annotation.RawRes
@@ -67,24 +68,26 @@ fun OpenSourceScreen(navigator: Navigator, @RawRes licensesResId: Int) {
     val colors = OmniTheme.colors
     Column(Modifier.fillMaxSize().background(colors.background).navigationBarsPadding()) {
         OmniTopBar(stringResource(R.string.oss_title), onBack = navigator::back, subtitle = libraries?.let { pluralStringResource(R.plurals.oss_components, it.size, it.size) })
-        val list = libraries
-        if (list == null) {
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { OmniSpinner() }
-            return@Column
-        }
-        LazyColumn(Modifier.weight(1f)) {
-            list.firstOrNull { it.uniqueId == SORA_EDITOR_ID }?.let { sora ->
-                item { LgplNotice(sora.artifactVersion.orEmpty()) { context.openUrl(it) } }
+        ReadableContent {
+            val list = libraries
+            if (list == null) {
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { OmniSpinner() }
+                return@ReadableContent
             }
-            items(list, key = { it.uniqueId }) { library ->
-                OmniListRow(
-                    title = library.name,
-                    subtitle = listOfNotNull(
-                        library.artifactVersion?.takeIf { it.isNotBlank() },
-                        library.distinctLicenses().joinToString(", ") { it.spdxId ?: it.name }.ifBlank { null },
-                    ).joinToString(" · "),
-                    onClick = { selected = library },
-                )
+            LazyColumn(Modifier.weight(1f)) {
+                list.firstOrNull { it.uniqueId == SORA_EDITOR_ID }?.let { sora ->
+                    item { LgplNotice(sora.artifactVersion.orEmpty()) { context.openUrl(it) } }
+                }
+                items(list, key = { it.uniqueId }) { library ->
+                    OmniListRow(
+                        title = library.name,
+                        subtitle = listOfNotNull(
+                            library.artifactVersion?.takeIf { it.isNotBlank() },
+                            library.distinctLicenses().joinToString(", ") { it.spdxId ?: it.name }.ifBlank { null },
+                        ).joinToString(" · "),
+                        onClick = { selected = library },
+                    )
+                }
             }
         }
     }

@@ -35,13 +35,17 @@ internal data class GhCommitDto(val sha: String, val tree: GhShaDto)
 internal data class GhTreeListingDto(val sha: String, val truncated: Boolean = false, val tree: List<GhTreeItemDto> = emptyList())
 
 @Serializable
-internal data class GhTreeItemDto(val path: String, val type: String, val sha: String, val size: Long? = null)
+internal data class GhTreeItemDto(val path: String, val type: String, val sha: String, val size: Long? = null, val mode: String? = null)
 
 @Serializable
 internal data class GhCreateBlobDto(val content: String, val encoding: String = "utf-8")
 
+/** [sha] null deletes the file; GitHub needs it sent as an explicit `null` (see NetworkModule's GitHub JSON). */
 @Serializable
-internal data class GhTreeEntryDto(val path: String, val mode: String = "100644", val type: String = "blob", val sha: String?)
+internal data class GhTreeEntryDto(val path: String, val mode: String = FILE_MODE, val type: String = "blob", val sha: String?)
+
+/** Git's mode for a regular, non-executable file. */
+internal const val FILE_MODE = "100644"
 
 @Serializable
 internal data class GhCreateTreeDto(@SerialName("base_tree") val baseTree: String, val tree: List<GhTreeEntryDto>)
@@ -70,6 +74,9 @@ internal data class GlBranchDto(val name: String, val commit: GlCommitIdDto)
 
 @Serializable
 internal data class GlCommitIdDto(val id: String)
+
+@Serializable
+internal data class GlCreatedCommitDto(val id: String, @SerialName("parent_ids") val parentIds: List<String> = emptyList())
 
 @Serializable
 internal data class GlTreeEntryDto(val id: String, val name: String, val type: String, val path: String)

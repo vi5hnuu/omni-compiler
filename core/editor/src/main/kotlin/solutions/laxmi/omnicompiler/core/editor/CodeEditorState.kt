@@ -5,6 +5,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -53,7 +54,7 @@ class CodeEditorState internal constructor(private val scope: CoroutineScope) {
     var cursor by mutableStateOf(CursorPosition(1, 1)); internal set
     var canUndo by mutableStateOf(false); internal set
     var canRedo by mutableStateOf(false); internal set
-    var lineCount by mutableStateOf(1); internal set
+    var lineCount by mutableIntStateOf(1); internal set
     var isDirty by mutableStateOf(false); internal set
 
     /** The text last saved from the view, with its file id: what the app sees once autosave settles. */
@@ -61,8 +62,8 @@ class CodeEditorState internal constructor(private val scope: CoroutineScope) {
 
     /** The code view holds input focus (as opposed to another text field on screen, e.g. stdin). */
     var hasFocus by mutableStateOf(false); internal set
-    var searchMatches by mutableStateOf(0); internal set
-    var searchIndex by mutableStateOf(-1); internal set
+    var searchMatches by mutableIntStateOf(0); internal set
+    var searchIndex by mutableIntStateOf(-1); internal set
 
     /** The current find pattern is not a valid regular expression. */
     var searchInvalid by mutableStateOf(false); internal set

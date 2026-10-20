@@ -1,8 +1,12 @@
 package solutions.laxmi.omnicompiler.feature.projects
 
+import solutions.laxmi.omnicompiler.core.designsystem.component.ReadableContent
 import androidx.activity.compose.LocalActivity
 import solutions.laxmi.omnicompiler.core.ads.LocalAds
 import solutions.laxmi.omnicompiler.core.ads.AdBanner
+import androidx.compose.foundation.lazy.itemsIndexed
+import solutions.laxmi.omnicompiler.core.ads.rememberNativeAdSlots
+import solutions.laxmi.omnicompiler.core.ads.NativeAdSlot
 import solutions.laxmi.omnicompiler.core.navigation.RepoImportRoute
 import solutions.laxmi.omnicompiler.core.model.ProjectIssue
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -86,6 +90,7 @@ fun ProjectsScreen(navigator: Navigator) {
     var menu by remember { mutableStateOf(false) }
     val ads = LocalAds.current
     val activity = LocalActivity.current
+    val adSlots = rememberNativeAdSlots()
     // The system pickers reach device storage and cloud providers (Drive, OneDrive, Dropbox) alike.
     val pickFolder = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
         if (uri != null) viewModel.importFolder(uri.toString())
@@ -107,7 +112,11 @@ fun ProjectsScreen(navigator: Navigator) {
     Box(Modifier.fillMaxSize().background(colors.background)) {
         Column(Modifier.fillMaxSize().navigationBarsPadding()) {
             OmniTopBar(stringResource(R.string.projects_title), onBack = navigator::back) {
-                OmniIconButton(OmniIcons.Search, stringResource(R.string.projects_search), { searching = !searching }, selected = searching)
+                OmniIconButton(OmniIcons.Search, stringResource(R.string.projects_search), {
+                    // A hidden query would keep filtering the list, so closing search clears it.
+                    if (searching) viewModel.setQuery("")
+                    searching = !searching
+                }, selected = searching)
                 Box {
                     OmniIconButton(OmniIcons.MoreVertical, stringResource(R.string.projects_more), { menu = true })
                     DropdownMenu(menu, { menu = false }, containerColor = colors.surfaceRaised, shape = RectangleShape) {
@@ -117,57 +126,62 @@ fun ProjectsScreen(navigator: Navigator) {
                     }
                 }
             }
-            if (searching) {
-                OmniTextField(
-                    state.query, viewModel::setQuery, placeholder = stringResource(R.string.projects_search), leadingIcon = OmniIcons.Search,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+            ReadableContent {
+                if (searching) {
+                    OmniTextField(
+                        state.query, viewModel::setQuery, placeholder = stringResource(R.string.projects_search), leadingIcon = OmniIcons.Search,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                    )
+                }
+                val filters = ProjectFilter.entries
+                OmniTabRow(
+                    tabs = filters.map { OmniTab(stringResource(it.labelRes()), badge = state.counts[it]?.toString()) },
+                    selectedIndex = filters.indexOf(state.filter),
+                    onSelect = { viewModel.setFilter(filters[it]) },
                 )
-            }
-            val filters = ProjectFilter.entries
-            OmniTabRow(
-                tabs = filters.map { OmniTab(stringResource(it.labelRes()), badge = state.counts[it]?.toString()) },
-                selectedIndex = filters.indexOf(state.filter),
-                onSelect = { viewModel.setFilter(filters[it]) },
-            )
-            if (state.importing) {
-                InfoBanner(stringResource(R.string.projects_importing), Modifier.padding(horizontal = 16.dp, vertical = 8.dp), icon = OmniIcons.Download)
-            }
-            // Messages appear above "New project" and the banner, never over them.
-            Box(Modifier.weight(1f)) {
-            // Pull to refresh works on the empty state too: projects copied into the folder by another app appear.
-            PullToRefreshBox(isRefreshing = state.refreshing, onRefresh = viewModel::refresh, modifier = Modifier.fillMaxSize()) {
-            if (state.projects.isEmpty()) {
-                EmptyState(
-                    title = stringResource(if (state.query.isBlank()) R.string.projects_empty_title else R.string.projects_no_matches),
-                    message = stringResource(R.string.projects_empty_message),
-                    icon = OmniIcons.Folder,
-                    modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()),
-                )
-            } else {
-                LazyColumn(Modifier.fillMaxSize()) {
-                    items(state.projects, key = { it.summary.project.id }) { row ->
-                        ProjectRow(
-                            row = row,
-                            age = formatAge(row.summary.project.updatedAt, state.now),
-                            current = row.summary.project.id == state.currentProjectId,
-                            onOpen = {
-                                // Opening a different project is a natural break for a (rate-limited) interstitial.
-                                if (row.summary.project.id != state.currentProjectId) activity?.let { ads.onNaturalBreak(it) }
-                                navigator.resetTo(EditorRoute(row.summary.project.id))
-                            },
-                            onRename = { renaming = row },
-                            onDuplicate = { viewModel.duplicate(row.summary.project.id) },
-                            onExport = { viewModel.export(row.summary.project.id) },
-                            onDelete = { deleting = row },
-                        )
+                if (state.importing) {
+                    InfoBanner(stringResource(R.string.projects_importing), Modifier.padding(horizontal = 16.dp, vertical = 8.dp), icon = OmniIcons.Download)
+                }
+                // Messages appear above "New project" and the banner, never over them.
+                Box(Modifier.weight(1f)) {
+                    // Pull to refresh works on the empty state too: projects copied into the folder by another app appear.
+                    PullToRefreshBox(isRefreshing = state.refreshing, onRefresh = viewModel::refresh, modifier = Modifier.fillMaxSize()) {
+                        if (state.projects.isEmpty()) {
+                            EmptyState(
+                                title = stringResource(if (state.query.isBlank()) R.string.projects_empty_title else R.string.projects_no_matches),
+                                message = stringResource(R.string.projects_empty_message),
+                                icon = OmniIcons.Folder,
+                                modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()),
+                            )
+                        } else {
+                            LazyColumn(Modifier.fillMaxSize()) {
+                                itemsIndexed(state.projects, key = { _, row -> row.summary.project.id }) { index, row ->
+                                    Column {
+                                        ProjectRow(
+                                            row = row,
+                                            age = formatAge(row.summary.project.updatedAt, state.now),
+                                            current = row.summary.project.id == state.currentProjectId,
+                                            onOpen = {
+                                                // Opening a different project is a natural break for a (rate-limited) interstitial.
+                                                if (row.summary.project.id != state.currentProjectId) activity?.let { ads.onNaturalBreak(it) }
+                                                navigator.resetTo(EditorRoute(row.summary.project.id))
+                                            },
+                                            onRename = { renaming = row },
+                                            onDuplicate = { viewModel.duplicate(row.summary.project.id) },
+                                            onExport = { viewModel.export(row.summary.project.id) },
+                                            onDelete = { deleting = row },
+                                        )
+                                        NativeAdSlot(adSlots, index)
+                                    }
+                                }
+                            }
+                        }
                     }
+                    OmniSnackbarHost(snackbar, Modifier.align(Alignment.BottomCenter))
                 }
-                }
+                OmniButton(stringResource(R.string.projects_new), { creating = true }, Modifier.padding(16.dp), leadingIcon = OmniIcons.Plus, trailingIcon = null)
+                AdBanner()
             }
-                OmniSnackbarHost(snackbar, Modifier.align(Alignment.BottomCenter))
-            }
-            OmniButton(stringResource(R.string.projects_new), { creating = true }, Modifier.padding(16.dp), leadingIcon = OmniIcons.Plus, trailingIcon = null)
-            AdBanner()
         }
     }
     if (creating) {

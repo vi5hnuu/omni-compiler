@@ -1,8 +1,12 @@
 package solutions.laxmi.omnicompiler.feature.projects
 
+import solutions.laxmi.omnicompiler.core.designsystem.component.ReadableContent
 import androidx.activity.compose.LocalActivity
 import solutions.laxmi.omnicompiler.core.ads.LocalAds
 import solutions.laxmi.omnicompiler.core.ads.AdBanner
+import androidx.compose.foundation.lazy.itemsIndexed
+import solutions.laxmi.omnicompiler.core.ads.rememberNativeAdSlots
+import solutions.laxmi.omnicompiler.core.ads.NativeAdSlot
 import solutions.laxmi.omnicompiler.core.ui.testCount
 import solutions.laxmi.omnicompiler.core.ui.labelRes
 import solutions.laxmi.omnicompiler.core.ui.asString
@@ -56,6 +60,7 @@ import solutions.laxmi.omnicompiler.core.designsystem.theme.OmniTheme
 import solutions.laxmi.omnicompiler.core.model.Difficulty
 import solutions.laxmi.omnicompiler.core.model.Example
 import solutions.laxmi.omnicompiler.core.model.Language
+import solutions.laxmi.omnicompiler.core.navigation.ExamplesRoute
 import solutions.laxmi.omnicompiler.core.navigation.EditorRoute
 import solutions.laxmi.omnicompiler.core.navigation.Navigator
 import solutions.laxmi.omnicompiler.core.navigation.ProblemRoute
@@ -65,6 +70,9 @@ import solutions.laxmi.omnicompiler.core.navigation.ProblemRoute
 fun ExamplesScreen(navigator: Navigator) {
     val viewModel = hiltViewModel<ExamplesViewModel>()
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    // Beside its detail on a large screen, the list marks the item whose details are open.
+    val openDetail = navigator.openedFrom(ExamplesRoute)
+    val adSlots = rememberNativeAdSlots()
     val snackbar = remember { SnackbarHostState() }
     var tab by rememberSaveable { mutableIntStateOf(0) }
     var chosen by remember { mutableStateOf<Example?>(null) }
@@ -73,34 +81,43 @@ fun ExamplesScreen(navigator: Navigator) {
     val colors = OmniTheme.colors
     Box(Modifier.fillMaxSize().background(colors.background)) {
         Column(Modifier.fillMaxSize().navigationBarsPadding()) {
-            OmniTopBar(stringResource(R.string.practice_title), onBack = navigator::back)
-            OmniTabRow(listOf(OmniTab(stringResource(R.string.practice_tab_examples), state.examples.size.toString()), OmniTab(stringResource(R.string.practice_tab_problems), state.problems.size.toString())), tab, { tab = it })
-            // Messages appear above the banner: nothing may overlap an ad.
-            Box(Modifier.weight(1f)) {
-            LazyColumn(Modifier.fillMaxSize()) {
-                if (tab == 0) {
-                    items(state.examples, key = { it.id }) { example ->
-                        OmniListRow(
-                            title = example.title,
-                            subtitle = example.statement,
-                            trailing = { DifficultyBadge(example.difficulty) },
-                            onClick = { chosen = example },
-                        )
-                    }
-                } else {
-                    items(state.problems, key = { it.slug }) { problem ->
-                        OmniListRow(
-                            title = problem.title,
-                            subtitle = problem.tagline,
-                            trailing = { DifficultyBadge(problem.difficulty) },
-                            onClick = { navigator.navigate(ProblemRoute(problem.slug)) },
-                        )
+            OmniTopBar(stringResource(R.string.practice_title), onBack = { navigator.exit(ExamplesRoute) })
+            ReadableContent {
+                OmniTabRow(listOf(OmniTab(stringResource(R.string.practice_tab_examples), state.examples.size.toString()), OmniTab(stringResource(R.string.practice_tab_problems), state.problems.size.toString())), tab, { tab = it })
+                // Messages appear above the banner: nothing may overlap an ad.
+                Box(Modifier.weight(1f)) {
+                LazyColumn(Modifier.fillMaxSize()) {
+                    if (tab == 0) {
+                        itemsIndexed(state.examples, key = { _, example -> example.id }) { index, example ->
+                            Column {
+                                OmniListRow(
+                                    title = example.title,
+                                    subtitle = example.statement,
+                                    trailing = { DifficultyBadge(example.difficulty) },
+                                    onClick = { chosen = example },
+                                )
+                                NativeAdSlot(adSlots, index)
+                            }
+                        }
+                    } else {
+                        itemsIndexed(state.problems, key = { _, problem -> problem.slug }) { index, problem ->
+                            Column {
+                                OmniListRow(
+                                    title = problem.title,
+                                    subtitle = problem.tagline,
+                                    trailing = { DifficultyBadge(problem.difficulty) },
+                                    selected = (openDetail as? ProblemRoute)?.slug == problem.slug,
+                                    onClick = { navigator.openDetail(ExamplesRoute, ProblemRoute(problem.slug)) },
+                                )
+                                NativeAdSlot(adSlots, index)
+                            }
+                        }
                     }
                 }
+                    OmniSnackbarHost(snackbar, Modifier.align(Alignment.BottomCenter))
+                }
+                AdBanner()
             }
-                OmniSnackbarHost(snackbar, Modifier.align(Alignment.BottomCenter))
-            }
-            AdBanner()
         }
     }
     chosen?.let { example ->
@@ -141,53 +158,55 @@ fun ProblemScreen(route: ProblemRoute, navigator: Navigator) {
     Box(Modifier.fillMaxSize().background(colors.background)) {
         Column(Modifier.fillMaxSize().navigationBarsPadding()) {
             OmniTopBar(problem?.title ?: stringResource(R.string.practice_problem), onBack = navigator::back)
-            if (problem == null) {
-                if (state.loading) {
-                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { OmniSpinner() }
-                } else {
-                    EmptyState(stringResource(R.string.practice_problem_missing_title), stringResource(R.string.practice_problem_missing_message), icon = OmniIcons.Search)
+            ReadableContent {
+                if (problem == null) {
+                    if (state.loading) {
+                        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { OmniSpinner() }
+                    } else {
+                        EmptyState(stringResource(R.string.practice_problem_missing_title), stringResource(R.string.practice_problem_missing_message), icon = OmniIcons.Search)
+                    }
+                    return@ReadableContent
                 }
-                return@Column
-            }
-            LazyColumn(Modifier.weight(1f), contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                item {
-                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        DifficultyBadge(problem.difficulty)
-                        problem.tags.forEach { OmniBadge(it.uppercase()) }
+                LazyColumn(Modifier.weight(1f), contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    item {
+                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            DifficultyBadge(problem.difficulty)
+                            problem.tags.forEach { OmniBadge(it.uppercase()) }
+                        }
+                    }
+                    item { Text(problem.tagline, style = OmniTheme.typography.bodyStrong, color = colors.textPrimary) }
+                    // Statements use Markdown (inline code, emphasis), as on the web playground.
+                    items(problem.statement) { paragraph -> ProblemMarkdown(paragraph) }
+                    if (problem.examples.isNotEmpty()) item { SectionLabel(stringResource(R.string.practice_examples), Modifier.padding(horizontal = 0.dp)) }
+                    items(problem.examples) { example ->
+                        Column(Modifier.fillMaxWidth().background(colors.surfaceRaised).padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Text(stringResource(R.string.practice_input).uppercase(), style = OmniTheme.typography.overline, color = colors.textTertiary)
+                            Text(example.input, style = OmniTheme.typography.mono, color = colors.textPrimary)
+                            Text(stringResource(R.string.practice_output).uppercase(), style = OmniTheme.typography.overline, color = colors.textTertiary)
+                            Text(example.output, style = OmniTheme.typography.mono, color = colors.textPrimary)
+                            example.explanation?.let { Text(it, style = OmniTheme.typography.bodySmall, color = colors.textSecondary) }
+                        }
+                    }
+                    if (problem.constraints.isNotEmpty()) {
+                        item { SectionLabel(stringResource(R.string.practice_constraints), Modifier.padding(horizontal = 0.dp)) }
+                        items(problem.constraints) { ProblemMarkdown("- $it") }
+                    }
+                    item {
+                        Text(stringResource(R.string.practice_starters, pluralStringResource(R.plurals.practice_languages, state.solutionLanguages.size, state.solutionLanguages.size), testCount(problem.tests.size)), style = OmniTheme.typography.bodySmall, color = colors.textTertiary)
                     }
                 }
-                item { Text(problem.tagline, style = OmniTheme.typography.bodyStrong, color = colors.textPrimary) }
-                // Statements use Markdown (inline code, emphasis), as on the web playground.
-                items(problem.statement) { paragraph -> ProblemMarkdown(paragraph) }
-                if (problem.examples.isNotEmpty()) item { SectionLabel(stringResource(R.string.practice_examples), Modifier.padding(horizontal = 0.dp)) }
-                items(problem.examples) { example ->
-                    Column(Modifier.fillMaxWidth().background(colors.surfaceRaised).padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text(stringResource(R.string.practice_input).uppercase(), style = OmniTheme.typography.overline, color = colors.textTertiary)
-                        Text(example.input, style = OmniTheme.typography.mono, color = colors.textPrimary)
-                        Text(stringResource(R.string.practice_output).uppercase(), style = OmniTheme.typography.overline, color = colors.textTertiary)
-                        Text(example.output, style = OmniTheme.typography.mono, color = colors.textPrimary)
-                        example.explanation?.let { Text(it, style = OmniTheme.typography.bodySmall, color = colors.textSecondary) }
+                if (state.solutionLanguages.isNotEmpty()) {
+                    Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        state.solutionLanguages.forEach { language ->
+                            OmniChip(language.info.name, pickedBase == language.base, onClick = { pickedBase = language.base.takeIf { it != pickedBase } })
+                        }
                     }
                 }
-                if (problem.constraints.isNotEmpty()) {
-                    item { SectionLabel(stringResource(R.string.practice_constraints), Modifier.padding(horizontal = 0.dp)) }
-                    items(problem.constraints) { ProblemMarkdown("- $it") }
+                val picked: Language? = state.solutionLanguages.firstOrNull { it.base == pickedBase }
+                Row(Modifier.padding(16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OmniButton(stringResource(R.string.practice_tests_only), { confirmReplace = true }, Modifier.weight(1f), style = OmniButtonStyle.Secondary, trailingIcon = null)
+                    OmniButton(picked?.let { stringResource(R.string.practice_solve_in, it.info.name) } ?: stringResource(R.string.practice_solve), { viewModel.solve(picked) }, Modifier.weight(1f), trailingIcon = OmniIcons.ArrowRight)
                 }
-                item {
-                    Text(stringResource(R.string.practice_starters, pluralStringResource(R.plurals.practice_languages, state.solutionLanguages.size, state.solutionLanguages.size), testCount(problem.tests.size)), style = OmniTheme.typography.bodySmall, color = colors.textTertiary)
-                }
-            }
-            if (state.solutionLanguages.isNotEmpty()) {
-                Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    state.solutionLanguages.forEach { language ->
-                        OmniChip(language.info.name, pickedBase == language.base, onClick = { pickedBase = language.base.takeIf { it != pickedBase } })
-                    }
-                }
-            }
-            val picked: Language? = state.solutionLanguages.firstOrNull { it.base == pickedBase }
-            Row(Modifier.padding(16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OmniButton(stringResource(R.string.practice_tests_only), { confirmReplace = true }, Modifier.weight(1f), style = OmniButtonStyle.Secondary, trailingIcon = null)
-                OmniButton(picked?.let { stringResource(R.string.practice_solve_in, it.info.name) } ?: stringResource(R.string.practice_solve), { viewModel.solve(picked) }, Modifier.weight(1f), trailingIcon = OmniIcons.ArrowRight)
             }
         }
         OmniSnackbarHost(snackbar, Modifier.align(Alignment.BottomCenter))

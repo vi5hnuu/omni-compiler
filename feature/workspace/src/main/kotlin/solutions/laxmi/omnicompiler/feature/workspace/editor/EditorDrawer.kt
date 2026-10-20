@@ -14,16 +14,21 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.displayCutout
+import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.systemBars
+import androidx.compose.foundation.layout.union
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.mutableStateOf
@@ -52,8 +57,8 @@ import solutions.laxmi.omnicompiler.core.ui.Avatar
 import solutions.laxmi.omnicompiler.core.ui.VerdictBadge
 import solutions.laxmi.omnicompiler.core.ui.fileBadgeFor
 
-/** Where drawer rows lead; the screen maps them to routes. */
-enum class DrawerDestination(@StringRes val labelRes: Int, val icon: ImageVector) {
+/** Where drawer rows lead; the screen maps them to routes. [external] rows leave the app (e.g. the Play Store). */
+enum class DrawerDestination(@StringRes val labelRes: Int, val icon: ImageVector, val external: Boolean = false) {
     Projects(R.string.drawer_all_projects, OmniIcons.Folder),
     ImportGit(R.string.drawer_import_git, OmniIcons.Download),
     Examples(R.string.drawer_examples, OmniIcons.Book),
@@ -61,6 +66,8 @@ enum class DrawerDestination(@StringRes val labelRes: Int, val icon: ImageVector
     Usage(R.string.drawer_usage, OmniIcons.Chart),
     Developer(R.string.drawer_developer, OmniIcons.Key),
     Settings(R.string.drawer_settings, OmniIcons.Settings),
+    AdFreePass(R.string.drawer_ad_free_pass, OmniIcons.Play),
+    RateApp(R.string.drawer_rate, OmniIcons.Star, external = true),
 }
 
 /** Design W1: account header, project switcher, current project's files, navigation. */
@@ -100,8 +107,8 @@ internal fun EditorDrawer(
             .width(300.dp)
             .fillMaxHeight()
             .background(colors.surface)
-            .statusBarsPadding()
-            .navigationBarsPadding(),
+            // Anchored to the start edge as a modal drawer or a sidebar: only that edge's bars and cutout apply.
+            .windowInsetsPadding(screenInsets.only(WindowInsetsSides.Start + WindowInsetsSides.Vertical)),
     ) {
         AccountHeader(user, onAccount)
         LazyColumn(Modifier.weight(1f)) {
@@ -178,7 +185,7 @@ internal fun EditorDrawer(
                 DrawerRow(selected = false, onClick = { onDestination(destination) }) {
                     Icon(destination.icon, null, tint = colors.textSecondary, modifier = Modifier.size(16.dp))
                     Text(stringResource(destination.labelRes), style = OmniTheme.typography.bodyStrong, color = colors.textPrimary, modifier = Modifier.weight(1f))
-                    Icon(OmniIcons.ChevronRight, null, tint = colors.textTertiary, modifier = Modifier.size(14.dp))
+                    Icon(if (destination.external) OmniIcons.ExternalLink else OmniIcons.ChevronRight, null, tint = colors.textTertiary, modifier = Modifier.size(14.dp))
                 }
             }
         }
@@ -296,6 +303,10 @@ private fun fileTree(files: List<FileHeader>, expanded: Set<String>): List<TreeR
 }
 
 private val TREE_INDENT = 12.dp
+
+/** The system bars plus a display cutout: what the editor's panels keep clear of (cutouts matter in landscape). */
+internal val screenInsets: WindowInsets
+    @Composable get() = WindowInsets.systemBars.union(WindowInsets.displayCutout)
 
 @StringRes
 private fun fileRole(file: FileHeader): Int? = when {

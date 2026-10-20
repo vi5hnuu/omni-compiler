@@ -22,6 +22,7 @@ import solutions.laxmi.omnicompiler.core.network.dto.GhUpdateRefDto
 import solutions.laxmi.omnicompiler.core.network.dto.GhUserDto
 import solutions.laxmi.omnicompiler.core.network.dto.GlBranchDto
 import solutions.laxmi.omnicompiler.core.network.dto.GlCommitIdDto
+import solutions.laxmi.omnicompiler.core.network.dto.GlCreatedCommitDto
 import solutions.laxmi.omnicompiler.core.network.dto.GlCreateCommitDto
 import solutions.laxmi.omnicompiler.core.network.dto.GlProjectDto
 import solutions.laxmi.omnicompiler.core.network.dto.GlTreeEntryDto
@@ -108,5 +109,5 @@ internal interface GitLabApi {
     suspend fun rawBlob(@Header("PRIVATE-TOKEN") token: String, @Path("id") id: String, @Path("sha") sha: String): ResponseBody
 
     @POST("projects/{id}/repository/commits")
-    suspend fun createCommit(@Header("PRIVATE-TOKEN") token: String, @Path("id") id: String, @Body body: GlCreateCommitDto): GlCommitIdDto
+    suspend fun createCommit(@Header("PRIVATE-TOKEN") token: String, @Path("id") id: String, @Body body: GlCreateCommitDto): GlCreatedCommitDto
 }

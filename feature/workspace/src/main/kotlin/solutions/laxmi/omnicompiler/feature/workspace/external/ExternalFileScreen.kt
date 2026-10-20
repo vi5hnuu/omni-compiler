@@ -63,7 +63,13 @@ fun ExternalFileScreen(route: ExternalFileRoute, navigator: Navigator) {
             }
         }
     }
+    // Leaving ends the view model, so an edit still in the autosave debounce is written first (system Back too).
+    val leave = {
+        editorState.flush()
+        navigator.back()
+    }
     BackHandler(enabled = searching) { searching = false }
+    BackHandler(enabled = !searching, onBack = leave)
     val colors = OmniTheme.colors
     val file = state.file
     Box(Modifier.fillMaxSize().background(colors.background)) {
@@ -80,10 +86,7 @@ fun ExternalFileScreen(route: ExternalFileRoute, navigator: Navigator) {
                         },
                     )
                 },
-                onBack = {
-                    editorState.flush()
-                    navigator.back()
-                },
+                onBack = leave,
             ) {
                 if (file != null) {
                     OmniIconButton(OmniIcons.Search, stringResource(R.string.editor_menu_find_replace), { searching = !searching })

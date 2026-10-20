@@ -1,5 +1,6 @@
 package solutions.laxmi.omnicompiler.feature.account
 
+import solutions.laxmi.omnicompiler.core.designsystem.component.ReadableContent
 import solutions.laxmi.omnicompiler.core.ui.shownInitials
 import solutions.laxmi.omnicompiler.core.ui.shownName
 import solutions.laxmi.omnicompiler.core.ui.asString
@@ -80,41 +81,43 @@ fun ProfileScreen(navigator: Navigator) {
     Box(Modifier.fillMaxSize().background(colors.background)) {
         Column(Modifier.fillMaxSize().navigationBarsPadding().imePadding()) {
             OmniTopBar(stringResource(R.string.profile_title), onBack = navigator::back)
-            val user = state.user
-            if (user == null) {
-                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text(stringResource(R.string.profile_not_signed_in), style = OmniTheme.typography.title, color = colors.textPrimary)
-                    OmniButton(stringResource(CommonR.string.common_sign_in), { navigator.navigate(WelcomeRoute) })
+            ReadableContent {
+                val user = state.user
+                if (user == null) {
+                    Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Text(stringResource(R.string.profile_not_signed_in), style = OmniTheme.typography.title, color = colors.textPrimary)
+                        OmniButton(stringResource(CommonR.string.common_sign_in), { navigator.navigate(WelcomeRoute) })
+                    }
+                    return@ReadableContent
                 }
-                return@Column
-            }
-            Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
-                Header(user)
-                if (user.isGuest) GuestSection(onCreateAccount = { navigator.navigate(SignUpRoute(convertGuest = true)) }, onSignIn = { navigator.navigate(SignInRoute) })
-                else ProfileForm(user, busy = state.busy == ProfileAction.Save, onSave = viewModel::save)
-                if (!user.isGuest && !user.verified) {
-                    InfoBanner(
-                        stringResource(R.string.profile_verify_banner, user.email.orEmpty()),
-                        Modifier.padding(16.dp),
-                        icon = OmniIcons.Mail,
-                        action = { OmniTextButton(stringResource(R.string.profile_resend_link), viewModel::resendVerification, enabled = state.busy == null) },
+                Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
+                    Header(user)
+                    if (user.isGuest) GuestSection(onCreateAccount = { navigator.navigate(SignUpRoute(convertGuest = true)) }, onSignIn = { navigator.navigate(SignInRoute) })
+                    else ProfileForm(user, busy = state.busy == ProfileAction.Save, onSave = viewModel::save)
+                    if (!user.isGuest && !user.verified) {
+                        InfoBanner(
+                            stringResource(R.string.profile_verify_banner, user.email.orEmpty()),
+                            Modifier.padding(16.dp),
+                            icon = OmniIcons.Mail,
+                            action = { OmniTextButton(stringResource(R.string.profile_resend_link), viewModel::resendVerification, enabled = state.busy == null) },
+                        )
+                    }
+                    SectionLabel(stringResource(R.string.profile_security))
+                    if (user.hasPassword) {
+                        OmniButton(stringResource(R.string.profile_change_password), { changingPassword = true }, Modifier.padding(horizontal = 16.dp), style = OmniButtonStyle.Outline, leadingIcon = OmniIcons.Lock)
+                    } else if (!user.isGuest) {
+                        Text(stringResource(R.string.profile_google_no_password), style = OmniTheme.typography.bodySmall, color = colors.textTertiary, modifier = Modifier.padding(horizontal = 16.dp))
+                    }
+                    OmniButton(stringResource(R.string.profile_sign_out), { confirmingSignOut = true }, Modifier.padding(16.dp), style = OmniButtonStyle.Outline, leadingIcon = OmniIcons.LogOut, loading = state.busy == ProfileAction.SignOut)
+                    SectionLabel(stringResource(R.string.profile_danger_zone))
+                    Text(
+                        stringResource(R.string.profile_delete_explainer),
+                        style = OmniTheme.typography.bodySmall,
+                        color = colors.textTertiary,
+                        modifier = Modifier.padding(horizontal = 16.dp),
                     )
+                    OmniTextButton(stringResource(R.string.profile_delete_account), { confirmingDelete = true }, Modifier.padding(horizontal = 16.dp, vertical = 12.dp))
                 }
-                SectionLabel(stringResource(R.string.profile_security))
-                if (user.hasPassword) {
-                    OmniButton(stringResource(R.string.profile_change_password), { changingPassword = true }, Modifier.padding(horizontal = 16.dp), style = OmniButtonStyle.Outline, leadingIcon = OmniIcons.Lock)
-                } else if (!user.isGuest) {
-                    Text(stringResource(R.string.profile_google_no_password), style = OmniTheme.typography.bodySmall, color = colors.textTertiary, modifier = Modifier.padding(horizontal = 16.dp))
-                }
-                OmniButton(stringResource(R.string.profile_sign_out), { confirmingSignOut = true }, Modifier.padding(16.dp), style = OmniButtonStyle.Outline, leadingIcon = OmniIcons.LogOut, loading = state.busy == ProfileAction.SignOut)
-                SectionLabel(stringResource(R.string.profile_danger_zone))
-                Text(
-                    stringResource(R.string.profile_delete_explainer),
-                    style = OmniTheme.typography.bodySmall,
-                    color = colors.textTertiary,
-                    modifier = Modifier.padding(horizontal = 16.dp),
-                )
-                OmniTextButton(stringResource(R.string.profile_delete_account), { confirmingDelete = true }, Modifier.padding(horizontal = 16.dp, vertical = 12.dp))
             }
         }
         OmniSnackbarHost(snackbar, Modifier.align(Alignment.BottomCenter))

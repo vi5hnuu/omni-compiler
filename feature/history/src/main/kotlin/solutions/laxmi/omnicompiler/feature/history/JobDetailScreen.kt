@@ -1,5 +1,6 @@
 package solutions.laxmi.omnicompiler.feature.history
 
+import solutions.laxmi.omnicompiler.core.designsystem.component.ReadableContent
 import solutions.laxmi.omnicompiler.core.model.JobStatus
 import solutions.laxmi.omnicompiler.core.ui.clipForDisplay
 import solutions.laxmi.omnicompiler.core.ui.labelRes
@@ -30,8 +31,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalClipboardManager
-import androidx.compose.ui.text.AnnotatedString
+import solutions.laxmi.omnicompiler.core.ui.rememberCopyToClipboard
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -60,7 +60,7 @@ fun JobDetailScreen(route: JobDetailRoute, navigator: Navigator) {
     val viewModel = hiltViewModel<JobDetailViewModel, JobDetailViewModel.Factory> { it.create(route) }
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
-    val clipboard = LocalClipboardManager.current
+    val copyText = rememberCopyToClipboard()
     val resources = LocalResources.current
     LaunchedEffect(viewModel) {
         viewModel.eventFlow.collect { event ->
@@ -79,50 +79,52 @@ fun JobDetailScreen(route: JobDetailRoute, navigator: Navigator) {
                 onBack = navigator::back,
                 subtitle = runtimeName?.let { stringResource(R.string.history_runtime_name, it.language, it.version) } ?: route.runtimeId,
             ) {
-                OmniIconButton(OmniIcons.Copy, stringResource(R.string.job_copy_id), { clipboard.setText(AnnotatedString(route.jobId)) })
+                OmniIconButton(OmniIcons.Copy, stringResource(R.string.job_copy_id), { copyText(route.jobId) })
             }
-            val job = state.job
-            when {
-                state.loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { OmniSpinner() }
-                job == null -> EmptyState(stringResource(R.string.job_load_failed), state.error?.asString().orEmpty(), icon = OmniIcons.Alert, action = { OmniButton(stringResource(CommonR.string.common_retry), viewModel::load) })
-                else -> Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
-                    Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        job.verdict?.let { VerdictBadge(it) }
-                        Text(job.verdict?.let { stringResource(it.labelRes) } ?: stringResource(job.status.labelRes()), style = OmniTheme.typography.title, color = colors.textPrimary, modifier = Modifier.weight(1f))
-                        Text(formatDuration(job.totalTimeMs), style = OmniTheme.typography.mono, color = colors.textSecondary)
-                    }
-                    job.code?.let { code ->
-                        SectionLabel(stringResource(R.string.job_code))
-                        val editorState = rememberCodeEditorState()
-                        CodeEditor(
-                            state = editorState,
-                            document = EditorDocument(route.jobId, 0, code, "code", route.runtimeId?.substringBefore('-'), isEntry = true),
-                            settings = EditorSettings(minimap = false),
-                            onTextChange = { _, _ -> },
-                            readOnly = true,
-                            modifier = Modifier.fillMaxWidth().heightIn(min = 160.dp, max = 320.dp),
-                        )
-                    }
-                    if (job.results.isNotEmpty()) SectionLabel(stringResource(R.string.job_tests))
-                    job.results.forEach { ResultCard(it) }
-                    Row(Modifier.padding(16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        OmniButton(stringResource(R.string.job_verify), viewModel::verify, Modifier.weight(1f), style = OmniButtonStyle.Secondary, loading = state.verifying, leadingIcon = OmniIcons.ShieldCheck, trailingIcon = null)
-                        OmniButton(stringResource(R.string.job_open_as_project), viewModel::openAsProject, Modifier.weight(1f), enabled = job.code != null, trailingIcon = OmniIcons.ArrowRight)
-                    }
-                    state.proof?.let { proof ->
-                        SectionLabel(stringResource(R.string.job_replay_proof))
-                        Column(Modifier.padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            listOf(
-                                stringResource(R.string.job_proof_image) to proof.imageHash,
-                                stringResource(R.string.job_proof_code) to proof.codeHash,
-                                stringResource(R.string.job_proof_input) to proof.inputHash,
-                                stringResource(R.string.job_proof_signature) to proof.signature,
-                                stringResource(R.string.job_proof_signed_at) to proof.signedAt,
+            ReadableContent {
+                val job = state.job
+                when {
+                    state.loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { OmniSpinner() }
+                    job == null -> EmptyState(stringResource(R.string.job_load_failed), state.error?.asString().orEmpty(), icon = OmniIcons.Alert, action = { OmniButton(stringResource(CommonR.string.common_retry), viewModel::load) })
+                    else -> Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
+                        Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                            job.verdict?.let { VerdictBadge(it) }
+                            Text(job.verdict?.let { stringResource(it.labelRes) } ?: stringResource(job.status.labelRes()), style = OmniTheme.typography.title, color = colors.textPrimary, modifier = Modifier.weight(1f))
+                            Text(formatDuration(job.totalTimeMs), style = OmniTheme.typography.mono, color = colors.textSecondary)
+                        }
+                        job.code?.let { code ->
+                            SectionLabel(stringResource(R.string.job_code))
+                            val editorState = rememberCodeEditorState()
+                            CodeEditor(
+                                state = editorState,
+                                document = EditorDocument(route.jobId, 0, code, "code", route.runtimeId?.substringBefore('-'), isEntry = true),
+                                settings = EditorSettings(minimap = false),
+                                onTextChange = { _, _ -> },
+                                readOnly = true,
+                                modifier = Modifier.fillMaxWidth().heightIn(min = 160.dp, max = 320.dp),
                             )
-                                .forEach { (label, value) ->
-                                    Text(label.uppercase(), style = OmniTheme.typography.overline, color = colors.textTertiary)
-                                    Text(value, style = OmniTheme.typography.mono, color = colors.textPrimary)
-                                }
+                        }
+                        if (job.results.isNotEmpty()) SectionLabel(stringResource(R.string.job_tests))
+                        job.results.forEach { ResultCard(it) }
+                        Row(Modifier.padding(16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            OmniButton(stringResource(R.string.job_verify), viewModel::verify, Modifier.weight(1f), style = OmniButtonStyle.Secondary, loading = state.verifying, leadingIcon = OmniIcons.ShieldCheck, trailingIcon = null)
+                            OmniButton(stringResource(R.string.job_open_as_project), viewModel::openAsProject, Modifier.weight(1f), enabled = job.code != null, trailingIcon = OmniIcons.ArrowRight)
+                        }
+                        state.proof?.let { proof ->
+                            SectionLabel(stringResource(R.string.job_replay_proof))
+                            Column(Modifier.padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                listOf(
+                                    stringResource(R.string.job_proof_image) to proof.imageHash,
+                                    stringResource(R.string.job_proof_code) to proof.codeHash,
+                                    stringResource(R.string.job_proof_input) to proof.inputHash,
+                                    stringResource(R.string.job_proof_signature) to proof.signature,
+                                    stringResource(R.string.job_proof_signed_at) to proof.signedAt,
+                                )
+                                    .forEach { (label, value) ->
+                                        Text(label.uppercase(), style = OmniTheme.typography.overline, color = colors.textTertiary)
+                                        Text(value, style = OmniTheme.typography.mono, color = colors.textPrimary)
+                                    }
+                            }
                         }
                     }
                 }

@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Marks a native ad in a list; ad policy requires it to be clearly visible. -->
+    <string name="ads_badge">Ad</string>
+
+    <string name="ads_pass_title">Ad-free pass</string>
+    <plurals name="ads_pass_offer">
+        <item quantity="one">Watch a short video to turn off full-screen ads for %d hour.</item>
+        <item quantity="other">Watch a short video to turn off full-screen ads for %d hours.</item>
+    </plurals>
+    <string name="ads_pass_scope">Banners and ads in lists still show.</string>
+    <string name="ads_pass_active">No full-screen ads until %1$s.</string>
+    <string name="ads_pass_summary_active">On until %1$s</string>
+    <plurals name="ads_pass_summary">
+        <item quantity="one">Watch a video for %d hour without full-screen ads</item>
+        <item quantity="other">Watch a video for %d hours without full-screen ads</item>
+    </plurals>
+    <string name="ads_pass_loading">Getting a video…</string>
+    <string name="ads_pass_no_video">No video is available right now. Try again in a little while.</string>
+    <string name="ads_pass_watch">Watch video</string>
+    <string name="ads_pass_retry">Try again</string>
+    <string name="ads_pass_not_now">Not now</string>
+    <string name="ads_pass_close">Close</string>
+    <string name="ads_pass_offline">Connect to the internet to watch. The pass is given only while you\'re online.</string>
+    <string name="ads_pass_not_earned">Watch the video to the end to get the pass.</string>
+    <string name="ads_pass_not_ready">The video isn\'t ready yet. Try again in a moment.</string>
+</resources>

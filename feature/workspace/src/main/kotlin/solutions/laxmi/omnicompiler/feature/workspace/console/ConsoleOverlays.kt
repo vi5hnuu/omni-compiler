@@ -38,8 +38,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.RectangleShape
-import androidx.compose.ui.platform.LocalClipboardManager
-import androidx.compose.ui.text.AnnotatedString
+import solutions.laxmi.omnicompiler.core.ui.rememberCopyToClipboard
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
@@ -289,7 +288,7 @@ internal fun BenchmarkSheet(defaultCopies: Int, busy: Boolean, result: Benchmark
 @Composable
 internal fun ProofSheet(busy: Boolean, proof: ReplayProof?, onDismiss: () -> Unit) {
     val colors = OmniTheme.colors
-    val clipboard = LocalClipboardManager.current
+    val copyText = rememberCopyToClipboard()
     OmniSheet(onDismiss) {
         SheetTitle(stringResource(R.string.sheet_proof_title), stringResource(R.string.sheet_proof_subtitle))
         if (busy || proof == null) {
@@ -315,7 +314,7 @@ internal fun ProofSheet(busy: Boolean, proof: ReplayProof?, onDismiss: () -> Uni
             }
         }
         OmniButton(stringResource(R.string.sheet_proof_copy), {
-            clipboard.setText(AnnotatedString(listOf(proof.version, proof.runtimeId, proof.imageHash, proof.codeHash, proof.inputHash, proof.verdict?.code, proof.totalTimeMs, proof.signature, proof.signedAt).joinToString("\n")))
+            copyText(listOf(proof.version, proof.runtimeId, proof.imageHash, proof.codeHash, proof.inputHash, proof.verdict?.code, proof.totalTimeMs, proof.signature, proof.signedAt).joinToString("\n"))
         }, style = OmniButtonStyle.Secondary, leadingIcon = OmniIcons.Copy, trailingIcon = null)
     }
 }

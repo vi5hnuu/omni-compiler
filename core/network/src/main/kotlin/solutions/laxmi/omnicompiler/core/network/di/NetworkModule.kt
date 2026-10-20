@@ -120,7 +120,12 @@ internal object NetworkModule {
                     .build(),
             )
         }.build(),
-        json,
+        // GitHub's tree API needs every entry's mode and type, and `"sha": null` to delete a file; the shared JSON
+        // leaves out defaults and nulls, so GitHub gets its own that sends both.
+        Json(from = json) {
+            explicitNulls = true
+            encodeDefaults = true
+        },
     ).create(GitHubApi::class.java)
 
     @Provides

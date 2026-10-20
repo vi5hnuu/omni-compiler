@@ -1,5 +1,6 @@
 package solutions.laxmi.omnicompiler.navigation
 
+import androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveApi
 import solutions.laxmi.omnicompiler.core.navigation.ExternalFileRoute
 import solutions.laxmi.omnicompiler.feature.vcs.vcsEntries
 import solutions.laxmi.omnicompiler.core.navigation.ProjectFolderRoute
@@ -20,6 +21,8 @@ import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
+import androidx.compose.material3.adaptive.navigation.BackNavigationBehavior
+import androidx.compose.material3.adaptive.navigation3.rememberListDetailSceneStrategy
 import solutions.laxmi.omnicompiler.AppGate
 import solutions.laxmi.omnicompiler.R
 import solutions.laxmi.omnicompiler.core.designsystem.theme.OmniTheme
@@ -40,6 +43,7 @@ import solutions.laxmi.omnicompiler.feature.projects.projectsEntries
 import solutions.laxmi.omnicompiler.feature.settings.settingsEntries
 import solutions.laxmi.omnicompiler.feature.workspace.workspaceEntries
 
+@OptIn(ExperimentalMaterial3AdaptiveApi::class)
 @Composable
 fun OmniNavHost(gate: AppGate, userId: String?, appVersion: String, externalFile: String?, onExternalFileOpened: () -> Unit) {
     val backStack = rememberNavBackStack(
@@ -84,6 +88,10 @@ fun OmniNavHost(gate: AppGate, userId: String?, appVersion: String, externalFile
         backStack = backStack,
         modifier = Modifier.fillMaxSize().background(OmniTheme.colors.background),
         onBack = navigator::back,
+        // Large windows show a list screen and the detail opened from it side by side (entries declare their pane).
+        // Back closes the open detail back to the list; the default would skip it, since the placeholder keeps the
+        // panes looking the same, and leave the list screen too.
+        sceneStrategies = listOf(rememberListDetailSceneStrategy(backNavigationBehavior = BackNavigationBehavior.PopUntilCurrentDestinationChange)),
         entryDecorators = listOf(
             rememberSaveableStateHolderNavEntryDecorator(),
             rememberViewModelStoreNavEntryDecorator(),
@@ -122,5 +130,22 @@ private class BackStackNavigator(private val backStack: NavBackStack<NavKey>) : 
     override fun replace(route: Route) {
         if (backStack.isNotEmpty()) backStack.removeAt(backStack.lastIndex)
         backStack.add(route)
+    }
+
+    override fun exit(route: Route) {
+        val index = backStack.lastIndexOf(route)
+        if (index < 1) return back()
+        while (backStack.lastIndex >= index) backStack.removeAt(backStack.lastIndex)
+    }
+
+    override fun openDetail(from: Route, detail: Route) {
+        val list = backStack.lastIndexOf(from)
+        if (list >= 0) while (backStack.lastIndex > list) backStack.removeAt(backStack.lastIndex)
+        backStack.add(detail)
+    }
+
+    override fun openedFrom(list: Route): Route? {
+        val index = backStack.lastIndexOf(list)
+        return if (index >= 0) backStack.getOrNull(index + 1) as? Route else null
     }
 }

@@ -20,9 +20,10 @@ import com.google.android.gms.ads.AdView
 /**
  * Anchored adaptive banner for the bottom of list screens. Renders nothing until ads may be requested
  * (consent) or when no unit id is configured. Kept apart from buttons by [spacing] (accidental-click policy).
+ * [compact] uses the standard 320×50 banner, for narrow panels such as the docked console.
  */
 @Composable
-fun AdBanner(modifier: Modifier = Modifier, spacing: Int = 8) {
+fun AdBanner(modifier: Modifier = Modifier, spacing: Int = 8, compact: Boolean = false) {
     val ads = LocalAds.current
     val allowed by ads.canRequestAds.collectAsStateWithLifecycle()
     if (!allowed || BuildConfig.BANNER_UNIT_ID.isBlank()) return
@@ -34,7 +35,7 @@ fun AdBanner(modifier: Modifier = Modifier, spacing: Int = 8) {
             factory = { context ->
                 AdView(context).apply {
                     adUnitId = BuildConfig.BANNER_UNIT_ID
-                    setAdSize(AdSize.getCurrentOrientationAnchoredAdaptiveBannerAdSize(context, width))
+                    setAdSize(if (compact) AdSize.BANNER else AdSize.getLargeAnchoredAdaptiveBannerAdSize(context, width))
                     loadAd(AdRequest.Builder().build())
                     view = this
                 }

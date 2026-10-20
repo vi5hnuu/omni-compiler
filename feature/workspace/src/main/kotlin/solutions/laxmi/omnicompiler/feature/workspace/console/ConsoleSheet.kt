@@ -58,6 +58,8 @@ internal fun ConsoleSheet(
     stdin: String,
     actions: ConsoleSheetActions,
     modifier: Modifier = Modifier,
+    /** Docked beside the code: closing hides the panel sideways rather than folding a sheet down. */
+    docked: Boolean = false,
 ) {
     val colors = OmniTheme.colors
     val latestProblems = state.latest?.problems.orEmpty()
@@ -73,7 +75,7 @@ internal fun ConsoleSheet(
             onSelect = { actions.onSelectTab(ConsoleTab.entries[it]) },
         ) {
             if (tab == ConsoleTab.Console) OmniIconButton(OmniIcons.Trash, stringResource(R.string.console_clear), actions.onClear, size = 32.dp, iconSize = 14.dp)
-            OmniIconButton(OmniIcons.ChevronDown, stringResource(R.string.console_close), actions.onClose, size = 32.dp, iconSize = 14.dp)
+            OmniIconButton(if (docked) OmniIcons.ChevronRight else OmniIcons.ChevronDown, stringResource(R.string.console_close), actions.onClose, size = 32.dp, iconSize = 14.dp)
         }
         if (state.pending.isNotEmpty() || !state.online) {
             OfflineQueueCard(state, actions.onCancelPending, actions.onSendPendingNow, actions.onSendWhenOnline)

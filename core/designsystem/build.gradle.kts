@@ -10,4 +10,5 @@ android {
 dependencies {
     api(libs.androidx.compose.material3)
     api(libs.androidx.compose.ui.graphics)
+    implementation(libs.androidx.compose.material3.adaptive)
 }

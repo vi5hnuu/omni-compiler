@@ -67,6 +67,7 @@ internal fun NewFileSheet(
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
         shape = RectangleShape,
         containerColor = colors.surface,
+        scrimColor = colors.scrim,
         dragHandle = { SheetHandle() },
     ) {
         Column(
@@ -85,7 +86,8 @@ internal fun NewFileSheet(
             }
             OmniTextField(
                 value = name,
-                onValueChange = { name = it.trim() },
+                // Trimmed on create, not per keystroke: trimming as you type makes a space impossible to enter.
+                onValueChange = { name = it },
                 label = stringResource(if (kind == NewFileKind.HeaderPair) R.string.editor_new_file_base_name else R.string.editor_new_file_name),
                 placeholder = placeholder,
                 textStyle = OmniTheme.typography.code,
@@ -118,10 +120,11 @@ internal fun NewFileSheet(
                     text = stringResource(R.string.editor_new_file_create),
                     enabled = name.isNotBlank(),
                     onClick = {
+                        val path = name.trim()
                         when (kind) {
-                            NewFileKind.HeaderPair -> onCreateHeaderPair(withoutExtension(name), entryExtension)
-                            NewFileKind.Data -> onCreate(if ('.' in name.substringAfterLast('/')) name else "$name.txt", "")
-                            NewFileKind.Empty -> onCreate(name, "")
+                            NewFileKind.HeaderPair -> onCreateHeaderPair(withoutExtension(path), entryExtension)
+                            NewFileKind.Data -> onCreate(if ('.' in path.substringAfterLast('/')) path else "$path.txt", "")
+                            NewFileKind.Empty -> onCreate(path, "")
                         }
                     },
                     modifier = Modifier.weight(1f),

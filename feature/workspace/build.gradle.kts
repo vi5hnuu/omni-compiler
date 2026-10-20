@@ -8,6 +8,7 @@ android {
 
 dependencies {
     implementation(projects.core.ads)
+    implementation(projects.core.review)
     implementation(projects.core.editor)
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.webkit)

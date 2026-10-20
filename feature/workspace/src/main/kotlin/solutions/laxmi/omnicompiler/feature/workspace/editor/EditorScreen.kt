@@ -3,7 +3,9 @@ package solutions.laxmi.omnicompiler.feature.workspace.editor
 import solutions.laxmi.omnicompiler.core.model.OpenFile
 import kotlinx.coroutines.flow.Flow
 import androidx.activity.compose.LocalActivity
+import solutions.laxmi.omnicompiler.core.ads.AdFreePassDialog
 import solutions.laxmi.omnicompiler.core.ads.LocalAds
+import solutions.laxmi.omnicompiler.core.review.LocalAppReview
 import solutions.laxmi.omnicompiler.core.navigation.SourceControlRoute
 import solutions.laxmi.omnicompiler.core.navigation.PreviewRoute
 import solutions.laxmi.omnicompiler.core.ui.R as CommonR
@@ -22,9 +24,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.isImeVisible
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material3.DrawerState
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ModalDrawerSheet
@@ -60,6 +60,13 @@ import solutions.laxmi.omnicompiler.core.designsystem.component.SheetHandle
 import solutions.laxmi.omnicompiler.core.designsystem.icon.OmniIcons
 import solutions.laxmi.omnicompiler.core.designsystem.theme.OmniTheme
 import solutions.laxmi.omnicompiler.core.editor.CodeEditor
+import solutions.laxmi.omnicompiler.core.editor.CodeEditorState
+import solutions.laxmi.omnicompiler.core.designsystem.theme.rememberWindowLayout
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.windowInsetsPadding
 import solutions.laxmi.omnicompiler.core.editor.EditorDocument
 import solutions.laxmi.omnicompiler.core.editor.SymbolRow
 import solutions.laxmi.omnicompiler.core.editor.rememberCodeEditorState
@@ -74,6 +81,7 @@ import solutions.laxmi.omnicompiler.core.navigation.LanguagePickerRoute
 import solutions.laxmi.omnicompiler.core.navigation.Navigator
 import solutions.laxmi.omnicompiler.core.navigation.ProfileRoute
 import solutions.laxmi.omnicompiler.core.navigation.ProjectsRoute
+import solutions.laxmi.omnicompiler.core.navigation.Route
 import solutions.laxmi.omnicompiler.core.navigation.RepoImportRoute
 import solutions.laxmi.omnicompiler.core.navigation.SettingsRoute
 import solutions.laxmi.omnicompiler.core.navigation.SignUpRoute
@@ -87,20 +95,34 @@ fun EditorScreen(route: EditorRoute, navigator: Navigator) {
     val resources = LocalResources.current
     val context = LocalContext.current
     val ads = LocalAds.current
+    val review = LocalAppReview.current
     val activity = LocalActivity.current
     val drawerState = rememberDrawerState(DrawerValue.Closed)
+    // Wide windows dock the drawer as a sidebar beside the code; it starts open where there's plenty of room.
+    val layout = rememberWindowLayout()
+    var sidebarOpen by rememberSaveable(layout.large) { mutableStateOf(layout.large) }
     // Opening or open: subscribe to drawer data only then, so editing never pays for it.
-    val drawerVisible = drawerState.currentValue == DrawerValue.Open || drawerState.targetValue == DrawerValue.Open
+    val drawerVisible = if (layout.expanded) sidebarOpen else drawerState.currentValue == DrawerValue.Open || drawerState.targetValue == DrawerValue.Open
     val drawerProjects = if (drawerVisible) viewModel.drawerProjects.collectAsStateWithLifecycle().value else emptyList()
     val drawerUsage by viewModel.drawerUsage.collectAsStateWithLifecycle()
     LaunchedEffect(drawerVisible) { if (drawerVisible) viewModel.onDrawerOpened() }
     var creatingProject by rememberSaveable { mutableStateOf(false) }
+    var offeringPass by rememberSaveable { mutableStateOf(false) }
+    val passOffered by ads.pass.available.collectAsStateWithLifecycle()
+    val editorState = rememberCodeEditorState()
+    val splitState = rememberCodeEditorState()
+    // Replacing this screen ends its view model, so edits still in the autosave debounce are written first.
+    val openProject: (String) -> Unit = { id ->
+        editorState.flush()
+        splitState.flush()
+        navigator.replace(EditorRoute(id))
+    }
 
     LaunchedEffect(viewModel) {
         viewModel.eventFlow.collect { event ->
             when (event) {
                 is EditorEvent.Message -> snackbar.showSnackbar(event.text.asString(resources))
-                is EditorEvent.OpenProject -> navigator.replace(EditorRoute(event.projectId))
+                is EditorEvent.OpenProject -> openProject(event.projectId)
                 is EditorEvent.Share -> context.shareFile(event.file.uri, event.file.mimeType, resources.getString(R.string.editor_share_title, event.file.displayName))
             }
         }
@@ -108,7 +130,17 @@ fun EditorScreen(route: EditorRoute, navigator: Navigator) {
 
     EditorContent(
         state = state,
-        drawer = DrawerContent(drawerState, drawerProjects, drawerUsage, viewModel.drawerDestinations),
+        editorState = editorState,
+        splitState = splitState,
+        drawer = DrawerContent(
+            state = drawerState,
+            projects = drawerProjects,
+            usage = drawerUsage,
+            destinations = viewModel.drawerDestinations.filter { it != DrawerDestination.AdFreePass || passOffered },
+            docked = layout.expanded,
+            sidebarOpen = sidebarOpen,
+            onToggleSidebar = { sidebarOpen = !sidebarOpen },
+        ),
         snackbar = snackbar,
         actions = EditorActions(
             onRetry = viewModel::retry,
@@ -134,27 +166,27 @@ fun EditorScreen(route: EditorRoute, navigator: Navigator) {
             onOpenProject = { id ->
                 // Switching projects from the drawer is a natural break (never mid-run: runs belong to the old project).
                 activity?.let { ads.onNaturalBreak(it) }
-                navigator.replace(EditorRoute(id))
+                openProject(id)
             },
             onPickRuntime = { state.workspace?.project?.id?.let { navigator.navigate(LanguagePickerRoute(it)) } },
             onAccount = { navigator.navigate(ProfileRoute) },
             onConvertGuest = { navigator.navigate(SignUpRoute(convertGuest = true)) },
             onDestination = { destination ->
-                navigator.navigate(
-                    when (destination) {
-                        DrawerDestination.Projects -> ProjectsRoute
-                        DrawerDestination.ImportGit -> RepoImportRoute
-                        DrawerDestination.Examples -> ExamplesRoute
-                        DrawerDestination.History -> HistoryRoute
-                        DrawerDestination.Usage -> UsageRoute
-                        DrawerDestination.Developer -> DeveloperRoute
-                        DrawerDestination.Settings -> SettingsRoute
-                    },
-                )
+                val route = destination.route()
+                when {
+                    route != null -> {
+                        // Leaving the editor for another screen is a break once the user has run their code a few times.
+                        activity?.let(ads::onLeavingEditor)
+                        navigator.navigate(route)
+                    }
+                    destination == DrawerDestination.AdFreePass -> offeringPass = true
+                    destination == DrawerDestination.RateApp -> review.openStoreListing(context)
+                }
             },
             onAppearance = { navigator.navigate(AppearanceRoute) },
         ),
     )
+    if (offeringPass) AdFreePassDialog(onDismiss = { offeringPass = false })
     if (creatingProject) {
         val languages by viewModel.languages.collectAsStateWithLifecycle()
         NewProjectSheet(languages, onDismiss = { creatingProject = false }, initialBase = state.runtime?.language) { name, language ->
@@ -164,12 +196,28 @@ fun EditorScreen(route: EditorRoute, navigator: Navigator) {
     }
 }
 
+/** The screen a drawer row opens, or null for rows handled in place. */
+private fun DrawerDestination.route(): Route? = when (this) {
+    DrawerDestination.Projects -> ProjectsRoute
+    DrawerDestination.ImportGit -> RepoImportRoute
+    DrawerDestination.Examples -> ExamplesRoute
+    DrawerDestination.History -> HistoryRoute
+    DrawerDestination.Usage -> UsageRoute
+    DrawerDestination.Developer -> DeveloperRoute
+    DrawerDestination.Settings -> SettingsRoute
+    DrawerDestination.AdFreePass, DrawerDestination.RateApp -> null
+}
+
 /** What the navigation drawer shows; kept apart from [EditorUiState] (see [EditorViewModel.drawerProjects]). */
 internal class DrawerContent(
     val state: DrawerState,
     val projects: List<ProjectSummary>,
     val usage: DrawerUsage?,
     val destinations: List<DrawerDestination>,
+    /** Wide window: the drawer is a sidebar beside the editor (toggled by the menu button) and the console docks right. */
+    val docked: Boolean,
+    val sidebarOpen: Boolean,
+    val onToggleSidebar: () -> Unit,
 )
 
 /** Callbacks from the editor UI; grouped so the content composable stays previewable. */
@@ -203,12 +251,17 @@ internal class EditorActions(
 
 @OptIn(ExperimentalLayoutApi::class, ExperimentalFoundationApi::class)
 @Composable
-private fun EditorContent(state: EditorUiState, drawer: DrawerContent, snackbar: SnackbarHostState, actions: EditorActions) {
+private fun EditorContent(
+    state: EditorUiState,
+    editorState: CodeEditorState,
+    splitState: CodeEditorState,
+    drawer: DrawerContent,
+    snackbar: SnackbarHostState,
+    actions: EditorActions,
+) {
     val colors = OmniTheme.colors
     val drawerState = drawer.state
     val scope = rememberCoroutineScope()
-    val editorState = rememberCodeEditorState()
-    val splitState = rememberCodeEditorState()
     // Typing mode is for code only; a keyboard raised by another field (stdin, test editor) keeps the normal chrome.
     val typing = WindowInsets.isImeVisible && (editorState.hasFocus || splitState.hasFocus)
     var searching by rememberSaveable { mutableStateOf(false) }
@@ -222,19 +275,8 @@ private fun EditorContent(state: EditorUiState, drawer: DrawerContent, snackbar:
     val workspace = state.workspace
     val activeFile = state.activeFile
 
-    ModalNavigationDrawer(
-        drawerState = drawerState,
-        // Opens from the menu button only: an edge swipe would fight code scrolling and the console sheet.
-        gesturesEnabled = drawerState.isOpen,
-        scrimColor = colors.scrim,
-        drawerContent = {
-            // The drawerState overload is the one that closes the drawer on (predictive) Back.
-            ModalDrawerSheet(
-                drawerState = drawerState,
-                drawerShape = RectangleShape,
-                drawerContainerColor = colors.surface,
-                windowInsets = WindowInsets(0.dp),
-            ) {
+    // Shared by the modal drawer (phones) and the sidebar (wide windows); closing a closed drawer does nothing.
+    val drawerPanel: @Composable () -> Unit = {
                 EditorDrawer(
                     user = state.user,
                     projects = drawer.projects,
@@ -254,19 +296,19 @@ private fun EditorContent(state: EditorUiState, drawer: DrawerContent, snackbar:
                     onFile = { file -> scope.launch { drawerState.close() }; actions.onSelectFile(file.id) },
                     onDestination = { scope.launch { drawerState.close() }; actions.onDestination(it) },
                 )
-            }
-        },
-    ) {
+    }
+    val sidebarShown = drawer.docked && drawer.sidebarOpen
+    val mainContent: @Composable () -> Unit = {
         Box(Modifier.fillMaxSize().background(colors.background)) {
             Column(
                 Modifier
                     .fillMaxSize()
                     .background(colors.surface)
-                    .statusBarsPadding()
-                    .navigationBarsPadding()
+                    // A shown sidebar already keeps clear of the start edge's bars and cutout.
+                    .windowInsetsPadding(screenInsets.only(if (sidebarShown) WindowInsetsSides.End + WindowInsetsSides.Vertical else WindowInsetsSides.Horizontal + WindowInsetsSides.Vertical))
                     .imePadding(),
             ) {
-                val openDrawer: () -> Unit = { scope.launch { drawerState.open() } }
+                val openDrawer: () -> Unit = if (drawer.docked) drawer.onToggleSidebar else ({ scope.launch { drawerState.open() } })
                 when {
                     state.error != null && workspace == null -> StartupError(state.error, state.errorIsConnection, actions.onRetry)
                     workspace == null || activeFile == null -> Loading()
@@ -284,7 +326,8 @@ private fun EditorContent(state: EditorUiState, drawer: DrawerContent, snackbar:
                         onRenameProject = { renamingProject = true },
                         onConfirmReset = { confirmReset = true },
                         onFileMenu = { fileMenuFor = it },
-                        drawerOpen = drawerState.targetValue == DrawerValue.Open,
+                        drawerOpen = !drawer.docked && drawerState.targetValue == DrawerValue.Open,
+                        docked = drawer.docked,
                         snackbar = snackbar,
                         actions = actions,
                     )
@@ -292,6 +335,34 @@ private fun EditorContent(state: EditorUiState, drawer: DrawerContent, snackbar:
             }
             OmniSnackbarHost(snackbar, Modifier.align(Alignment.BottomCenter).padding(bottom = 64.dp))
         }
+    }
+
+    if (drawer.docked) {
+        Row(Modifier.fillMaxSize().background(colors.surface)) {
+            if (drawer.sidebarOpen) {
+                drawerPanel()
+                Box(Modifier.fillMaxHeight().width(1.dp).background(colors.divider))
+            }
+            Box(Modifier.weight(1f)) { mainContent() }
+        }
+    } else {
+        ModalNavigationDrawer(
+            drawerState = drawerState,
+            // Opens from the menu button only: an edge swipe would fight code scrolling and the console sheet.
+            gesturesEnabled = drawerState.isOpen,
+            scrimColor = colors.scrim,
+            drawerContent = {
+                // The drawerState overload is the one that closes the drawer on (predictive) Back.
+                ModalDrawerSheet(
+                    drawerState = drawerState,
+                    drawerShape = RectangleShape,
+                    drawerContainerColor = colors.surface,
+                    windowInsets = WindowInsets(0.dp),
+                    content = { drawerPanel() },
+                )
+            },
+            content = mainContent,
+        )
     }
 
     if (showNewFile && workspace != null) {

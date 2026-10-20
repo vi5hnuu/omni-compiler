@@ -1,49 +1,29 @@
 package solutions.laxmi.omnicompiler.core.ads
 
 import android.app.Activity
-import android.content.Context
 import androidx.compose.runtime.staticCompositionLocalOf
-import com.google.android.gms.ads.AdRequest
-import com.google.android.gms.ads.FullScreenContentCallback
-import com.google.android.gms.ads.LoadAdError
-import com.google.android.gms.ads.MobileAds
-import com.google.android.gms.ads.interstitial.InterstitialAd
-import com.google.android.gms.ads.interstitial.InterstitialAdLoadCallback
-import com.google.android.ump.ConsentInformation
-import com.google.android.ump.ConsentRequestParameters
-import com.google.android.ump.UserMessagingPlatform
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
-import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
-import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import solutions.laxmi.omnicompiler.core.common.ApplicationScope
-import solutions.laxmi.omnicompiler.core.common.Dispatcher
-import solutions.laxmi.omnicompiler.core.common.OmniDispatcher
-import solutions.laxmi.omnicompiler.core.common.TimeSource
-import solutions.laxmi.omnicompiler.core.datastore.PreferencesStore
-import java.util.concurrent.atomic.AtomicBoolean
 import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * Ads for the whole app. Consent comes first (Google's UMP form where the law requires it); the SDK starts only
- * once ads may be requested. Screens show banners through [AdBanner] and ask for an interstitial only at
- * natural breaks through [onNaturalBreak]; [InterstitialPolicy] decides whether one actually appears.
+ * Ads for the whole app. Consent comes first; nothing loads until ads may be requested. Screens place banners
+ * ([AdBanner]) and list slots ([NativeAdSlot]), report breaks and runs, and offer the [pass]; whether a full-screen ad
+ * actually appears is decided in one place, [FullScreenAdPolicy].
  */
 interface Ads {
     val canRequestAds: StateFlow<Boolean>
 
     /** True when the user must be able to reopen the consent choices (shown as "Privacy choices" in Settings). */
     val privacyOptionsRequired: StateFlow<Boolean>
+
+    val pass: AdFreePass
+    val native: NativeAdSource
 
     /** Runs the consent flow and starts the SDK; call from the activity on every start (it is cheap after the first). */
     fun start(activity: Activity)
@@ -52,97 +32,61 @@ interface Ads {
 
     /** A natural break (another project opened, a project started from an example). Shows a preloaded ad if allowed. */
     fun onNaturalBreak(activity: Activity, userBusy: Boolean = false)
+
+    /** The user is leaving the editor for another screen; a break once they have run their code a few times. */
+    fun onLeavingEditor(activity: Activity)
+
+    /** A run the user watched has finished; a [failed] one keeps full-screen ads away while they fix it. */
+    fun onRunFinished(failed: Boolean)
+
+    fun onBackground()
+
+    /** The app is in front again; [openedForContent] when it came up to open a file from another app. */
+    fun onForeground(activity: Activity, openedForContent: Boolean)
 }
 
 /** No ads (previews, tests). */
 object NoAds : Ads {
     override val canRequestAds: StateFlow<Boolean> = MutableStateFlow(false)
     override val privacyOptionsRequired: StateFlow<Boolean> = MutableStateFlow(false)
+    override val pass: AdFreePass = NoAdFreePass
+    override val native: NativeAdSource = NoNativeAds
     override fun start(activity: Activity) = Unit
     override fun showPrivacyOptions(activity: Activity) = Unit
     override fun onNaturalBreak(activity: Activity, userBusy: Boolean) = Unit
+    override fun onLeavingEditor(activity: Activity) = Unit
+    override fun onRunFinished(failed: Boolean) = Unit
+    override fun onBackground() = Unit
+    override fun onForeground(activity: Activity, openedForContent: Boolean) = Unit
 }
 
-/** Provided at the app root so any screen can place a banner or report a natural break. */
+private object NoAdFreePass : AdFreePass {
+    override val available: StateFlow<Boolean> = MutableStateFlow(false)
+    override val state: StateFlow<PassState> = MutableStateFlow(PassState.Unavailable)
+    override fun retry() = Unit
+    override fun watch(activity: Activity, onResult: (PassResult) -> Unit) = onResult(PassResult.NotReady)
+}
+
+/** Provided at the app root so any screen can place an ad or report a break. */
 val LocalAds = staticCompositionLocalOf<Ads> { NoAds }
 
 @Singleton
 internal class AdMobAds @Inject constructor(
-    @ApplicationContext private val context: Context,
-    private val preferences: PreferencesStore,
-    private val time: TimeSource,
-    @ApplicationScope private val scope: CoroutineScope,
-    @Dispatcher(OmniDispatcher.IO) private val io: CoroutineDispatcher,
+    private val sdk: AdsSdk,
+    private val fullScreen: FullScreenAds,
+    override val pass: RewardedAdFreePass,
+    override val native: AdMobNativeAds,
 ) : Ads {
+    override val canRequestAds: StateFlow<Boolean> get() = sdk.canRequestAds
+    override val privacyOptionsRequired: StateFlow<Boolean> get() = sdk.privacyOptionsRequired
 
-    private val consent: ConsentInformation = UserMessagingPlatform.getConsentInformation(context)
-    private val allowed = MutableStateFlow(consent.canRequestAds())
-    private val optionsRequired = MutableStateFlow(false)
-    override val canRequestAds: StateFlow<Boolean> = allowed.asStateFlow()
-    override val privacyOptionsRequired: StateFlow<Boolean> = optionsRequired.asStateFlow()
-
-    private val sdkStarted = AtomicBoolean(false)
-    private val policy = InterstitialPolicy(BuildConfig.INTERSTITIAL_GRACE_MS, BuildConfig.INTERSTITIAL_MIN_INTERVAL_MS)
-    private var interstitial: InterstitialAd? = null
-    private var loading = false
-
-    override fun start(activity: Activity) {
-        consent.requestConsentInfoUpdate(activity, ConsentRequestParameters.Builder().build(), {
-            UserMessagingPlatform.loadAndShowConsentFormIfRequired(activity) { _ -> onConsentKnown() }
-        }, { _ ->
-            // No network or a UMP outage: fall back to what was decided before (canRequestAds is cached).
-            onConsentKnown()
-        })
-        // Consent from an earlier session lets ads start in parallel with the refresh above.
-        if (consent.canRequestAds()) onConsentKnown()
-    }
-
-    private fun onConsentKnown() {
-        allowed.value = consent.canRequestAds()
-        optionsRequired.value = consent.privacyOptionsRequirementStatus == ConsentInformation.PrivacyOptionsRequirementStatus.REQUIRED
-        if (!allowed.value || !sdkStarted.compareAndSet(false, true)) return
-        scope.launch(Dispatchers.Main.immediate) {
-            // Initialisation does disk work; keep it off the main thread.
-            withContext(io) { MobileAds.initialize(context) }
-            preloadInterstitial()
-        }
-    }
-
-    override fun showPrivacyOptions(activity: Activity) {
-        UserMessagingPlatform.showPrivacyOptionsForm(activity) { _ -> allowed.value = consent.canRequestAds() }
-    }
-
-    override fun onNaturalBreak(activity: Activity, userBusy: Boolean) {
-        val ad = interstitial ?: return preloadInterstitial()
-        // Main: the ad state is also touched by SDK callbacks there, and show() must run on it.
-        scope.launch(Dispatchers.Main.immediate) {
-            val now = time.now().toEpochMilliseconds()
-            val first = preferences.firstLaunchAt(now)
-            if (!policy.mayShow(now, first, preferences.lastInterstitialAt(), userBusy)) return@launch
-            interstitial = null
-            ad.fullScreenContentCallback = object : FullScreenContentCallback() {
-                override fun onAdDismissedFullScreenContent() = preloadInterstitial()
-                override fun onAdFailedToShowFullScreenContent(error: com.google.android.gms.ads.AdError) = preloadInterstitial()
-            }
-            preferences.setLastInterstitialAt(now)
-            ad.show(activity)
-        }
-    }
-
-    private fun preloadInterstitial() {
-        if (!allowed.value || !sdkStarted.get() || loading || interstitial != null || BuildConfig.INTERSTITIAL_UNIT_ID.isBlank()) return
-        loading = true
-        InterstitialAd.load(context, BuildConfig.INTERSTITIAL_UNIT_ID, AdRequest.Builder().build(), object : InterstitialAdLoadCallback() {
-            override fun onAdLoaded(ad: InterstitialAd) {
-                interstitial = ad
-                loading = false
-            }
-
-            override fun onAdFailedToLoad(error: LoadAdError) {
-                loading = false
-            }
-        })
-    }
+    override fun start(activity: Activity) = sdk.start(activity)
+    override fun showPrivacyOptions(activity: Activity) = sdk.showPrivacyOptions(activity)
+    override fun onNaturalBreak(activity: Activity, userBusy: Boolean) = fullScreen.onNaturalBreak(activity, userBusy)
+    override fun onLeavingEditor(activity: Activity) = fullScreen.onLeavingEditor(activity)
+    override fun onRunFinished(failed: Boolean) = fullScreen.onRunFinished(failed)
+    override fun onBackground() = fullScreen.onBackground()
+    override fun onForeground(activity: Activity, openedForContent: Boolean) = fullScreen.onForeground(activity, openedForContent)
 }
 
 @Module

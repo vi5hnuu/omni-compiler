@@ -1,7 +1,6 @@
 package solutions.laxmi.omnicompiler.feature.workspace.editor
 
 import solutions.laxmi.omnicompiler.feature.workspace.search.ProjectSearchSheet
-import solutions.laxmi.omnicompiler.feature.workspace.search.ProjectSearchHit
 import android.content.res.Configuration
 import solutions.laxmi.omnicompiler.core.model.OpenFile
 import kotlinx.coroutines.flow.flowOf
@@ -9,6 +8,7 @@ import androidx.compose.ui.platform.LocalConfiguration
 import solutions.laxmi.omnicompiler.core.editor.EditorCommand
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
 import solutions.laxmi.omnicompiler.feature.workspace.console.ConsolePeekHeight
@@ -24,6 +24,10 @@ import androidx.compose.material3.SheetValue
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.BottomSheetScaffold
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.LocalActivity
+import solutions.laxmi.omnicompiler.core.review.LocalAppReview
+import solutions.laxmi.omnicompiler.core.ads.AdBanner
+import solutions.laxmi.omnicompiler.core.ads.LocalAds
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -39,7 +43,9 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
@@ -88,6 +94,9 @@ import solutions.laxmi.omnicompiler.feature.workspace.console.refersTo
 /** Where a picked stdin file should go. */
 private enum class StdinTarget { Input, TestEditor }
 
+/** A caret move waiting for its file to be the one the editor shows; [openFind] keeps the find bar open (search hits). */
+private data class PendingGoTo(val fileId: String, val line: Int, val column: Int, val openFind: Boolean)
+
 /** Editor + console for a resolved project. Owns the console ViewModel, keyed by project. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -106,6 +115,8 @@ internal fun ColumnScope.WorkspaceBody(
     onConfirmReset: () -> Unit,
     onFileMenu: (FileHeader) -> Unit,
     drawerOpen: Boolean,
+    /** Wide window: the console is a panel beside the code instead of a bottom sheet. */
+    docked: Boolean,
     snackbar: SnackbarHostState,
     actions: EditorActions,
 ) {
@@ -116,11 +127,17 @@ internal fun ColumnScope.WorkspaceBody(
     val loadedTestStdin by console.loadedTestStdin.collectAsStateWithLifecycle()
 
     val resources = LocalResources.current
+    val review = LocalAppReview.current
+    val ads = LocalAds.current
+    val activity = LocalActivity.current
     // The console is a standard (persistent) bottom sheet: collapsed it shows the peek row, dragged or tapped it expands.
     val sheetState = rememberStandardBottomSheetState(initialValue = SheetValue.PartiallyExpanded)
     val scaffoldState = rememberBottomSheetScaffoldState(bottomSheetState = sheetState)
     val scope = rememberCoroutineScope()
-    val consoleExpanded = sheetState.targetValue == SheetValue.Expanded
+    // Docked, the console panel is shown or hidden; as a sheet it is expanded or folded to its peek row.
+    var consoleOpen by rememberSaveable { mutableStateOf(true) }
+    var consoleFraction by rememberSaveable { mutableFloatStateOf(DOCKED_EDITOR_FRACTION) }
+    val consoleExpanded = if (docked) consoleOpen else sheetState.targetValue == SheetValue.Expanded
     var tab by rememberSaveable { mutableStateOf(ConsoleTab.Console) }
     var editingTest by remember { mutableStateOf<TestCase?>(null) }
     var creatingTest by rememberSaveable { mutableStateOf(false) }
@@ -131,13 +148,16 @@ internal fun ColumnScope.WorkspaceBody(
     var goingToLine by rememberSaveable { mutableStateOf(false) }
     var showShortcuts by rememberSaveable { mutableStateOf(false) }
     var projectSearch by rememberSaveable { mutableStateOf(false) }
-    // A project-search result waits here until its file is the one the editor shows, then the caret moves to it.
-    var pendingHit by remember { mutableStateOf<ProjectSearchHit?>(null) }
+    // A search result or compile problem in another file waits here until that file is shown, then the caret moves to it.
+    var pendingGoTo by remember { mutableStateOf<PendingGoTo?>(null) }
     var findSeed by remember { mutableStateOf<FindSeed?>(null) }
     // Split view: the second pane's file (never the primary's, so two panes never save over each other).
     var splitFileId by rememberSaveable { mutableStateOf<String?>(null) }
-    var splitFraction by rememberSaveable { mutableStateOf(0.5f) }
-    val wide = LocalConfiguration.current.screenWidthDp.dp >= SplitMinWidth
+    var splitFraction by rememberSaveable { mutableFloatStateOf(0.5f) }
+    // Two files side by side need room in the editor's own area, which a docked console and sidebar share.
+    var editorWidth by remember { mutableStateOf(0.dp) }
+    val density = LocalDensity.current
+    val wide = editorWidth >= SplitMinWidth
     val projectFiles = state.workspace?.files.orEmpty()
     val splitFile = splitFileId?.let { id -> projectFiles.firstOrNull { it.id == id && it.id != activeFile.id } }
         ?.takeIf { wide }
@@ -164,12 +184,12 @@ internal fun ColumnScope.WorkspaceBody(
         }
     }
 
-    LaunchedEffect(pendingHit, editorState.shownDocumentId) {
-        val hit = pendingHit ?: return@LaunchedEffect
-        if (editorState.shownDocumentId != hit.fileId) return@LaunchedEffect
-        pendingHit = null
-        onSearchChange(true)
-        editorState.goTo(hit.line, hit.column)
+    LaunchedEffect(pendingGoTo, editorState.shownDocumentId) {
+        val target = pendingGoTo ?: return@LaunchedEffect
+        if (editorState.shownDocumentId != target.fileId) return@LaunchedEffect
+        pendingGoTo = null
+        if (target.openFind) onSearchChange(true)
+        editorState.goTo(target.line, target.column)
     }
 
     // Hardware-keyboard shortcuts raise these from inside the code view.
@@ -197,6 +217,14 @@ internal fun ColumnScope.WorkspaceBody(
         pickFile.launch(arrayOf("text/*", "application/octet-stream"))
     }
 
+    fun openConsole(target: ConsoleTab? = null) {
+        target?.let { tab = it }
+        if (docked) consoleOpen = true else scope.launch { sheetState.expand() }
+    }
+    fun collapseConsole() {
+        if (docked) consoleOpen = false else scope.launch { sheetState.partialExpand() }
+    }
+
     LaunchedEffect(console) {
         console.eventFlow.collect { event ->
             when (event) {
@@ -210,27 +238,24 @@ internal fun ColumnScope.WorkspaceBody(
                     )
                     if (result == SnackbarResult.ActionPerformed) console.restoreTest(event.test)
                 }
+                // The rating card never competes with another sheet on screen.
+                is ConsoleEvent.AcceptedRun -> activity?.let { review.onPositiveMoment(it, mayPrompt = !event.sheetShown) }
+                is ConsoleEvent.RunFinished -> ads.onRunFinished(event.failed)
                 is ConsoleEvent.RunStarted -> {
-                    tab = if (event.mode == RunMode.TESTS) ConsoleTab.Tests else ConsoleTab.Console
-                    launch { sheetState.expand() }
+                    openConsole(if (event.mode == RunMode.TESTS) ConsoleTab.Tests else ConsoleTab.Console)
                 }
             }
         }
     }
 
-    fun openConsole(target: ConsoleTab? = null) {
-        target?.let { tab = it }
-        scope.launch { sheetState.expand() }
-    }
-    fun collapseConsole() {
-        scope.launch { sheetState.partialExpand() }
-    }
-    // Typing in the code gets the whole height; the console folds down to make room.
-    LaunchedEffect(typing) { if (typing && sheetState.currentValue == SheetValue.Expanded) sheetState.partialExpand() }
+    // Typing in the code gets the whole height; the console sheet folds down to make room (a docked panel is beside it).
+    LaunchedEffect(typing) { if (!docked && typing && sheetState.currentValue == SheetValue.Expanded) sheetState.partialExpand() }
 
-    // Back peels layers top-down: the open drawer handles itself, then the console sheet, then the find bar.
-    BackHandler(enabled = !drawerOpen && consoleExpanded) { collapseConsole() }
-    BackHandler(enabled = !drawerOpen && !consoleExpanded && searching) { onSearchChange(false) }
+    // Back peels layers top-down: the open drawer handles itself, then the console sheet, then the find bar. A docked
+    // console is part of the layout, not a layer, so Back doesn't close it.
+    val sheetOpen = !docked && consoleExpanded
+    BackHandler(enabled = !drawerOpen && sheetOpen) { collapseConsole() }
+    BackHandler(enabled = !drawerOpen && !sheetOpen && searching) { onSearchChange(false) }
 
     val hardwareKeyboard = LocalConfiguration.current.keyboard != Configuration.KEYBOARD_NOKEYS
     val latest = consoleState.latest
@@ -264,7 +289,8 @@ internal fun ColumnScope.WorkspaceBody(
         ReadingTopBar(
             projectName = state.workspace?.project?.name.orEmpty(),
             runtimeLabel = state.runtime?.let { stringResource(R.string.editor_runtime_label, state.language?.name ?: it.language, it.version) }
-                ?: state.workspace?.project?.runtimeId.orEmpty(),
+                ?: state.workspace?.project?.runtimeId?.takeIf { it.isNotBlank() }
+                ?: stringResource(R.string.editor_choose_language),
             minimapOn = state.settings.minimap,
             runEnabled = true,
             onMenu = onOpenDrawer,
@@ -366,144 +392,177 @@ internal fun ColumnScope.WorkspaceBody(
     // lose input focus. It shows the console summary normally and the symbol keys while typing code.
     val peekHeight = OmniDimens.sheetHandle + ConsolePeekHeight
     val symbolStrip = typing && state.settings.symbolRow
-    // Clipped: the collapsed sheet's hidden part would otherwise draw over the system navigation bar.
-    BoxWithConstraints(Modifier.weight(1f).fillMaxWidth().clipToBounds()) {
-        val expandedHeight = maxHeight * SHEET_FRACTION
-        BottomSheetScaffold(
-            scaffoldState = scaffoldState,
-            sheetPeekHeight = peekHeight,
-            // The console is part of the layout, not a floating card: full width on tablets and in landscape too.
-            sheetMaxWidth = Dp.Unspecified,
-            sheetSwipeEnabled = !typing,
-            sheetShape = RectangleShape,
-            sheetContainerColor = colors.surface,
-            sheetContentColor = colors.textPrimary,
-            sheetTonalElevation = 0.dp,
-            sheetShadowElevation = 0.dp,
-            sheetDragHandle = {
-                val border = Modifier.drawBehind { drawLine(colors.borderStrong, Offset(0f, 0f), Offset(size.width, 0f), 1f) }
-                // No drag affordance while typing: the sheet can't be dragged then.
-                if (typing) Spacer(border.fillMaxWidth().height(OmniDimens.sheetHandle)) else SheetHandle(border)
-            },
-            containerColor = colors.background,
-            sheetContent = {
-                if (symbolStrip) {
-                    SymbolRow(if (splitState.hasFocus) splitState else editorState, Modifier.height(ConsolePeekHeight))
-                } else Column(Modifier.fillMaxWidth().height(expandedHeight - OmniDimens.sheetHandle)) {
-                    ConsolePeek(latest, expanded = consoleExpanded, onToggle = { if (consoleExpanded) collapseConsole() else openConsole() })
-                    ConsoleSheet(
-                        state = consoleState,
-                        tab = tab,
-                        stdin = stdin,
-                        modifier = Modifier.weight(1f).fillMaxWidth(),
-                        actions = ConsoleSheetActions(
-                            onClose = ::collapseConsole,
-                            onSelectTab = { tab = it },
-                            onClear = console::clearConsole,
-                            onStop = console::stop,
-                            onRunWithInput = {
-                                flushEditors()
-                                console.runWithInput()
-                            },
-                            onStdinChange = console::setStdin,
-                            onLoadStdinFile = { pickStdin(StdinTarget.Input) },
-                            onSaveStdinAsTest = console::saveStdinAsTest,
-                            onVerify = console::verify,
-                            onGoTo = { problem ->
-                                collapseConsole()
-                                val files = state.workspace?.files.orEmpty()
-                                val target = files.firstOrNull { it.name == problem.fileName } ?: files.firstOrNull { problem.fileName.refersTo(it.name) } ?: activeFile
-                                if (target.id != activeFile.id) actions.onSelectFile(target.id)
-                                problem.line?.let { editorState.goTo(it, problem.column ?: 1) }
-                            },
-                            onCancelPending = console::cancelPending,
-                            onSendPendingNow = console::sendPendingNow,
-                            onSendWhenOnline = console::setSendWhenOnline,
-                            tests = TestActions(
-                                onRunAll = runTests,
-                                onRunOne = { test ->
-                                    flushEditors()
-                                    console.runTests(setOf(test.id))
-                                },
-                                onAdd = { creatingTest = true },
-                                onEdit = { editingTest = it },
-                                onDuplicate = console::duplicateTest,
-                                onDelete = console::deleteTest,
-                                onAcceptOutput = console::acceptOutput,
-                                onRaiseLimits = { showLimits = true },
-                            ),
-                        ),
-                    )
-                }
-            },
-        ) {
-            // The collapsed sheet overlays the bottom; reserve its height so the status bar stays visible above it.
-            Column(Modifier.fillMaxSize().padding(bottom = peekHeight)) {
-                val primaryEditor: @Composable (Modifier) -> Unit = { paneModifier ->
-                    CodeEditor(
-                        state = editorState,
-                        document = activeText?.takeIf { it.id == activeFile.id }?.let { text ->
-                            EditorDocument(
-                                id = activeFile.id,
-                                revision = text.contentVersion,
-                                text = text.content,
-                                fileName = activeFile.name,
-                                languageBase = state.runtime?.language,
-                                isEntry = activeFile.isEntry,
-                                // Comment syntax is known for the project's language; other file types get none.
-                                lineComment = state.language?.lineComment?.takeIf { sameLanguage },
-                                blockComment = state.language?.blockComment?.takeIf { sameLanguage },
-                            )
+    // The console's peek row and tabs: the bottom sheet's content on phones, a side panel on wide windows.
+    val consolePanel: @Composable (Modifier) -> Unit = { panelModifier ->
+        Column(panelModifier.background(colors.surface)) {
+            ConsolePeek(latest, expanded = consoleExpanded, onToggle = { if (consoleExpanded) collapseConsole() else openConsole() })
+            ConsoleSheet(
+                state = consoleState,
+                tab = tab,
+                stdin = stdin,
+                modifier = Modifier.weight(1f).fillMaxWidth(),
+                docked = docked,
+                actions = ConsoleSheetActions(
+                    onClose = ::collapseConsole,
+                    onSelectTab = { tab = it },
+                    onClear = console::clearConsole,
+                    onStop = console::stop,
+                    onRunWithInput = {
+                        flushEditors()
+                        console.runWithInput()
+                    },
+                    onStdinChange = console::setStdin,
+                    onLoadStdinFile = { pickStdin(StdinTarget.Input) },
+                    onSaveStdinAsTest = console::saveStdinAsTest,
+                    onVerify = console::verify,
+                    onGoTo = { problem ->
+                        collapseConsole()
+                        val files = state.workspace?.files.orEmpty()
+                        val target = files.firstOrNull { it.name == problem.fileName } ?: files.firstOrNull { problem.fileName.refersTo(it.name) } ?: activeFile
+                        problem.line?.let { line -> pendingGoTo = PendingGoTo(target.id, line, problem.column ?: 1, openFind = false) }
+                        if (target.id != activeFile.id) selectFile(target.id)
+                    },
+                    onCancelPending = console::cancelPending,
+                    onSendPendingNow = console::sendPendingNow,
+                    onSendWhenOnline = console::setSendWhenOnline,
+                    tests = TestActions(
+                        onRunAll = runTests,
+                        onRunOne = { test ->
+                            flushEditors()
+                            console.runTests(setOf(test.id))
                         },
-                        settings = state.settings,
-                        onTextChange = actions.onContentChanged,
-                        diagnostics = remember(problems) { problems.map { EditorDiagnostic(it.line!!, it.column, it.message, it.isError) } },
-                        onRunShortcut = if (consoleState.runSettings.runOnCtrlEnter) runPrimary else null,
-                        lineHint = runHint(activeFile, currentText(editorState, activeFile.id, activeText), state.runtime?.language, consoleState.tests.size, latest, running),
-                        onLineHintClick = runPrimary,
-                        modifier = paneModifier,
-                    )
-                }
-                if (splitFile == null) {
-                    primaryEditor(Modifier.weight(1f).fillMaxWidth())
-                } else {
-                    SplitPanes(
-                        fraction = splitFraction,
-                        onFractionChange = { splitFraction = it },
-                        first = primaryEditor,
-                        second = { paneModifier ->
-                            Column(paneModifier) {
-                                FileTabs(
-                                    files = projectFiles.filter { it.id != activeFile.id },
-                                    activeFileId = splitFile.id,
-                                    entryShortCode = state.language?.shortCode,
-                                    dirtyFileId = { splitFile.id.takeIf { splitState.isDirty } },
-                                    onSelect = { splitFileId = it.id },
-                                    onFileMenu = { },
-                                    onAdd = onShowNewFile,
+                        onAdd = { creatingTest = true },
+                        onEdit = { editingTest = it },
+                        onDuplicate = console::duplicateTest,
+                        onDelete = console::deleteTest,
+                        onAcceptOutput = console::acceptOutput,
+                        onRaiseLimits = { showLimits = true },
+                    ),
+                ),
+            )
+            // Only a docked panel (wide windows) carries a banner; on phones the editor stays ad-free.
+            if (docked) AdBanner(compact = true, spacing = 16, modifier = Modifier.padding(bottom = 8.dp))
+        }
+    }
+    // The open file (or two, side by side) and the status line under it.
+    val editorArea: @Composable (Modifier) -> Unit = { areaModifier ->
+        Column(areaModifier.onSizeChanged { editorWidth = with(density) { it.width.toDp() } }) {
+            val primaryEditor: @Composable (Modifier) -> Unit = { paneModifier ->
+                CodeEditor(
+                    state = editorState,
+                    document = activeText?.takeIf { it.id == activeFile.id }?.let { text ->
+                        EditorDocument(
+                            id = activeFile.id,
+                            revision = text.contentVersion,
+                            text = text.content,
+                            fileName = activeFile.name,
+                            languageBase = state.runtime?.language,
+                            isEntry = activeFile.isEntry,
+                            // Comment syntax is known for the project's language; other file types get none.
+                            lineComment = state.language?.lineComment?.takeIf { sameLanguage },
+                            blockComment = state.language?.blockComment?.takeIf { sameLanguage },
+                        )
+                    },
+                    settings = state.settings,
+                    onTextChange = actions.onContentChanged,
+                    diagnostics = remember(problems) { problems.map { EditorDiagnostic(it.line!!, it.column, it.message, it.isError) } },
+                    onRunShortcut = if (consoleState.runSettings.runOnCtrlEnter) runPrimary else null,
+                    lineHint = runHint(activeFile, currentText(editorState, activeFile.id, activeText), state.runtime?.language, consoleState.tests.size, latest, running),
+                    onLineHintClick = runPrimary,
+                    modifier = paneModifier,
+                )
+            }
+            // One call site for the primary editor whether or not a second file is open beside it, so opening or closing
+            // the split keeps its undo history and scroll.
+            SplitPanes(
+                fraction = splitFraction,
+                onFractionChange = { splitFraction = it },
+                first = primaryEditor,
+                second = splitFile?.let { split -> { paneModifier ->
+                    Column(paneModifier) {
+                        FileTabs(
+                            files = projectFiles.filter { it.id != activeFile.id },
+                            activeFileId = split.id,
+                            entryShortCode = state.language?.shortCode,
+                            dirtyFileId = { split.id.takeIf { splitState.isDirty } },
+                            onSelect = { splitFileId = it.id },
+                            onFileMenu = { },
+                            onAdd = onShowNewFile,
+                        )
+                        CodeEditor(
+                            state = splitState,
+                            document = splitText?.takeIf { it.id == split.id }?.let { text ->
+                                EditorDocument(
+                                    id = split.id,
+                                    revision = text.contentVersion,
+                                    text = text.content,
+                                    fileName = split.name,
+                                    languageBase = state.runtime?.language,
+                                    isEntry = split.isEntry,
                                 )
-                                CodeEditor(
-                                    state = splitState,
-                                    document = splitText?.takeIf { it.id == splitFile.id }?.let { text ->
-                                        EditorDocument(
-                                            id = splitFile.id,
-                                            revision = text.contentVersion,
-                                            text = text.content,
-                                            fileName = splitFile.name,
-                                            languageBase = state.runtime?.language,
-                                            isEntry = splitFile.isEntry,
-                                        )
-                                    },
-                                    settings = state.settings,
-                                    onTextChange = actions.onContentChanged,
-                                    modifier = Modifier.weight(1f).fillMaxWidth(),
-                                )
-                            }
-                        },
-                        modifier = Modifier.weight(1f).fillMaxWidth(),
-                    )
-                }
-                EditorStatusBar(editorState, state.settings.tabSize, problems = latest?.problems?.size ?: 0)
+                            },
+                            settings = state.settings,
+                            onTextChange = actions.onContentChanged,
+                            modifier = Modifier.weight(1f).fillMaxWidth(),
+                        )
+                    }
+                } },
+                modifier = Modifier.weight(1f).fillMaxWidth(),
+            )
+            // Docked, nothing below the code holds the symbol keys, so they sit above the status line while typing.
+            if (docked && symbolStrip) SymbolRow(if (splitState.hasFocus) splitState else editorState, Modifier.height(ConsolePeekHeight))
+            EditorStatusBar(editorState, state.settings.tabSize, problems = latest?.problems?.size ?: 0)
+        }
+    }
+
+    if (docked) {
+        // Code on the left, console on the right with a draggable divider; hidden, it leaves its peek row under the code.
+        // The editor stays at one place in the composition either way, so toggling the console keeps its state.
+        SplitPanes(
+            fraction = consoleFraction,
+            onFractionChange = { consoleFraction = it },
+            first = editorArea,
+            second = consolePanel.takeIf { consoleOpen },
+            modifier = Modifier.weight(1f).fillMaxWidth().background(colors.background),
+            minFirst = DOCKED_EDITOR_MIN_WIDTH,
+            minSecond = DOCKED_CONSOLE_MIN_WIDTH,
+        )
+        if (!consoleOpen) {
+            Column(Modifier.fillMaxWidth().background(colors.surface).drawBehind { drawLine(colors.borderStrong, Offset(0f, 0f), Offset(size.width, 0f), 1f) }) {
+                ConsolePeek(latest, expanded = false, onToggle = { openConsole() })
+            }
+        }
+    } else {
+        // Clipped: the collapsed sheet's hidden part would otherwise draw over the system navigation bar.
+        BoxWithConstraints(Modifier.weight(1f).fillMaxWidth().clipToBounds()) {
+            val expandedHeight = maxHeight * SHEET_FRACTION
+            BottomSheetScaffold(
+                scaffoldState = scaffoldState,
+                sheetPeekHeight = peekHeight,
+                // The console is part of the layout, not a floating card: full width on tablets and in landscape too.
+                sheetMaxWidth = Dp.Unspecified,
+                sheetSwipeEnabled = !typing,
+                sheetShape = RectangleShape,
+                sheetContainerColor = colors.surface,
+                sheetContentColor = colors.textPrimary,
+                sheetTonalElevation = 0.dp,
+                sheetShadowElevation = 0.dp,
+                sheetDragHandle = {
+                    val border = Modifier.drawBehind { drawLine(colors.borderStrong, Offset(0f, 0f), Offset(size.width, 0f), 1f) }
+                    // No drag affordance while typing: the sheet can't be dragged then.
+                    if (typing) Spacer(border.fillMaxWidth().height(OmniDimens.sheetHandle)) else SheetHandle(border)
+                },
+                containerColor = colors.background,
+                sheetContent = {
+                    if (symbolStrip) {
+                        SymbolRow(if (splitState.hasFocus) splitState else editorState, Modifier.height(ConsolePeekHeight))
+                    } else {
+                        consolePanel(Modifier.fillMaxWidth().height(expandedHeight - OmniDimens.sheetHandle))
+                    }
+                },
+            ) {
+                // The collapsed sheet overlays the bottom; reserve its height so the status bar stays visible above it.
+                editorArea(Modifier.fillMaxSize().padding(bottom = peekHeight))
             }
         }
     }
@@ -522,7 +581,7 @@ internal fun ColumnScope.WorkspaceBody(
             onOpen = { hit, query, options ->
                 projectSearch = false
                 findSeed = FindSeed(query, options)
-                pendingHit = hit
+                pendingGoTo = PendingGoTo(hit.fileId, hit.line, hit.column, openFind = true)
                 if (hit.fileId != activeFile.id) selectFile(hit.fileId)
             },
             onDismiss = { projectSearch = false },
@@ -611,6 +670,13 @@ private fun runHint(file: FileHeader, text: String?, languageBase: String?, test
 }
 
 private const val SHEET_FRACTION = 0.78f
+
+/** The code's share of a wide window's width when the console docks beside it. */
+private const val DOCKED_EDITOR_FRACTION = 0.68f
+
+// Room for the console's tabs and verdict line, and for a readable line of code beside it.
+private val DOCKED_CONSOLE_MIN_WIDTH = 360.dp
+private val DOCKED_EDITOR_MIN_WIDTH = 320.dp
 
 private fun FileHeader.extension() = name.substringAfterLast('.', "").lowercase()
 

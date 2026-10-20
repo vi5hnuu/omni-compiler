@@ -68,6 +68,9 @@ class ProjectSearchViewModel @Inject constructor(
         viewModelScope.launch { files.value = projects.snapshot(projectId)?.files.orEmpty() }
     }
 
+    /** What was last typed (not yet debounced). */
+    val currentQuery: String get() = query.value
+
     fun setQuery(value: String) {
         query.value = value
     }

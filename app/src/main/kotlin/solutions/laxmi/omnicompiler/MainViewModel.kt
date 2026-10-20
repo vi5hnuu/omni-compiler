@@ -45,7 +45,6 @@ class MainViewModel @Inject constructor(
         .map { (it as? Session.Active)?.user?.id }
         .stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
-    /** Back in the foreground: the folder may have been removed, or files edited in another app. */
     private val pendingExternalFile = MutableStateFlow<String?>(null)
 
     /** A file another app asked us to open; the nav host opens it once and then calls [onExternalFileOpened]. */
@@ -59,6 +58,7 @@ class MainViewModel @Inject constructor(
         pendingExternalFile.value = null
     }
 
+    /** Back in the foreground: the folder may have been removed, or files edited in another app. */
     fun onForeground() {
         viewModelScope.launch {
             folders.recheck()

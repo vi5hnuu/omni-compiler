@@ -1,5 +1,6 @@
 package solutions.laxmi.omnicompiler.feature.vcs
 
+import solutions.laxmi.omnicompiler.core.designsystem.component.ReadableContent
 import androidx.compose.foundation.background
 import androidx.compose.material3.AlertDialog
 import androidx.compose.ui.graphics.RectangleShape
@@ -14,6 +15,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -92,22 +94,24 @@ fun GitAccountsScreen(navigator: Navigator) {
     val colors = OmniTheme.colors
     Column(Modifier.fillMaxSize().background(colors.background).navigationBarsPadding().imePadding()) {
         OmniTopBar(stringResource(R.string.git_accounts_title), onBack = navigator::back)
-        Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
-            Text(
-                stringResource(R.string.git_accounts_intro),
-                style = OmniTheme.typography.bodySmall,
-                color = colors.textSecondary,
-                modifier = Modifier.padding(16.dp),
-            )
-            GitHost.entries.forEach { host ->
-                HostSection(
-                    host = host,
-                    account = state.accounts[host],
-                    busy = state.connecting == host,
-                    error = state.errors[host],
-                    onConnect = { viewModel.connect(host, it) },
-                    onDisconnect = { viewModel.disconnect(host) },
+        ReadableContent {
+            Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
+                Text(
+                    stringResource(R.string.git_accounts_intro),
+                    style = OmniTheme.typography.bodySmall,
+                    color = colors.textSecondary,
+                    modifier = Modifier.padding(16.dp),
                 )
+                GitHost.entries.forEach { host ->
+                    HostSection(
+                        host = host,
+                        account = state.accounts[host],
+                        busy = state.connecting == host,
+                        error = state.errors[host],
+                        onConnect = { viewModel.connect(host, it) },
+                        onDisconnect = { viewModel.disconnect(host) },
+                    )
+                }
             }
         }
     }
@@ -118,6 +122,8 @@ private fun HostSection(host: GitHost, account: GitAccount?, busy: Boolean, erro
     val colors = OmniTheme.colors
     val context = LocalContext.current
     var token by rememberSaveable(host) { mutableStateOf("") }
+    // Once connected the token lives encrypted in the credential store; it mustn't linger in this field's saved state.
+    LaunchedEffect(account) { if (account != null) token = "" }
     SectionLabel(host.displayName())
     // Bottom padding separates one provider's button from the next provider's heading.
     Column(Modifier.padding(start = 16.dp, end = 16.dp, bottom = 16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {

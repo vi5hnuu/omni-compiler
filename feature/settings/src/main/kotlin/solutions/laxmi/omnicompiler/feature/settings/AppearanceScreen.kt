@@ -1,5 +1,6 @@
 package solutions.laxmi.omnicompiler.feature.settings
 
+import solutions.laxmi.omnicompiler.core.designsystem.component.ReadableContent
 import solutions.laxmi.omnicompiler.core.model.AppTheme
 import solutions.laxmi.omnicompiler.core.ui.descriptionRes
 import solutions.laxmi.omnicompiler.core.ui.labelRes
@@ -63,49 +64,51 @@ fun AppearanceScreen(navigator: Navigator) {
     val colors = OmniTheme.colors
     Column(Modifier.fillMaxSize().background(colors.background).navigationBarsPadding()) {
         OmniTopBar(stringResource(R.string.appearance_title), onBack = navigator::back)
-        Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
-            SectionLabel(stringResource(R.string.appearance_app_theme))
-            OmniSegmented(
-                AppTheme.entries, state.appTheme, { appThemeLabels.getValue(it) }, viewModel::setAppTheme,
-                Modifier.padding(horizontal = 16.dp).fillMaxWidth(),
-            )
-            SectionLabel(stringResource(R.string.appearance_theme))
-            EditorTheme.entries.chunked(2).forEach { row ->
-                Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    row.forEach { theme ->
-                        ThemeCard(theme, editor, selected = editor.theme == theme, modifier = Modifier.weight(1f)) {
-                            viewModel.updateEditor { it.copy(theme = theme) }
+        ReadableContent {
+            Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
+                SectionLabel(stringResource(R.string.appearance_app_theme))
+                OmniSegmented(
+                    AppTheme.entries, state.appTheme, { appThemeLabels.getValue(it) }, viewModel::setAppTheme,
+                    Modifier.padding(horizontal = 16.dp).fillMaxWidth(),
+                )
+                SectionLabel(stringResource(R.string.appearance_theme))
+                EditorTheme.entries.chunked(2).forEach { row ->
+                    Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        row.forEach { theme ->
+                            ThemeCard(theme, editor, selected = editor.theme == theme, modifier = Modifier.weight(1f)) {
+                                viewModel.updateEditor { it.copy(theme = theme) }
+                            }
                         }
                     }
                 }
+                SectionLabel(stringResource(R.string.appearance_font))
+                OmniSegmented(
+                    CodeFont.entries, editor.font, { it.displayName }, { font -> viewModel.updateEditor { it.copy(font = font) } },
+                    Modifier.padding(horizontal = 16.dp).fillMaxWidth(),
+                )
+                SectionLabel(stringResource(R.string.appearance_font_size)) { Text(stringResource(R.string.appearance_font_size_value, editor.fontSizeSp), style = OmniTheme.typography.mono, color = colors.textSecondary) }
+                Slider(
+                    value = editor.fontSizeSp.toFloat(),
+                    onValueChange = { v -> viewModel.updateEditor { it.copy(fontSizeSp = v.toInt()) } },
+                    valueRange = EditorSettings.MIN_FONT_SP.toFloat()..EditorSettings.MAX_FONT_SP.toFloat(),
+                    steps = EditorSettings.MAX_FONT_SP - EditorSettings.MIN_FONT_SP - 1,
+                    colors = SliderDefaults.colors(thumbColor = colors.accent, activeTrackColor = colors.accent, inactiveTrackColor = colors.surfaceMuted),
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                )
+                OmniListRow(stringResource(R.string.appearance_ligatures), subtitle = stringResource(R.string.appearance_ligatures_note), trailing = {
+                    OmniToggle(editor.ligatures, { v -> viewModel.updateEditor { it.copy(ligatures = v) } })
+                })
+                OmniListRow(stringResource(R.string.appearance_indent_guides), subtitle = stringResource(R.string.appearance_indent_guides_note), trailing = {
+                    OmniToggle(editor.indentGuides, { v -> viewModel.updateEditor { it.copy(indentGuides = v) } })
+                })
+                SectionLabel(stringResource(R.string.appearance_line_height))
+                OmniSegmented(
+                    LineSpacing.entries, editor.lineSpacing, { spacingLabels.getValue(it) }, { spacing -> viewModel.updateEditor { it.copy(lineSpacing = spacing) } },
+                    Modifier.padding(horizontal = 16.dp).fillMaxWidth(),
+                )
+                SectionLabel(stringResource(R.string.appearance_preview))
+                Preview(editor, Modifier.padding(horizontal = 16.dp).padding(bottom = 24.dp))
             }
-            SectionLabel(stringResource(R.string.appearance_font))
-            OmniSegmented(
-                CodeFont.entries, editor.font, { it.displayName }, { font -> viewModel.updateEditor { it.copy(font = font) } },
-                Modifier.padding(horizontal = 16.dp).fillMaxWidth(),
-            )
-            SectionLabel(stringResource(R.string.appearance_font_size)) { Text(stringResource(R.string.appearance_font_size_value, editor.fontSizeSp), style = OmniTheme.typography.mono, color = colors.textSecondary) }
-            Slider(
-                value = editor.fontSizeSp.toFloat(),
-                onValueChange = { v -> viewModel.updateEditor { it.copy(fontSizeSp = v.toInt()) } },
-                valueRange = EditorSettings.MIN_FONT_SP.toFloat()..EditorSettings.MAX_FONT_SP.toFloat(),
-                steps = EditorSettings.MAX_FONT_SP - EditorSettings.MIN_FONT_SP - 1,
-                colors = SliderDefaults.colors(thumbColor = colors.accent, activeTrackColor = colors.accent, inactiveTrackColor = colors.surfaceMuted),
-                modifier = Modifier.padding(horizontal = 16.dp),
-            )
-            OmniListRow(stringResource(R.string.appearance_ligatures), subtitle = stringResource(R.string.appearance_ligatures_note), trailing = {
-                OmniToggle(editor.ligatures, { v -> viewModel.updateEditor { it.copy(ligatures = v) } })
-            })
-            OmniListRow(stringResource(R.string.appearance_indent_guides), subtitle = stringResource(R.string.appearance_indent_guides_note), trailing = {
-                OmniToggle(editor.indentGuides, { v -> viewModel.updateEditor { it.copy(indentGuides = v) } })
-            })
-            SectionLabel(stringResource(R.string.appearance_line_height))
-            OmniSegmented(
-                LineSpacing.entries, editor.lineSpacing, { spacingLabels.getValue(it) }, { spacing -> viewModel.updateEditor { it.copy(lineSpacing = spacing) } },
-                Modifier.padding(horizontal = 16.dp).fillMaxWidth(),
-            )
-            SectionLabel(stringResource(R.string.appearance_preview))
-            Preview(editor, Modifier.padding(horizontal = 16.dp).padding(bottom = 24.dp))
         }
     }
 }

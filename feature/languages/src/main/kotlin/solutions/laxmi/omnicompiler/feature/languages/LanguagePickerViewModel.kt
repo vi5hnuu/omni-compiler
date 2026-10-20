@@ -6,6 +6,7 @@ import dagger.assisted.Assisted
 import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -137,8 +138,12 @@ class LanguagePickerViewModel @AssistedInject constructor(
         selectedBase.value = null
     }
 
+    /** The runtime change in flight; a second tap while it renames files on disk is ignored. */
+    private var changing: Job? = null
+
     fun use(runtime: Runtime, makeDefault: Boolean) {
-        viewModelScope.launch {
+        if (changing?.isActive == true) return
+        changing = viewModelScope.launch {
             if (makeDefault) settings.updateRun { it.copy(defaultRuntimeId = runtime.id) }
             when (val result = projects.changeRuntime(projectId, runtime)) {
                 is Outcome.Success -> events.send(LanguagePickerEvent.Done)

@@ -117,6 +117,9 @@ internal class DefaultExecutionRepository @Inject constructor(
     private val trackers = ConcurrentHashMap<String, Job>()
     private val sendMutex = Mutex()
 
+    /** Makes "is a run active?" and starting one a single step, so a double tap on Run can't submit two jobs. */
+    private val startMutex = Mutex()
+
     /** Run ids the user stopped while their submit request was still in flight. */
     private val stoppedWhileSubmitting: MutableSet<String> = ConcurrentHashMap.newKeySet()
 
@@ -178,16 +181,17 @@ internal class DefaultExecutionRepository @Inject constructor(
     }
 
     override suspend fun run(projectId: String, options: RunOptions): Outcome<Unit> {
-        // One run per project at a time: an offline-queued run counts, so it can't be overtaken later.
-        if (live.value[projectId]?.phase?.isActive == true) return Outcome.Failure(AppError.Conflict(reason = ErrorReason.RunInProgress))
-        if (pendingDao.hasPendingFor(projectId)) {
-            return Outcome.Failure(AppError.Conflict(reason = ErrorReason.RunQueued))
+        val prepared = startMutex.withLock {
+            // One run per project at a time: an offline-queued run counts, so it can't be overtaken later.
+            if (live.value[projectId]?.phase?.isActive == true) return Outcome.Failure(AppError.Conflict(reason = ErrorReason.RunInProgress))
+            if (pendingDao.hasPendingFor(projectId)) {
+                return Outcome.Failure(AppError.Conflict(reason = ErrorReason.RunQueued))
+            }
+            when (val result = prepare(projectId, options)) {
+                is Outcome.Failure -> return result
+                is Outcome.Success -> result.value.also { publish(it.record) }
+            }
         }
-        val prepared = when (val result = prepare(projectId, options)) {
-            is Outcome.Failure -> return result
-            is Outcome.Success -> result.value
-        }
-        publish(prepared.record)
         if (!connectivity.isOnline.value) {
             enqueueOffline(prepared)
             return Outcome.Success(Unit)
@@ -209,7 +213,6 @@ internal class DefaultExecutionRepository @Inject constructor(
                 val jobId = record.jobId ?: return Outcome.Success(Unit)
                 when (val result = network.cancel(jobId)) {
                     is Outcome.Success -> finish(record.copy(phase = RunPhase.CANCELLED), diagnostic = null, cancelTracker = true)
-                    // 409: a worker already took it; it can't be cancelled, only detached.
                     // 409: a worker already took it; it can't be cancelled, only detached. Any other failure (job gone,
                     // server unreachable) also stops following it, so the project isn't left blocked, and is reported.
                     is Outcome.Failure -> {
@@ -300,6 +303,8 @@ internal class DefaultExecutionRepository @Inject constructor(
     private suspend fun prepare(projectId: String, options: RunOptions): Outcome<Prepared> {
         val workspace = projects.snapshot(projectId)
             ?: return Outcome.Failure(AppError.NotFound(reason = ErrorReason.ProjectNotFound))
+        // Checked before anything is queued: a run without a runtime would only be rejected by the judge later.
+        if (workspace.project.runtimeId.isBlank()) return Outcome.Failure(AppError.Validation(reason = ErrorReason.LanguageNotChosen))
         val entry = workspace.entry ?: return Outcome.Failure(AppError.Validation(reason = ErrorReason.EntryFileMissing))
         if (entry.content.isBlank()) return Outcome.Failure(AppError.Validation(reason = ErrorReason.WriteCodeFirst))
         val extras = workspace.files.filter { !it.isEntry }
