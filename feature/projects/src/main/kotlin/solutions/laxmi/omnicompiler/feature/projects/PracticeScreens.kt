@@ -4,6 +4,9 @@ import solutions.laxmi.omnicompiler.core.designsystem.component.ReadableContent
 import androidx.activity.compose.LocalActivity
 import solutions.laxmi.omnicompiler.core.ads.LocalAds
 import solutions.laxmi.omnicompiler.core.ads.AdBanner
+import androidx.compose.foundation.lazy.itemsIndexed
+import solutions.laxmi.omnicompiler.core.ads.rememberNativeAdSlots
+import solutions.laxmi.omnicompiler.core.ads.NativeAdSlot
 import solutions.laxmi.omnicompiler.core.ui.testCount
 import solutions.laxmi.omnicompiler.core.ui.labelRes
 import solutions.laxmi.omnicompiler.core.ui.asString
@@ -67,6 +70,9 @@ import solutions.laxmi.omnicompiler.core.navigation.ProblemRoute
 fun ExamplesScreen(navigator: Navigator) {
     val viewModel = hiltViewModel<ExamplesViewModel>()
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    // Beside its detail on a large screen, the list marks the item whose details are open.
+    val openDetail = navigator.openedFrom(ExamplesRoute)
+    val adSlots = rememberNativeAdSlots()
     val snackbar = remember { SnackbarHostState() }
     var tab by rememberSaveable { mutableIntStateOf(0) }
     var chosen by remember { mutableStateOf<Example?>(null) }
@@ -82,22 +88,29 @@ fun ExamplesScreen(navigator: Navigator) {
                 Box(Modifier.weight(1f)) {
                 LazyColumn(Modifier.fillMaxSize()) {
                     if (tab == 0) {
-                        items(state.examples, key = { it.id }) { example ->
-                            OmniListRow(
-                                title = example.title,
-                                subtitle = example.statement,
-                                trailing = { DifficultyBadge(example.difficulty) },
-                                onClick = { chosen = example },
-                            )
+                        itemsIndexed(state.examples, key = { _, example -> example.id }) { index, example ->
+                            Column {
+                                OmniListRow(
+                                    title = example.title,
+                                    subtitle = example.statement,
+                                    trailing = { DifficultyBadge(example.difficulty) },
+                                    onClick = { chosen = example },
+                                )
+                                NativeAdSlot(adSlots, index)
+                            }
                         }
                     } else {
-                        items(state.problems, key = { it.slug }) { problem ->
-                            OmniListRow(
-                                title = problem.title,
-                                subtitle = problem.tagline,
-                                trailing = { DifficultyBadge(problem.difficulty) },
-                                onClick = { navigator.openDetail(ExamplesRoute, ProblemRoute(problem.slug)) },
-                            )
+                        itemsIndexed(state.problems, key = { _, problem -> problem.slug }) { index, problem ->
+                            Column {
+                                OmniListRow(
+                                    title = problem.title,
+                                    subtitle = problem.tagline,
+                                    trailing = { DifficultyBadge(problem.difficulty) },
+                                    selected = (openDetail as? ProblemRoute)?.slug == problem.slug,
+                                    onClick = { navigator.openDetail(ExamplesRoute, ProblemRoute(problem.slug)) },
+                                )
+                                NativeAdSlot(adSlots, index)
+                            }
                         }
                     }
                 }

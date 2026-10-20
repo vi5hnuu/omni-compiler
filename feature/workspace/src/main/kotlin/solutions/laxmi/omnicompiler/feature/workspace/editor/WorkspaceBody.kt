@@ -26,6 +26,8 @@ import androidx.compose.material3.BottomSheetScaffold
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.LocalActivity
 import solutions.laxmi.omnicompiler.core.review.LocalAppReview
+import solutions.laxmi.omnicompiler.core.ads.AdBanner
+import solutions.laxmi.omnicompiler.core.ads.LocalAds
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -126,6 +128,7 @@ internal fun ColumnScope.WorkspaceBody(
 
     val resources = LocalResources.current
     val review = LocalAppReview.current
+    val ads = LocalAds.current
     val activity = LocalActivity.current
     // The console is a standard (persistent) bottom sheet: collapsed it shows the peek row, dragged or tapped it expands.
     val sheetState = rememberStandardBottomSheetState(initialValue = SheetValue.PartiallyExpanded)
@@ -237,6 +240,7 @@ internal fun ColumnScope.WorkspaceBody(
                 }
                 // The rating card never competes with another sheet on screen.
                 is ConsoleEvent.AcceptedRun -> activity?.let { review.onPositiveMoment(it, mayPrompt = !event.sheetShown) }
+                is ConsoleEvent.RunFinished -> ads.onRunFinished(event.failed)
                 is ConsoleEvent.RunStarted -> {
                     openConsole(if (event.mode == RunMode.TESTS) ConsoleTab.Tests else ConsoleTab.Console)
                 }
@@ -285,7 +289,8 @@ internal fun ColumnScope.WorkspaceBody(
         ReadingTopBar(
             projectName = state.workspace?.project?.name.orEmpty(),
             runtimeLabel = state.runtime?.let { stringResource(R.string.editor_runtime_label, state.language?.name ?: it.language, it.version) }
-                ?: state.workspace?.project?.runtimeId.orEmpty(),
+                ?: state.workspace?.project?.runtimeId?.takeIf { it.isNotBlank() }
+                ?: stringResource(R.string.editor_choose_language),
             minimapOn = state.settings.minimap,
             runEnabled = true,
             onMenu = onOpenDrawer,
@@ -435,6 +440,8 @@ internal fun ColumnScope.WorkspaceBody(
                     ),
                 ),
             )
+            // Only a docked panel (wide windows) carries a banner; on phones the editor stays ad-free.
+            if (docked) AdBanner(compact = true, spacing = 16, modifier = Modifier.padding(bottom = 8.dp))
         }
     }
     // The open file (or two, side by side) and the status line under it.
@@ -517,6 +524,8 @@ internal fun ColumnScope.WorkspaceBody(
             first = editorArea,
             second = consolePanel.takeIf { consoleOpen },
             modifier = Modifier.weight(1f).fillMaxWidth().background(colors.background),
+            minFirst = DOCKED_EDITOR_MIN_WIDTH,
+            minSecond = DOCKED_CONSOLE_MIN_WIDTH,
         )
         if (!consoleOpen) {
             Column(Modifier.fillMaxWidth().background(colors.surface).drawBehind { drawLine(colors.borderStrong, Offset(0f, 0f), Offset(size.width, 0f), 1f) }) {
@@ -664,6 +673,10 @@ private const val SHEET_FRACTION = 0.78f
 
 /** The code's share of a wide window's width when the console docks beside it. */
 private const val DOCKED_EDITOR_FRACTION = 0.68f
+
+// Room for the console's tabs and verdict line, and for a readable line of code beside it.
+private val DOCKED_CONSOLE_MIN_WIDTH = 360.dp
+private val DOCKED_EDITOR_MIN_WIDTH = 320.dp
 
 private fun FileHeader.extension() = name.substringAfterLast('.', "").lowercase()
 

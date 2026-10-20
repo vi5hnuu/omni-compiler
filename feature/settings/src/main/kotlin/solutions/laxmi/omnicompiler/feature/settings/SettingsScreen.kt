@@ -2,7 +2,9 @@ package solutions.laxmi.omnicompiler.feature.settings
 
 import solutions.laxmi.omnicompiler.core.designsystem.component.ReadableContent
 import androidx.activity.compose.LocalActivity
+import solutions.laxmi.omnicompiler.core.ads.AdFreePassDialog
 import solutions.laxmi.omnicompiler.core.ads.LocalAds
+import solutions.laxmi.omnicompiler.core.ads.adFreePassSummary
 import solutions.laxmi.omnicompiler.core.review.LocalAppReview
 import solutions.laxmi.omnicompiler.core.navigation.SettingsRoute
 import solutions.laxmi.omnicompiler.core.navigation.GitAccountsRoute
@@ -75,6 +77,10 @@ fun SettingsScreen(navigator: Navigator, appVersion: String) {
     val review = LocalAppReview.current
     val activity = LocalActivity.current
     val privacyChoices by ads.privacyOptionsRequired.collectAsStateWithLifecycle()
+    val passState by ads.pass.state.collectAsStateWithLifecycle()
+    var offeringPass by rememberSaveable { mutableStateOf(false) }
+    // Beside its detail on a large screen, the list marks the item whose details are open.
+    val openDetail = navigator.openedFrom(SettingsRoute)
     val defaultRuntime = state.run.defaultRuntimeId
     // "JavaScript 26" rather than the judge id; the id stays as a fallback for runtimes missing from the catalog.
     val defaultRuntimeLabel = defaultRuntime?.let { id ->
@@ -100,6 +106,7 @@ fun SettingsScreen(navigator: Navigator, appVersion: String) {
                     stringResource(R.string.settings_theme_font),
                     subtitle = stringResource(R.string.settings_theme_font_value, stringResource(editor.theme.labelRes), editor.font.displayName, editor.fontSizeSp),
                     trailing = { Chevron() },
+                    selected = openDetail == AppearanceRoute,
                     onClick = { navigator.openDetail(SettingsRoute, AppearanceRoute) },
                 )
                 ToggleRow(stringResource(R.string.settings_minimap), stringResource(R.string.settings_minimap_note), editor.minimap) { v -> viewModel.updateEditor { it.copy(minimap = v) } }
@@ -120,7 +127,7 @@ fun SettingsScreen(navigator: Navigator, appVersion: String) {
                     trailing = { Chevron() },
                     onClick = { navigator.navigate(ProjectFolderRoute(change = true)) },
                 )
-                OmniListRow(stringResource(R.string.settings_git_accounts), subtitle = stringResource(R.string.settings_git_accounts_note), trailing = { Chevron() }, onClick = { navigator.openDetail(SettingsRoute, GitAccountsRoute) })
+                OmniListRow(stringResource(R.string.settings_git_accounts), subtitle = stringResource(R.string.settings_git_accounts_note), trailing = { Chevron() }, selected = openDetail == GitAccountsRoute, onClick = { navigator.openDetail(SettingsRoute, GitAccountsRoute) })
                 SectionLabel(stringResource(R.string.settings_run))
                 OmniListRow(
                     stringResource(R.string.settings_default_language),
@@ -157,16 +164,21 @@ fun SettingsScreen(navigator: Navigator, appVersion: String) {
                     trailing = { Icon(OmniIcons.ExternalLink, null, tint = colors.textTertiary) },
                     onClick = { review.openStoreListing(context) },
                 )
+                // Hidden while ads can't be requested; the pass only matters when they can.
+                adFreePassSummary(passState)?.let { summary ->
+                    OmniListRow(stringResource(R.string.settings_ad_free_pass), subtitle = summary, trailing = { Chevron() }, onClick = { offeringPass = true })
+                }
                 if (privacyChoices) {
                     OmniListRow(stringResource(R.string.settings_privacy_choices), trailing = { Chevron() }, onClick = { activity?.let(ads::showPrivacyOptions) })
                 }
                 OmniListRow(stringResource(R.string.settings_privacy), trailing = { Icon(OmniIcons.ExternalLink, null, tint = colors.textTertiary) }, onClick = { context.openUrl(viewModel.config.privacyPolicyUrl) })
                 OmniListRow(stringResource(R.string.settings_terms), trailing = { Icon(OmniIcons.ExternalLink, null, tint = colors.textTertiary) }, onClick = { context.openUrl(viewModel.config.termsUrl) })
-                OmniListRow(stringResource(R.string.settings_open_source), trailing = { Chevron() }, onClick = { navigator.openDetail(SettingsRoute, OpenSourceRoute) })
+                OmniListRow(stringResource(R.string.settings_open_source), trailing = { Chevron() }, selected = openDetail == OpenSourceRoute, onClick = { navigator.openDetail(SettingsRoute, OpenSourceRoute) })
                 OmniListRow(stringResource(R.string.settings_version), trailing = { Text(appVersion, style = OmniTheme.typography.mono, color = colors.textTertiary) })
             }
         }
     }
+    if (offeringPass) AdFreePassDialog(onDismiss = { offeringPass = false })
     if (confirmingSignOut) {
         SignOutDialog(
             isGuest = state.user?.isGuest == true,

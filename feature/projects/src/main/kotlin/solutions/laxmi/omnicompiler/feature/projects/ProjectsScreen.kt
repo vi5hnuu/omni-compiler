@@ -4,6 +4,9 @@ import solutions.laxmi.omnicompiler.core.designsystem.component.ReadableContent
 import androidx.activity.compose.LocalActivity
 import solutions.laxmi.omnicompiler.core.ads.LocalAds
 import solutions.laxmi.omnicompiler.core.ads.AdBanner
+import androidx.compose.foundation.lazy.itemsIndexed
+import solutions.laxmi.omnicompiler.core.ads.rememberNativeAdSlots
+import solutions.laxmi.omnicompiler.core.ads.NativeAdSlot
 import solutions.laxmi.omnicompiler.core.navigation.RepoImportRoute
 import solutions.laxmi.omnicompiler.core.model.ProjectIssue
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -87,6 +90,7 @@ fun ProjectsScreen(navigator: Navigator) {
     var menu by remember { mutableStateOf(false) }
     val ads = LocalAds.current
     val activity = LocalActivity.current
+    val adSlots = rememberNativeAdSlots()
     // The system pickers reach device storage and cloud providers (Drive, OneDrive, Dropbox) alike.
     val pickFolder = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
         if (uri != null) viewModel.importFolder(uri.toString())
@@ -151,21 +155,24 @@ fun ProjectsScreen(navigator: Navigator) {
                             )
                         } else {
                             LazyColumn(Modifier.fillMaxSize()) {
-                                items(state.projects, key = { it.summary.project.id }) { row ->
-                                    ProjectRow(
-                                        row = row,
-                                        age = formatAge(row.summary.project.updatedAt, state.now),
-                                        current = row.summary.project.id == state.currentProjectId,
-                                        onOpen = {
-                                            // Opening a different project is a natural break for a (rate-limited) interstitial.
-                                            if (row.summary.project.id != state.currentProjectId) activity?.let { ads.onNaturalBreak(it) }
-                                            navigator.resetTo(EditorRoute(row.summary.project.id))
-                                        },
-                                        onRename = { renaming = row },
-                                        onDuplicate = { viewModel.duplicate(row.summary.project.id) },
-                                        onExport = { viewModel.export(row.summary.project.id) },
-                                        onDelete = { deleting = row },
-                                    )
+                                itemsIndexed(state.projects, key = { _, row -> row.summary.project.id }) { index, row ->
+                                    Column {
+                                        ProjectRow(
+                                            row = row,
+                                            age = formatAge(row.summary.project.updatedAt, state.now),
+                                            current = row.summary.project.id == state.currentProjectId,
+                                            onOpen = {
+                                                // Opening a different project is a natural break for a (rate-limited) interstitial.
+                                                if (row.summary.project.id != state.currentProjectId) activity?.let { ads.onNaturalBreak(it) }
+                                                navigator.resetTo(EditorRoute(row.summary.project.id))
+                                            },
+                                            onRename = { renaming = row },
+                                            onDuplicate = { viewModel.duplicate(row.summary.project.id) },
+                                            onExport = { viewModel.export(row.summary.project.id) },
+                                            onDelete = { deleting = row },
+                                        )
+                                        NativeAdSlot(adSlots, index)
+                                    }
                                 }
                             }
                         }

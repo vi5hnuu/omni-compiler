@@ -2,6 +2,8 @@ package solutions.laxmi.omnicompiler.feature.history
 
 import solutions.laxmi.omnicompiler.core.designsystem.component.ReadableContent
 import solutions.laxmi.omnicompiler.core.ads.AdBanner
+import solutions.laxmi.omnicompiler.core.ads.rememberNativeAdSlots
+import solutions.laxmi.omnicompiler.core.ads.NativeAdSlot
 import solutions.laxmi.omnicompiler.core.ui.formatDuration
 import solutions.laxmi.omnicompiler.core.ui.R as CommonR
 import androidx.compose.ui.res.pluralStringResource
@@ -33,6 +35,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -73,6 +76,9 @@ fun HistoryScreen(navigator: Navigator) {
     val viewModel = hiltViewModel<HistoryViewModel>()
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val runtimeNames by viewModel.runtimeNames.collectAsStateWithLifecycle()
+    // Beside its detail on a large screen, the list marks the item whose details are open.
+    val openDetail = navigator.openedFrom(HistoryRoute)
+    val adSlots = rememberNativeAdSlots()
     val items = viewModel.items.collectAsLazyPagingItems()
     val colors = OmniTheme.colors
     Column(Modifier.fillMaxSize().background(colors.background).navigationBarsPadding()) {
@@ -96,6 +102,7 @@ fun HistoryScreen(navigator: Navigator) {
                 },
                 modifier = Modifier.weight(1f),
             ) {
+                // Ads ride inside every eighth row's item, so paging keys stay the rows' own.
                 LazyColumn(Modifier.fillMaxSize()) {
                     item { StatsRow(state) }
                     item { WeekChart(state.week) }
@@ -119,12 +126,15 @@ fun HistoryScreen(navigator: Navigator) {
                         item { EmptyState(stringResource(R.string.history_empty_title), stringResource(R.string.history_empty_message), icon = OmniIcons.History) }
                     }
                     items(items.itemCount, key = items.itemKey { it.key() }, contentType = items.itemContentType { it::class }) { index ->
-                        when (val item = items[index]) {
-                            is HistoryItem.Header -> DayHeader(item.dayStartEpochMs)
-                            is HistoryItem.Row -> SubmissionRow(item.submission, runtimeNames[item.submission.runtimeId]) {
-                                navigator.openDetail(HistoryRoute, JobDetailRoute(item.submission.id, item.submission.runtimeId))
+                        Column {
+                            when (val item = items[index]) {
+                                is HistoryItem.Header -> DayHeader(item.dayStartEpochMs)
+                                is HistoryItem.Row -> SubmissionRow(item.submission, runtimeNames[item.submission.runtimeId], selected = (openDetail as? JobDetailRoute)?.jobId == item.submission.id) {
+                                    navigator.openDetail(HistoryRoute, JobDetailRoute(item.submission.id, item.submission.runtimeId))
+                                }
+                                null -> Unit
                             }
-                            null -> Unit
+                            NativeAdSlot(adSlots, index)
                         }
                     }
                     if (items.loadState.append is LoadState.Loading || (refresh is LoadState.Loading && items.itemCount == 0)) {
@@ -219,13 +229,15 @@ private fun DayHeader(dayStart: Long) {
 }
 
 @Composable
-private fun SubmissionRow(submission: Submission, runtimeName: RuntimeName?, onClick: () -> Unit) {
+private fun SubmissionRow(submission: Submission, runtimeName: RuntimeName?, selected: Boolean, onClick: () -> Unit) {
     val colors = OmniTheme.colors
     val locale = LocalConfiguration.current.locales[0]
     val timeFormat = remember(locale) { SimpleDateFormat("HH:mm", locale) }
     Row(
         Modifier
             .fillMaxWidth()
+            .background(if (selected) colors.surfaceRaised else Color.Transparent)
+            .then(if (selected) Modifier.drawBehind { drawRect(colors.accent, size = size.copy(width = 2.dp.toPx())) } else Modifier)
             .clickable(role = Role.Button, onClick = onClick)
             .drawBehind { drawLine(colors.hairline, Offset(0f, size.height), Offset(size.width, size.height), 1f) }
             .padding(horizontal = 16.dp, vertical = 10.dp),

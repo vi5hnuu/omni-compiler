@@ -80,6 +80,9 @@ sealed interface ConsoleEvent {
 
     /** A run the user watched here finished Accepted; [sheetShown] when a console sheet (e.g. the guest prompt) is up. */
     data class AcceptedRun(val sheetShown: Boolean) : ConsoleEvent
+
+    /** A run the user watched here finished; [failed] for a failing verdict or a run that couldn't complete. */
+    data class RunFinished(val failed: Boolean) : ConsoleEvent
 }
 
 @HiltViewModel(assistedFactory = ConsoleViewModel.Factory::class)
@@ -139,19 +142,27 @@ class ConsoleViewModel @AssistedInject constructor(
                 if (runtimeId != null) runtimeDefaults.value = runtimes.defaultLimits(runtimeId)
             }
         }
-        viewModelScope.launch { offerKeepWorkAfterFirstAccept() }
+        viewModelScope.launch { watchRuns() }
     }
 
     /**
-     * A run the user watched here finishing Accepted is the screen's positive moment: guests are invited to keep their
-     * work (design X3), and the moment is reported so the app can ask for a rating when it's due.
+     * Every run the user watched here is reported when it finishes (ads keep away right after a failure). One finishing
+     * Accepted is the screen's positive moment: guests are invited to keep their work (design X3), and the moment is
+     * reported so the app can ask for a rating when it's due. Stopped or detached runs are neither.
      */
-    private suspend fun offerKeepWorkAfterFirstAccept() {
+    private suspend fun watchRuns() {
         val watched = mutableSetOf<String>()
         executions.observeConsole(projectId).collect { runs ->
             val latest = runs.firstOrNull() ?: return@collect
-            if (latest.phase.isActive) watched += latest.id
-            val accepted = latest.phase == RunPhase.DONE && latest.verdict == Verdict.AC && watched.remove(latest.id)
+            if (latest.phase.isActive) {
+                watched += latest.id
+                return@collect
+            }
+            // Queued offline is a pause, not an end: the run is still watched once it is sent.
+            if (latest.phase == RunPhase.QUEUED_OFFLINE || !watched.remove(latest.id)) return@collect
+            if (latest.phase != RunPhase.DONE && latest.phase != RunPhase.FAILED) return@collect
+            val accepted = latest.phase == RunPhase.DONE && latest.verdict == Verdict.AC
+            events.send(ConsoleEvent.RunFinished(failed = latest.phase == RunPhase.FAILED || latest.verdict?.isFailure == true))
             if (!accepted) return@collect
             if (overlayState.value == null) guestPrompt.claimOffer(projectId)?.let { overlayState.value = ConsoleOverlay.KeepWork(it) }
             events.send(ConsoleEvent.AcceptedRun(sheetShown = overlayState.value != null))

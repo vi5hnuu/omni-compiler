@@ -3,6 +3,7 @@ package solutions.laxmi.omnicompiler.feature.workspace.editor
 import solutions.laxmi.omnicompiler.core.model.OpenFile
 import kotlinx.coroutines.flow.Flow
 import androidx.activity.compose.LocalActivity
+import solutions.laxmi.omnicompiler.core.ads.AdFreePassDialog
 import solutions.laxmi.omnicompiler.core.ads.LocalAds
 import solutions.laxmi.omnicompiler.core.review.LocalAppReview
 import solutions.laxmi.omnicompiler.core.navigation.SourceControlRoute
@@ -80,6 +81,7 @@ import solutions.laxmi.omnicompiler.core.navigation.LanguagePickerRoute
 import solutions.laxmi.omnicompiler.core.navigation.Navigator
 import solutions.laxmi.omnicompiler.core.navigation.ProfileRoute
 import solutions.laxmi.omnicompiler.core.navigation.ProjectsRoute
+import solutions.laxmi.omnicompiler.core.navigation.Route
 import solutions.laxmi.omnicompiler.core.navigation.RepoImportRoute
 import solutions.laxmi.omnicompiler.core.navigation.SettingsRoute
 import solutions.laxmi.omnicompiler.core.navigation.SignUpRoute
@@ -105,6 +107,8 @@ fun EditorScreen(route: EditorRoute, navigator: Navigator) {
     val drawerUsage by viewModel.drawerUsage.collectAsStateWithLifecycle()
     LaunchedEffect(drawerVisible) { if (drawerVisible) viewModel.onDrawerOpened() }
     var creatingProject by rememberSaveable { mutableStateOf(false) }
+    var offeringPass by rememberSaveable { mutableStateOf(false) }
+    val passOffered by ads.pass.available.collectAsStateWithLifecycle()
     val editorState = rememberCodeEditorState()
     val splitState = rememberCodeEditorState()
     // Replacing this screen ends its view model, so edits still in the autosave debounce are written first.
@@ -132,7 +136,7 @@ fun EditorScreen(route: EditorRoute, navigator: Navigator) {
             state = drawerState,
             projects = drawerProjects,
             usage = drawerUsage,
-            destinations = viewModel.drawerDestinations,
+            destinations = viewModel.drawerDestinations.filter { it != DrawerDestination.AdFreePass || passOffered },
             docked = layout.expanded,
             sidebarOpen = sidebarOpen,
             onToggleSidebar = { sidebarOpen = !sidebarOpen },
@@ -168,20 +172,21 @@ fun EditorScreen(route: EditorRoute, navigator: Navigator) {
             onAccount = { navigator.navigate(ProfileRoute) },
             onConvertGuest = { navigator.navigate(SignUpRoute(convertGuest = true)) },
             onDestination = { destination ->
-                when (destination) {
-                    DrawerDestination.Projects -> navigator.navigate(ProjectsRoute)
-                    DrawerDestination.ImportGit -> navigator.navigate(RepoImportRoute)
-                    DrawerDestination.Examples -> navigator.navigate(ExamplesRoute)
-                    DrawerDestination.History -> navigator.navigate(HistoryRoute)
-                    DrawerDestination.Usage -> navigator.navigate(UsageRoute)
-                    DrawerDestination.Developer -> navigator.navigate(DeveloperRoute)
-                    DrawerDestination.Settings -> navigator.navigate(SettingsRoute)
-                    DrawerDestination.RateApp -> review.openStoreListing(context)
+                val route = destination.route()
+                when {
+                    route != null -> {
+                        // Leaving the editor for another screen is a break once the user has run their code a few times.
+                        activity?.let(ads::onLeavingEditor)
+                        navigator.navigate(route)
+                    }
+                    destination == DrawerDestination.AdFreePass -> offeringPass = true
+                    destination == DrawerDestination.RateApp -> review.openStoreListing(context)
                 }
             },
             onAppearance = { navigator.navigate(AppearanceRoute) },
         ),
     )
+    if (offeringPass) AdFreePassDialog(onDismiss = { offeringPass = false })
     if (creatingProject) {
         val languages by viewModel.languages.collectAsStateWithLifecycle()
         NewProjectSheet(languages, onDismiss = { creatingProject = false }, initialBase = state.runtime?.language) { name, language ->
@@ -189,6 +194,18 @@ fun EditorScreen(route: EditorRoute, navigator: Navigator) {
             viewModel.newProject(name, language)
         }
     }
+}
+
+/** The screen a drawer row opens, or null for rows handled in place. */
+private fun DrawerDestination.route(): Route? = when (this) {
+    DrawerDestination.Projects -> ProjectsRoute
+    DrawerDestination.ImportGit -> RepoImportRoute
+    DrawerDestination.Examples -> ExamplesRoute
+    DrawerDestination.History -> HistoryRoute
+    DrawerDestination.Usage -> UsageRoute
+    DrawerDestination.Developer -> DeveloperRoute
+    DrawerDestination.Settings -> SettingsRoute
+    DrawerDestination.AdFreePass, DrawerDestination.RateApp -> null
 }
 
 /** What the navigation drawer shows; kept apart from [EditorUiState] (see [EditorViewModel.drawerProjects]). */

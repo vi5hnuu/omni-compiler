@@ -66,6 +66,7 @@ enum class DrawerDestination(@StringRes val labelRes: Int, val icon: ImageVector
     Usage(R.string.drawer_usage, OmniIcons.Chart),
     Developer(R.string.drawer_developer, OmniIcons.Key),
     Settings(R.string.drawer_settings, OmniIcons.Settings),
+    AdFreePass(R.string.drawer_ad_free_pass, OmniIcons.Play),
     RateApp(R.string.drawer_rate, OmniIcons.Star, external = true),
 }
 

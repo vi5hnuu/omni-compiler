@@ -36,6 +36,8 @@
     <string name="editor_menu_limits">Run limits…</string>
     <string name="editor_menu_rename_project">Rename project</string>
     <string name="editor_menu_change_language">Change language</string>
+    <!-- In place of the runtime under the project name when none is chosen yet; tapping opens the language picker. -->
+    <string name="editor_choose_language">Choose a language</string>
     <string name="editor_menu_wrap_on">Turn on word wrap</string>
     <string name="editor_menu_wrap_off">Turn off word wrap</string>
     <!-- Replaces the entry file (named here) and the test cases with the language's sample; other files stay. -->
@@ -80,6 +82,7 @@
     <string name="drawer_usage">Usage &amp; plan</string>
     <string name="drawer_developer">API key &amp; webhooks</string>
     <string name="drawer_settings">Settings</string>
+    <string name="drawer_ad_free_pass">Ad-free pass</string>
     <string name="drawer_rate">Rate the app</string>
     <string name="drawer_projects">Projects</string>
     <string name="drawer_new">New</string>

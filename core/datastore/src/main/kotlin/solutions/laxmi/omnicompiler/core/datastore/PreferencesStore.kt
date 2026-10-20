@@ -25,6 +25,9 @@ import javax.inject.Singleton
 /** How much the app has been used on this device; read by the review prompt's policy. */
 data class Engagement(val firstLaunchAt: Long, val launches: Int, val acceptedRuns: Int, val lastReviewRequestAt: Long?)
 
+/** A rewarded ad-free pass: earned at [grantedAt], it lasts until [until] (both wall-clock epoch ms). */
+data class AdFreePassWindow(val grantedAt: Long, val until: Long)
+
 /** Non-sensitive user preferences. */
 interface PreferencesStore {
     val editorSettings: Flow<EditorSettings>
@@ -39,8 +42,13 @@ interface PreferencesStore {
 
     /** When the app first ran (recorded on the first call); ads stay quiet for a while after install. */
     suspend fun firstLaunchAt(now: Long): Long
-    suspend fun lastInterstitialAt(): Long?
-    suspend fun setLastInterstitialAt(at: Long)
+    /** When the last full-screen ad (interstitial or app open) was shown; they share one spacing. Device-level. */
+    suspend fun lastFullScreenAdAt(): Long?
+    suspend fun setLastFullScreenAdAt(at: Long)
+
+    /** The latest ad-free pass earned on this device, if any (it may have ended). Device-level, survives sign-out. */
+    val adFreePass: Flow<AdFreePassWindow?>
+    suspend fun setAdFreePass(window: AdFreePassWindow)
 
     /** Counts an app launch (and records the first one, which also starts the ads' grace period). Device-level. */
     suspend fun recordLaunch(now: Long)
@@ -86,10 +94,21 @@ internal class DataStorePreferencesStore @Inject constructor(
         return first
     }
 
-    override suspend fun lastInterstitialAt(): Long? = dataStore.data.first()[Keys.LAST_INTERSTITIAL]
+    override suspend fun lastFullScreenAdAt(): Long? = dataStore.data.first()[Keys.LAST_FULL_SCREEN_AD]
 
-    override suspend fun setLastInterstitialAt(at: Long) {
-        dataStore.edit { it[Keys.LAST_INTERSTITIAL] = at }
+    override suspend fun setLastFullScreenAdAt(at: Long) {
+        dataStore.edit { it[Keys.LAST_FULL_SCREEN_AD] = at }
+    }
+
+    override val adFreePass: Flow<AdFreePassWindow?> = dataStore.data
+        .map { prefs -> prefs[Keys.PASS_GRANTED]?.let { granted -> prefs[Keys.PASS_UNTIL]?.let { AdFreePassWindow(granted, it) } } }
+        .distinctUntilChanged()
+
+    override suspend fun setAdFreePass(window: AdFreePassWindow) {
+        dataStore.edit { prefs ->
+            prefs[Keys.PASS_GRANTED] = window.grantedAt
+            prefs[Keys.PASS_UNTIL] = window.until
+        }
     }
 
     override suspend fun recordLaunch(now: Long) {
@@ -234,7 +253,10 @@ internal class DataStorePreferencesStore @Inject constructor(
         val ROOT_TREE = stringPreferencesKey("projects_root_tree")
         val ROOT_DOC = stringPreferencesKey("projects_root_doc")
         val FIRST_LAUNCH = longPreferencesKey("first_launch_at")
-        val LAST_INTERSTITIAL = longPreferencesKey("last_interstitial_at")
+        // Named before app-open ads shared it; the stored name stays so existing spacing carries over.
+        val LAST_FULL_SCREEN_AD = longPreferencesKey("last_interstitial_at")
+        val PASS_GRANTED = longPreferencesKey("ad_free_pass_granted_at")
+        val PASS_UNTIL = longPreferencesKey("ad_free_pass_until")
         val LAUNCH_COUNT = intPreferencesKey("launch_count")
         val ACCEPTED_RUNS = intPreferencesKey("accepted_runs")
         val LAST_REVIEW_REQUEST = longPreferencesKey("last_review_request_at")
