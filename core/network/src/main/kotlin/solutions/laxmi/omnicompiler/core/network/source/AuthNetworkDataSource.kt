@@ -6,7 +6,6 @@ import solutions.laxmi.omnicompiler.core.model.AppError
 import solutions.laxmi.omnicompiler.core.model.Outcome
 import solutions.laxmi.omnicompiler.core.model.User
 import solutions.laxmi.omnicompiler.core.model.map
-import solutions.laxmi.omnicompiler.core.network.BuildConfig
 import solutions.laxmi.omnicompiler.core.network.api.AuthAccountApi
 import solutions.laxmi.omnicompiler.core.network.api.AuthPublicApi
 import solutions.laxmi.omnicompiler.core.network.auth.toStoredSession
@@ -53,15 +52,13 @@ internal class RetrofitAuthNetworkDataSource @Inject constructor(
     private val time: TimeSource,
 ) : AuthNetworkDataSource {
 
-    private val audience get() = BuildConfig.JWT_AUDIENCE
-
     override suspend fun login(identifier: String, password: String) =
-        session { public.login(audience, LoginRequestDto(identifier.trim(), password)) }
+        session { public.login(LoginRequestDto(identifier.trim(), password)) }
 
     override suspend fun loginWithGoogle(idToken: String) =
-        session { public.loginWithGoogle(audience, GoogleLoginRequestDto(idToken)) }
+        session { public.loginWithGoogle(GoogleLoginRequestDto(idToken)) }
 
-    override suspend fun startGuest() = session { public.guest(audience) }
+    override suspend fun startGuest() = session { public.guest() }
 
     override suspend fun register(form: RegistrationForm) =
         runner.auth { public.register(form.toDto()).message.orEmpty() }
