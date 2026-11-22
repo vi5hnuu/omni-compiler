@@ -22,6 +22,9 @@ import solutions.laxmi.omnicompiler.core.network.api.AuthPublicApi
 import solutions.laxmi.omnicompiler.core.network.api.JudgeApi
 import solutions.laxmi.omnicompiler.core.network.auth.BearerInterceptor
 import solutions.laxmi.omnicompiler.core.network.auth.TokenAuthenticator
+import solutions.laxmi.omnicompiler.core.network.humancheck.AudienceInterceptor
+import solutions.laxmi.omnicompiler.core.network.humancheck.HumanCheckInterceptor
+import solutions.laxmi.omnicompiler.core.network.humancheck.HumanCheckTokens
 import solutions.laxmi.omnicompiler.core.network.source.AuthNetworkDataSource
 import solutions.laxmi.omnicompiler.core.network.source.JudgeNetworkDataSource
 import solutions.laxmi.omnicompiler.core.network.source.RetrofitAuthNetworkDataSource
@@ -94,13 +97,19 @@ internal object NetworkModule {
 
     @Provides
     @Singleton
-    fun providesAuthPublicApi(@Anonymous client: OkHttpClient, json: Json): AuthPublicApi =
-        retrofit(BuildConfig.AUTH_BASE_URL, client, json).create(AuthPublicApi::class.java)
+    fun providesAuthPublicApi(@Anonymous client: OkHttpClient, json: Json, humanCheck: HumanCheckTokens): AuthPublicApi =
+        retrofit(BuildConfig.AUTH_BASE_URL, client.forAuthService(humanCheck), json).create(AuthPublicApi::class.java)
 
     @Provides
     @Singleton
-    fun providesAuthAccountApi(@Authenticated client: OkHttpClient, json: Json): AuthAccountApi =
-        retrofit(BuildConfig.AUTH_BASE_URL, client, json).create(AuthAccountApi::class.java)
+    fun providesAuthAccountApi(@Authenticated client: OkHttpClient, json: Json, humanCheck: HumanCheckTokens): AuthAccountApi =
+        retrofit(BuildConfig.AUTH_BASE_URL, client.forAuthService(humanCheck), json).create(AuthAccountApi::class.java)
+
+    /** Auth calls name this app and attest the protected ones; the shared client's pool and dispatcher are reused. */
+    private fun OkHttpClient.forAuthService(humanCheck: HumanCheckTokens): OkHttpClient = newBuilder()
+        .addInterceptor(AudienceInterceptor(BuildConfig.JWT_AUDIENCE))
+        .addInterceptor(HumanCheckInterceptor(humanCheck))
+        .build()
 
     @Provides
     @Singleton

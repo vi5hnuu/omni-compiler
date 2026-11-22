@@ -3,6 +3,8 @@ package solutions.laxmi.omnicompiler
 import javax.inject.Inject
 import solutions.laxmi.omnicompiler.core.ads.LocalAds
 import solutions.laxmi.omnicompiler.core.ads.Ads
+import solutions.laxmi.omnicompiler.core.appupdate.AppUpdates
+import solutions.laxmi.omnicompiler.core.integrity.AppIntegrity
 import solutions.laxmi.omnicompiler.core.review.AppReview
 import solutions.laxmi.omnicompiler.core.review.LocalAppReview
 import androidx.compose.runtime.CompositionLocalProvider
@@ -32,6 +34,8 @@ class MainActivity : ComponentActivity() {
 
     @Inject lateinit var ads: Ads
     @Inject lateinit var review: AppReview
+    @Inject lateinit var integrity: AppIntegrity
+    @Inject lateinit var updates: AppUpdates
 
     // Set when a file from another app brought us to the front; that return never gets an app-open ad.
     private var openedForFile = false
@@ -40,9 +44,13 @@ class MainActivity : ComponentActivity() {
         // Keep the splash until the stored session is read, so the first frame is the right root.
         installSplashScreen().setKeepOnScreenCondition { viewModel.gate.value == AppGate.Loading }
         super.onCreate(savedInstanceState)
+        // Every instance registers the update flow (before it is started); a required update blocks use until installed.
+        updates.attach(this)
         // Once per launch: consent first (the form only shows where the law requires it), then the ads SDK.
         if (savedInstanceState == null) {
             review.onLaunch()
+            // Prepares Play Integrity now so the first sign-in doesn't wait for it.
+            integrity.onLaunch()
             ads.start(this)
             openedForFile = openSharedFile(intent)
         }

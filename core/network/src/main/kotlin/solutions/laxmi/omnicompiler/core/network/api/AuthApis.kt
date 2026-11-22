@@ -6,6 +6,7 @@ import retrofit2.http.GET
 import retrofit2.http.Header
 import retrofit2.http.PATCH
 import retrofit2.http.POST
+import solutions.laxmi.omnicompiler.core.network.humancheck.HumanCheck
 import solutions.laxmi.omnicompiler.core.network.dto.AuthEnvelope
 import solutions.laxmi.omnicompiler.core.network.dto.AuthTokensDto
 import solutions.laxmi.omnicompiler.core.network.dto.AuthUserDto
@@ -18,28 +19,32 @@ import solutions.laxmi.omnicompiler.core.network.dto.RegisterRequestDto
 import solutions.laxmi.omnicompiler.core.network.dto.UpdateProfileRequestDto
 import kotlinx.serialization.json.JsonElement
 
-internal const val AUDIENCE_HEADER = "X-Audience"
-
 /**
  * Auth endpoints that must never carry a bearer token. Kept on a separate client so a 401 here
  * (e.g. wrong password) is never mistaken for an expired session and never triggers a refresh.
+ * Every auth call names the app (`X-Audience`, added by the client); [HumanCheck] calls also carry an attestation.
  */
 internal interface AuthPublicApi {
+    @HumanCheck("sign-in")
     @POST("auth/login")
-    suspend fun login(@Header(AUDIENCE_HEADER) audience: String, @Body body: LoginRequestDto): AuthEnvelope<AuthTokensDto>
+    suspend fun login(@Body body: LoginRequestDto): AuthEnvelope<AuthTokensDto>
 
     @POST("auth/login/google")
-    suspend fun loginWithGoogle(@Header(AUDIENCE_HEADER) audience: String, @Body body: GoogleLoginRequestDto): AuthEnvelope<AuthTokensDto>
+    suspend fun loginWithGoogle(@Body body: GoogleLoginRequestDto): AuthEnvelope<AuthTokensDto>
 
+    @HumanCheck("guest")
     @POST("auth/guest")
-    suspend fun guest(@Header(AUDIENCE_HEADER) audience: String): AuthEnvelope<AuthTokensDto>
+    suspend fun guest(): AuthEnvelope<AuthTokensDto>
 
+    @HumanCheck("sign-up")
     @POST("auth/register")
     suspend fun register(@Body body: RegisterRequestDto): AuthEnvelope<JsonElement>
 
+    @HumanCheck("re-verify")
     @POST("auth/re-verify")
     suspend fun resendVerification(@Body body: EmailRequestDto): AuthEnvelope<JsonElement>
 
+    @HumanCheck("forgot-password")
     @POST("auth/forgot-password")
     suspend fun forgotPassword(@Body body: EmailRequestDto): AuthEnvelope<JsonElement>
 
@@ -51,11 +56,12 @@ internal interface AuthPublicApi {
     suspend fun logout(@Header("Authorization") bearer: String, @Body body: RefreshRequestDto): AuthEnvelope<JsonElement>
 
     @POST("auth/refresh")
-    suspend fun refresh(@Header(AUDIENCE_HEADER) audience: String, @Body body: RefreshRequestDto): AuthEnvelope<AuthTokensDto>
+    suspend fun refresh(@Body body: RefreshRequestDto): AuthEnvelope<AuthTokensDto>
 }
 
 /** Auth endpoints that require the current access token. */
 internal interface AuthAccountApi {
+    @HumanCheck("convert")
     @POST("auth/convert")
     suspend fun convertGuest(@Body body: RegisterRequestDto): AuthEnvelope<AuthUserDto>
 

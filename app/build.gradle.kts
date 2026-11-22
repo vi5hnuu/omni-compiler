@@ -23,7 +23,7 @@ aboutLibraries {
             Regex("com\\.google\\.android\\.ump:.*").toPattern(),
             Regex("com\\.google\\.android\\.libraries\\.identity\\..*").toPattern(),
             Regex("com\\.google\\.android\\.play:hsdp").toPattern(),
-            Regex("com\\.google\\.android\\.play:(review|core-common)").toPattern(),
+            Regex("com\\.google\\.android\\.play:(review|core-common|integrity|app-update)").toPattern(),
             Regex(".*:.*-bom").toPattern(),
             Regex("com\\.google\\.dagger:dagger-lint-aar").toPattern(),
         )
@@ -33,6 +33,11 @@ aboutLibraries {
 val localProps = Properties().apply {
     rootProject.file("local.properties").takeIf { it.exists() }?.inputStream()?.use(::load)
 }
+
+// gradle.properties holds shared defaults; local.properties may override them per machine.
+fun config(key: String): String = (localProps.getProperty(key) ?: providers.gradleProperty(key).orNull).orEmpty()
+
+val playIntegrityCloudProject = config("omni.playIntegrity.cloudProjectNumber").ifBlank { "0" }.toLong()
 
 /** Google's sample AdMob app id: only ever serves test ads. Release uses `omni.admob.appId` from local.properties. */
 val testAdMobAppId = "ca-app-pub-3940256099942544~3347511713"
@@ -44,6 +49,8 @@ android {
         applicationId = "solutions.laxmi.omnicompiler"
         // The published listing that "Rate" opens; debug's ".debug" id has none.
         buildConfigField("String", "STORE_PACKAGE", "\"$applicationId\"")
+        buildConfigField("long", "PLAY_INTEGRITY_CLOUD_PROJECT_NUMBER", "${playIntegrityCloudProject}L")
+        buildConfigField("int", "IMMEDIATE_UPDATE_PRIORITY", config("omni.update.immediatePriority").ifBlank { "4" })
         versionCode = 3
         versionName = "1.1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -91,6 +98,8 @@ dependencies {
     implementation(projects.feature.vcs)
     implementation(projects.core.ads)
     implementation(projects.core.review)
+    implementation(projects.core.integrity)
+    implementation(projects.core.appupdate)
 
     // Installs the bundled baseline profile so first launches run precompiled code paths.
     implementation(libs.androidx.profileinstaller)
@@ -115,3 +124,12 @@ dependencies {
     androidTestImplementation(libs.androidx.junit)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
 }
+
+// A release without attestation would be refused sign-in once the auth service enforces Play Integrity: fail the build.
+val verifyReleaseConfig by tasks.registering {
+    val project = playIntegrityCloudProject
+    doLast {
+        check(project > 0) { "omni.playIntegrity.cloudProjectNumber must be set for release builds (Play Console → App integrity)" }
+    }
+}
+tasks.matching { it.name == "preReleaseBuild" }.configureEach { dependsOn(verifyReleaseConfig) }

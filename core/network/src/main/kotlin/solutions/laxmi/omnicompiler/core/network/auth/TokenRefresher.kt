@@ -6,7 +6,6 @@ import kotlinx.serialization.SerializationException
 import retrofit2.HttpException
 import solutions.laxmi.omnicompiler.core.common.TimeSource
 import solutions.laxmi.omnicompiler.core.datastore.SessionStore
-import solutions.laxmi.omnicompiler.core.network.BuildConfig
 import solutions.laxmi.omnicompiler.core.network.api.AuthPublicApi
 import solutions.laxmi.omnicompiler.core.network.dto.RefreshRequestDto
 import java.io.IOException
@@ -33,7 +32,7 @@ class TokenRefresher @Inject internal constructor(
         val current = store.current() ?: return null
         if (staleAccessToken != null && current.accessToken != staleAccessToken) return current.accessToken
         try {
-            val tokens = api.refresh(BuildConfig.JWT_AUDIENCE, RefreshRequestDto(current.refreshToken)).data ?: return null
+            val tokens = api.refresh(RefreshRequestDto(current.refreshToken)).data ?: return null
             val updated = tokens.toStoredSession(time.now().toEpochMilliseconds(), current.user)
             // Persist before anyone uses the new token so a crash can't strand us on a revoked refresh token.
             store.save(updated)
