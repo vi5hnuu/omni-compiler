@@ -51,8 +51,8 @@ android {
         buildConfigField("String", "STORE_PACKAGE", "\"$applicationId\"")
         buildConfigField("long", "PLAY_INTEGRITY_CLOUD_PROJECT_NUMBER", "${playIntegrityCloudProject}L")
         buildConfigField("int", "IMMEDIATE_UPDATE_PRIORITY", config("omni.update.immediatePriority").ifBlank { "4" })
-        versionCode = 3
-        versionName = "1.1.0"
+        versionCode = 4
+        versionName = "1.2.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
